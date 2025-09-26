@@ -10,6 +10,8 @@ class Empleado extends Model
     //
     use HasFactory;
 
+    protected $table = 'tabla_empleados';
+
     protected $fillable = [
         'nombre',
         'apellidos',
@@ -98,43 +100,75 @@ class Empleado extends Model
     /**
      * Crear un nuevo empleado con credenciales automáticas
      */
-    public static function crearConCredenciales($datosEmpleado)
-    {
-        $rolEmpleado = Rol::where('nombre', 'empleado')->first();
-        
-        if (!$rolEmpleado) {
-            throw new \Exception("Rol de empleado no encontrado");
-        }
-
-        // Generar username (DNI sin letra)
-        $username = substr($datosEmpleado['dni'], 0, 8);
-        
-        // Generar password numérico de 6 dígitos
-        $password = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
-
-        // Crear credencial
-        $credencial = Credencial::create([
-            'username' => $username,
-            'password' => bcrypt($password),
-            'rol_id' => $rolEmpleado->id,
-        ]);
-
-        // Crear empleado
-        $empleado = self::create([
-            'nombre' => $datosEmpleado['nombre'],
-            'apellidos' => $datosEmpleado['apellidos'],
-            'fecha_nacimiento' => $datosEmpleado['fecha_nacimiento'],
-            'dni' => $datosEmpleado['dni'],
-            'domicilio' => $datosEmpleado['domicilio'],
-            'latitud' => $datosEmpleado['latitud'],
-            'longitud' => $datosEmpleado['longitud'],
-            'credencial_id' => $credencial->id,
-            'rol_id' => $rolEmpleado->id,
-        ]);
-
-        return [
-            'empleado' => $empleado,
-            'password_plain' => $password
-        ];
+/**
+ * Crear un nuevo empleado con credenciales
+ */
+/**
+ * Crear un nuevo empleado con credenciales automáticas
+ * - Contraseña: primeros 4 dígitos del DNI
+ * - Validación: mayor de 16 años
+ */
+public static function crearConCredenciales($datosEmpleado)
+{
+    $rolEmpleado = Rol::where('nombre', 'empleado')->first();
+    
+    if (!$rolEmpleado) {
+        throw new \Exception("Rol de empleado no encontrado");
     }
+
+    // VALIDAR EDAD: Mayor de 16 años
+    $fechaNacimiento = new \DateTime($datosEmpleado['fecha_nacimiento']);
+    $hoy = new \DateTime();
+    $edad = $hoy->diff($fechaNacimiento)->y;
+    
+    if ($edad < 16) {
+        throw new \Exception("El empleado debe ser mayor de 16 años. Edad actual: {$edad} años");
+    }
+
+    // Generar username (DNI sin letra)
+    $username = substr($datosEmpleado['dni'], 0, 8);
+    
+    // GENERAR CONTRASEÑA: primeros 4 dígitos del DNI
+    $password = substr($datosEmpleado['dni'], 0, 4);
+    
+    // Validar que la contraseña tenga exactamente 4 dígitos
+    if (!preg_match('/^\d{4}$/', $password)) {
+        throw new \Exception("El DNI debe comenzar con 4 dígitos para generar la contraseña automáticamente");
+    }
+
+    // Verificar que el username no exista
+    if (\App\Models\Credencial::where('username', $username)->exists()) {
+        throw new \Exception("El nombre de usuario '{$username}' ya existe");
+    }
+
+    // Verificar que el DNI no exista
+    if (self::where('dni', $datosEmpleado['dni'])->exists()) {
+        throw new \Exception("El DNI '{$datosEmpleado['dni']}' ya está registrado");
+    }
+
+    // Crear credencial
+    $credencial = Credencial::create([
+        'username' => $username,
+        'password' => bcrypt($password),
+        'rol_id' => $rolEmpleado->id,
+    ]);
+
+    // Crear empleado
+    $empleado = self::create([
+        'nombre' => $datosEmpleado['nombre'],
+        'apellidos' => $datosEmpleado['apellidos'],
+        'fecha_nacimiento' => $datosEmpleado['fecha_nacimiento'],
+        'dni' => $datosEmpleado['dni'],
+        'domicilio' => $datosEmpleado['domicilio'],
+        'latitud' => $datosEmpleado['latitud'] ?? null,
+        'longitud' => $datosEmpleado['longitud'] ?? null,
+        'credencial_id' => $credencial->id,
+        'rol_id' => $rolEmpleado->id,
+    ]);
+
+    return [
+        'empleado' => $empleado,
+        'credencial' => $credencial,
+        'password_generado' => $password // Renombrar para mayor claridad
+    ];
 }
