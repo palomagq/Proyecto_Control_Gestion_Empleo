@@ -172,3 +172,5 @@ public static function crearConCredenciales($datosEmpleado)
         'password_generado' => $password // Renombrar para mayor claridad
     ];
 }
+
+}

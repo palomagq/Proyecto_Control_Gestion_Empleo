@@ -10,14 +10,13 @@
                 <h1 class="h3 mb-0 text-gray-800">
                     <i class="fas fa-users mr-2"></i>Gestión de Empleados
                 </h1>
-                <p class="lead text-muted">Administra y gestiona los empleados del sistema</p>
-            </div>
+                <p class="lead text-muted d-none d-md-block">Administra y gestiona los empleados del sistema</p>            </div>
         </div>
     </div>
 
     <!-- Stats Cards -->
-    <div class="row mb-4">
-        <div class="col-xl-4 col-md-6 mb-4">
+    <div class="row mb-3 mb-lg-4"> <!-- Margen responsivo -->
+        <div class="col-12 col-md-4 mb-3 mb-md-0"> <!-- Columnas responsivas -->
             <div class="card border-left-primary shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -28,14 +27,14 @@
                             <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalEmpleados">0</div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                            <i class="fas fa-users fa-lg fa-2x text-gray-300"></i> <!-- Icono responsivo -->
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-4 col-md-6 mb-4">
+        <div class="col-12 col-md-4 mb-3 mb-md-0">
             <div class="card border-left-info shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -46,14 +45,14 @@
                             <div class="h5 mb-0 font-weight-bold text-gray-800" id="registrosMes">0</div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-calendar-alt fa-2x text-gray-300"></i>
+                            <i class="fas fa-calendar-alt fa-lg fa-2x text-gray-300"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-4 col-md-6 mb-4">
+        <div class="col-12 col-md-4">
             <div class="card border-left-warning shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -64,7 +63,7 @@
                             <div class="h5 mb-0 font-weight-bold text-gray-800" id="promedioEdad">0 años</div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                            <i class="fas fa-chart-line fa-lg fa-2x text-gray-300"></i>
                         </div>
                     </div>
                 </div>
@@ -73,19 +72,19 @@
     </div>
 
     <!-- Action Card -->
-    <div class="row mb-4">
+    <div class="row mb-3 mb-lg-4">
         <div class="col-12">
             <div class="card shadow">
-                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">
+                <div class="card-header bg-white py-2 py-lg-3 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center"> <!-- Flex responsivo -->
+                    <h6 class="m-0 font-weight-bold text-primary mb-2 mb-md-0">
                         <i class="fas fa-plus-circle mr-2"></i>Acciones Rápidas
                     </h6>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-success btn-lg" data-toggle="modal" data-target="#employeeModal">
-                            <i class="fas fa-user-plus mr-1"></i> Crear Nuevo Empleado
+                    <div class="btn-group w-100 w-md-auto"> <!-- Ancho responsivo -->
+                        <button type="button" class="btn btn-success btn-sm btn-lg-md w-50 w-md-auto" data-toggle="modal" data-target="#employeeModal">
+                            <i class="fas fa-user-plus mr-1"></i> <span class="d-none d-md-inline">Crear Nuevo Empleado</span><span class="d-md-none">Nuevo</span>
                         </button>
-                        <button type="button" class="btn btn-outline-primary btn-lg ml-2" onclick="exportarExcel()">
-                            <i class="fas fa-file-excel mr-1"></i> Exportar Excel
+                        <button type="button" class="btn btn-outline-primary btn-sm btn-lg-md w-50 w-md-auto ml-1 ml-md-2" onclick="exportarExcel()">
+                            <i class="fas fa-file-excel mr-1"></i> <span class="d-none d-md-inline">Exportar Excel</span><span class="d-md-none">Excel</span>
                         </button>
                     </div>
                 </div>
@@ -94,40 +93,40 @@
     </div>
 
     <!-- Filters Card -->
-    <div class="row mb-4">
+    <div class="row mb-3 mb-lg-4">
         <div class="col-12">
             <div class="card shadow">
-                <div class="card-header bg-light py-3">
+                <div class="card-header bg-light py-2 py-lg-3">
                     <h6 class="m-0 font-weight-bold text-dark">
                         <i class="fas fa-filter mr-2"></i>Filtros de Búsqueda
                     </h6>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-2 p-lg-3"> <!-- Padding responsivo -->
                     <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="filterDni" class="font-weight-bold text-dark">
+                        <div class="col-12 col-md-4 mb-2 mb-md-0"> <!-- Stack en móvil -->
+                            <div class="form-group mb-1 mb-lg-2">
+                                <label for="filterDni" class="font-weight-bold text-dark small small-lg"> <!-- Texto más pequeño en móvil -->
                                     <i class="fas fa-id-card mr-1"></i>Filtrar por DNI:
                                 </label>
-                                <input type="text" class="form-control" id="filterDni" placeholder="Ej: 12345678A">
+                                <input type="text" class="form-control form-control-sm form-control-lg-md" id="filterDni" placeholder="Ej: 12345678A"> <!-- Control responsivo -->
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="filterNombre" class="font-weight-bold text-dark">
+                        <div class="col-12 col-md-4 mb-2 mb-md-0">
+                            <div class="form-group mb-1 mb-lg-2">
+                                <label for="filterNombre" class="font-weight-bold text-dark small small-lg">
                                     <i class="fas fa-user mr-1"></i>Filtrar por Nombre:
                                 </label>
-                                <input type="text" class="form-control" id="filterNombre" placeholder="Buscar por nombre...">
+                                <input type="text" class="form-control form-control-sm form-control-lg-md" id="filterNombre" placeholder="Buscar por nombre...">
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="filterMes" class="font-weight-bold text-dark">
+                        <div class="col-12 col-md-4">
+                            <div class="form-group mb-1 mb-lg-2">
+                                <label for="filterMes" class="font-weight-bold text-dark small small-lg">
                                     <i class="fas fa-calendar-alt mr-1"></i>Filtrar por Mes Completo:
                                 </label>
-                                <input type="text" class="form-control" id="filterMes" 
+                                <input type="text" class="form-control form-control-sm form-control-lg-md" id="filterMes" 
                                        placeholder="Seleccione un mes">
-                                <small class="form-text text-muted">Se filtrará del día 1 al último día del mes</small>
+                                <small class="form-text text-muted d-none d-md-block">Se filtrará del día 1 al último día del mes</small> <!-- Ocultar en móvil -->
                             </div>
                         </div>
                     </div>
@@ -135,23 +134,26 @@
                     <!-- Información del filtro aplicado -->
                     <div class="row" id="filtroInfo" style="display: none;">
                         <div class="col-md-12">
-                            <div class="alert alert-info py-2 mb-0">
+                            <div class="alert alert-info py-1 py-lg-2 mb-0 small"> <!-- Padding y texto responsivo -->
                                 <i class="fas fa-info-circle"></i> 
                                 Filtrando por mes completo: <strong id="infoMes"></strong>
-                                <button type="button" class="btn btn-sm btn-outline-info ml-2" onclick="limpiarFiltroMes()">
+                                <button type="button" class="btn btn-sm btn-outline-info ml-2 d-none d-md-inline-block" onclick="limpiarFiltroMes()">
                                     <i class="fas fa-times"></i> Limpiar filtro de mes
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-info ml-1 d-md-none" onclick="limpiarFiltroMes()" title="Limpiar filtro">
+                                    <i class="fas fa-times"></i>
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="card-footer bg-light">
+                <div class="card-footer bg-light py-2 py-lg-3">
                     <div class="row">
-                        <div class="col-md-12 text-right">
-                            <button type="button" class="btn btn-primary btn-lg" onclick="aplicarFiltros()">
+                        <div class="col-12 text-center text-md-right"> <!-- Centrar en móvil -->
+                            <button type="button" class="btn btn-primary btn-sm btn-lg-md mb-1 mb-md-0 w-100 w-md-auto" onclick="aplicarFiltros()">
                                 <i class="fas fa-filter mr-1"></i> Aplicar Filtros
                             </button>
-                            <button type="button" class="btn btn-outline-secondary btn-lg ml-2" onclick="limpiarFiltros()">
+                            <button type="button" class="btn btn-outline-secondary btn-sm btn-lg-md w-100 w-md-auto ml-0 ml-md-2" onclick="limpiarFiltros()">
                                 <i class="fas fa-broom mr-1"></i> Limpiar Filtros
                             </button>
                         </div>
@@ -165,25 +167,25 @@
     <div class="row">
         <div class="col-12">
             <div class="card shadow">
-                <div class="card-header bg-white py-3">
+                <div class="card-header bg-white py-2 py-lg-3">
                     <h6 class="m-0 font-weight-bold text-primary">
                         <i class="fas fa-table mr-2"></i>Lista de Empleados
                     </h6>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table id="empleadosTable" class="table table-hover table-bordered mb-0" style="width:100%">
+                        <table id="empleadosTable" class="table table-hover table-bordered mb-0 display responsive nowrap" style="width:100%"> <!-- Clase responsive -->
                             <thead class="thead-dark">
                                 <tr>
-                                    <th width="5%">ID</th>
-                                    <th width="8%"><i class="fas fa-id-card mr-1"></i> DNI</th>
-                                    <th width="15%"><i class="fas fa-user mr-1"></i> Nombre</th>
-                                    <th width="15%"><i class="fas fa-users mr-1"></i> Apellidos</th>
-                                    <th width="8%"><i class="fas fa-birthday-cake mr-1"></i> Fecha Nacimiento</th>
-                                    <th width="8%"><i class="fas fa-calendar mr-1"></i> Edad</th>
-                                    <th width="18%"><i class="fas fa-home mr-1"></i> Domicilio</th>
-                                    <th width="8%"><i class="fas fa-user-tag mr-1"></i> Username</th>
-                                    <th width="15%"><i class="fas fa-cogs mr-1"></i> Acciones</th>
+                                    <th width="5%" class="all">ID</th> <!-- Clase 'all' para mostrar siempre -->
+                                    <th width="8%" class="min-tablet"><i class="fas fa-id-card mr-1"></i> DNI</th> <!-- Ocultar en móvil -->
+                                    <th width="15%" class="all">Nombre</th>
+                                    <th width="15%" class="min-tablet">Apellidos</th>
+                                    <th width="8%" class="min-desktop">Fecha Nac.</th> <!-- Ocultar en tablets pequeñas -->
+                                    <th width="8%" class="all">Edad</th>
+                                    <th width="18%" class="min-tablet">Domicilio</th>
+                                    <th width="8%" class="min-desktop">Username</th>
+                                    <th width="15%" class="all">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -319,9 +321,185 @@
         </div>
     </div>
 </div>
+
+
+
+<!-- Modal para Editar Empleado -->
+<div class="modal fade" id="editEmployeeModal" tabindex="-1" role="dialog" aria-labelledby="editEmployeeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-warning text-white">
+                <h5 class="modal-title" id="editEmployeeModalLabel">
+                    <i class="fas fa-edit mr-2"></i> Editar Empleado
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editEmployeeForm">
+                    @csrf
+                    @method('PUT')
+                    
+                    <!-- Información del empleado (solo lectura) -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_nombre" class="font-weight-bold">Nombre</label>
+                                <input type="text" class="form-control bg-light" id="edit_nombre" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_apellidos" class="font-weight-bold">Apellidos</label>
+                                <input type="text" class="form-control bg-light" id="edit_apellidos" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_dni" class="font-weight-bold">DNI</label>
+                                <input type="text" class="form-control bg-light" id="edit_dni" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_fecha_nacimiento" class="font-weight-bold">Fecha de Nacimiento</label>
+                                <input type="text" class="form-control bg-light" id="edit_fecha_nacimiento" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_username" class="font-weight-bold">Username</label>
+                                <input type="text" class="form-control bg-light" id="edit_username" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_edad" class="font-weight-bold">Edad</label>
+                                <input type="text" class="form-control bg-light" id="edit_edad" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Campo editable: Domicilio -->
+                    <div class="form-group">
+                        <label for="edit_domicilio" class="font-weight-bold">Domicilio *</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="edit_domicilio" name="domicilio" required 
+                                placeholder="Calle, número, ciudad, código postal">
+                            <div class="input-group-append">
+                                <button type="button" class="btn btn-outline-primary" onclick="geocodificarDireccionEdit()" id="btn-geocodificar-edit">
+                                    <i class="fas fa-search-location"></i> Buscar
+                                </button>
+                            </div>
+                        </div>
+                        <small class="form-text text-muted">
+                            Este es el único campo editable. Comience a escribir la dirección y seleccione una de las opciones sugeridas.
+                        </small>
+                    </div>
+
+                    <!-- Campos ocultos para coordenadas -->
+                    <input type="hidden" id="edit_latitud" name="latitud">
+                    <input type="hidden" id="edit_longitud" name="longitud">
+                    <input type="hidden" id="edit_empleado_id" name="empleado_id">
+
+                    <!-- Mapa para edición -->
+                    <div class="form-group">
+                        <label class="font-weight-bold">Ubicación en el Mapa</label>
+                        <div id="edit_map" style="height: 250px; width: 100%; border-radius: 5px; border: 1px solid #ddd;"></div>
+                        <small class="form-text text-muted" id="edit_coordenadas-info">
+                            <i class="fas fa-info-circle"></i> Coordenadas: No especificadas
+                        </small>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <small>
+                            <i class="fas fa-info-circle"></i> Solo el campo de domicilio puede ser editado. 
+                            Los demás campos son informativos y no pueden modificarse.
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-lg" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-warning btn-lg" onclick="updateEmployee()">
+                    <i class="fas fa-save mr-1"></i> Actualizar Empleado
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Eliminar Empleado -->
+<div class="modal fade" id="deleteEmployeeModal" tabindex="-1" role="dialog" aria-labelledby="deleteEmployeeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-danger text-white">
+                <h5 class="modal-title" id="deleteEmployeeModalLabel">
+                    <i class="fas fa-exclamation-triangle mr-2"></i> Eliminar Empleado
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle fa-3x mb-3"></i>
+                        <h4 class="alert-heading">¿Está seguro que desea eliminar este empleado?</h4>
+                    </div>
+                    
+                    <div class="employee-info-card card border-danger mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title text-danger" id="delete_employee_name"></h5>
+                            <div class="row text-left">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>DNI:</strong> <span id="delete_employee_dni"></span></p>
+                                    <p class="mb-1"><strong>Username:</strong> <span id="delete_employee_username"></span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Edad:</strong> <span id="delete_employee_age"></span></p>
+                                    <p class="mb-1"><strong>Domicilio:</strong> <span id="delete_employee_address"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <small>
+                            <i class="fas fa-info-circle"></i> 
+                            <strong>Esta acción no se puede deshacer.</strong> 
+                            Se eliminarán todos los datos del empleado, incluyendo sus credenciales de acceso.
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-lg" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-danger btn-lg" onclick="confirmDeleteEmployee()">
+                    <i class="fas fa-trash mr-1"></i> Sí, Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
+<!-- jQuery completo (NO slim) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
 <!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -333,6 +511,9 @@
 <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
 <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap4.min.js"></script>
 
+<!-- Bootstrap (asegúrate de que esté después de jQuery) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+
 <!-- Flatpickr -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -343,24 +524,127 @@
 <!-- Google Maps API -->
 <script src="https://maps.googleapis.com/maps/api/js?key={{ env('GOOGLE_MAPS_API_KEY') }}&libraries=places" async defer></script>
 
+
+
+<!-- ******************************************** JS ****************************************************  -->
+
+
 <script>
+
+let table;
+
+// Esperar a que jQuery esté completamente cargado
+$(document).ready(function() {
+    console.log('✅ jQuery cargado, versión:', $.fn.jquery);
+    initializeDataTable();
+    loadStats(); // Cargar estadísticas al inicio
+
+});
+
+function initializeDataTable() {
+    console.log('🔄 Inicializando DataTable...');
+    
+    if (!$.fn.DataTable) {
+        console.error('❌ DataTables no está cargado');
+        return;
+    }
+    
+    // Destruir instancia anterior si existe
+    if ($.fn.DataTable.isDataTable('#empleadosTable')) {
+        $('#empleadosTable').DataTable().destroy();
+        $('#empleadosTable').empty();
+    }
+    
+    table = $('#empleadosTable').DataTable({
+        //processing: true,
+        responsive: true,
+        serverSide: true,
+        ajax: {
+            url: '{{ route("admin.empleados.datatable") }}',
+            type: 'GET',
+            data: function (d) {
+                return {
+                    filterDni: $('#filterDni').val(),
+                    filterNombre: $('#filterNombre').val(),
+                    filterMes: $('#filterMes').val(),
+                    draw: d.draw,
+                    start: d.start,
+                    length: d.length,
+                    search: d.search,
+                    order: d.order
+                };
+            },
+            error: function(xhr, error, thrown) {
+                console.error('❌ Error cargando DataTable:', error);
+            }
+        },
+        columns: [
+            { data: 'id', name: 'id' },
+            { data: 'dni', name: 'dni' },
+            { data: 'nombre', name: 'nombre' },
+            { data: 'apellidos', name: 'apellidos' },
+            { data: 'fecha_nacimiento', name: 'fecha_nacimiento' },
+            { data: 'edad', name: 'edad', orderable: false, searchable: false },
+            { data: 'domicilio', name: 'domicilio' },
+            { data: 'username', name: 'username' },
+            { 
+                data: 'acciones', 
+                name: 'acciones', 
+                orderable: false, 
+                searchable: false,
+                className: 'text-center'
+            }
+        ],
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json'
+        },
+        order: [[0, 'desc']],
+        pageLength: 10,
+        responsive: true,
+        drawCallback: function(settings) {
+            console.log('📊 DataTable actualizado - refrescando estadísticas');
+            updateStats(); // ✅ LLAMADA CORRECTA A updateStats
+        },
+        initComplete: function(settings, json) {
+            console.log('✅ DataTable inicializado correctamente');
+        }
+    });
+
+    // Agregar event listeners para aplicar filtros automáticamente al escribir
+    $('#filterDni, #filterNombre').on('keyup', function(e) {
+        if (e.keyCode === 13) { // Enter key
+            aplicarFiltros();
+        } else {
+            // Opcional: Búsqueda en tiempo real con debounce
+            clearTimeout(window.filterTimeout);
+            window.filterTimeout = setTimeout(aplicarFiltros, 500);
+        }
+    });
+    
+    $('#filterMes').on('change', function() {
+        aplicarFiltros();
+    });
+}
+
+
 document.addEventListener("DOMContentLoaded", function() {
     // Fecha de nacimiento con restricción de +16 años
+    // ✅ CORREGIDO: Fecha de nacimiento con restricción exacta de +16 años
     flatpickr("#fecha_nacimiento", {
         dateFormat: "Y-m-d",
-        maxDate: new Date().fp_incr(-5840), // 16 años atrás (16 * 365 = 5840 días)
+        maxDate: new Date(new Date().setFullYear(new Date().getFullYear() - 16)), // Exactamente 16 años atrás
         locale: "es",
         errorHandler: function(error) {
             console.log('Error de fecha:', error);
         }
     });
 
-    // Selector de mes completo
+    // Selector de mes completo (mantener igual)
     flatpickr("#filterMes", {
         plugins: [
             new monthSelectPlugin({
                 shorthand: true,
-                dateFormat: "Y-m", // formato que usas en filtros
+                dateFormat: "Y-m",
                 altFormat: "F Y",
                 theme: "material_blue"
             })
@@ -379,26 +663,54 @@ document.addEventListener("DOMContentLoaded", function() {
             input.classList.remove('is-invalid');
         });
     });
+
+    const passwordInput = document.getElementById('password-display');
+    if (passwordInput) {
+        passwordInput.addEventListener('input', validarPassword4Digitos);
+    }
 });
+
+// Agregar event listeners para validación en tiempo real
+document.addEventListener('DOMContentLoaded', function() {
+    // Validar DNI en tiempo real
+    document.getElementById('dni').addEventListener('input', function() {
+        validarDNI();
+        generarUsername();
+    });
+    
+    // Validar coordenadas cuando cambien
+    document.getElementById('latitud').addEventListener('change', validarCoordenadas);
+    document.getElementById('longitud').addEventListener('change', validarCoordenadas);
+    
+    // Validar dirección
+    document.getElementById('domicilio').addEventListener('blur', function() {
+        if (this.value.trim().length < 10) {
+            this.classList.add('is-invalid');
+        } else {
+            this.classList.remove('is-invalid');
+        }
+    });
+});
+
 
 function generarUsername() {
     const dniInput = document.getElementById('dni');
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password-display');
     
-    // Extraer solo los números del DNI (eliminar letra si existe)
+    // Extraer solo los números del DNI
     const soloNumeros = dniInput.value.replace(/[^0-9]/g, '');
     
     // Generar username (primeros 8 números)
     if (soloNumeros.length >= 8) {
         usernameInput.value = soloNumeros.substring(0, 8);
     } else {
-        usernameInput.value = soloNumeros; // Usar los números disponibles
+        usernameInput.value = soloNumeros;
     }
     
-    // ✅ CORREGIDO: Generar contraseña de 4 dígitos 
+    // ✅ CONTRASEÑA DE 4 DÍGITOS EXACTOS
     if (soloNumeros.length >= 4) {
-        passwordInput.value = soloNumeros.substring(0, 4); // Primeros 8 dígitos
+        passwordInput.value = soloNumeros.substring(0, 4); // Exactamente 4 dígitos
     } else if (soloNumeros.length > 0) {
         // Si no hay 4 dígitos, completar con ceros
         passwordInput.value = soloNumeros.padEnd(4, '0');
@@ -409,67 +721,256 @@ function generarUsername() {
     validarDNI();
 }
 
-function validarDNI() {
-    const dniInput = document.getElementById('dni');
-    const dni = dniInput.value.trim();
-    
-    // Expresión regular para validar DNI español (8 números + 1 letra)
-    const dniRegex = /^[0-9]{8}[A-Za-z]$/;
-    
-    if (dni.length === 9 && !dniRegex.test(dni)) {
-        dniInput.classList.add('is-invalid');
-        return false;
-    } else {
-        dniInput.classList.remove('is-invalid');
-        return true;
-    }
-}
-
-function submitEmployeeForm() {
-    // Validaciones antes de enviar
-    if (!validarDNI()) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Por favor, ingrese un DNI válido (8 números + 1 letra)'
-        });
-        return;
-    }
-
-    // Validar que el DNI tenga al menos 4 dígitos para la contraseña
-    const dni = document.getElementById('dni').value.replace(/[^0-9]/g, '');
-    if (dni.length < 4) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'El DNI debe contener al menos 4 dígitos para generar la contraseña automáticamente'
-        });
-        return;
-    }
-
-    // ✅ CORREGIDO: Validar edad mínima (16 años) - según requerimiento del servidor
-    const fechaNacimiento = new Date(document.getElementById('fecha_nacimiento').value);
+// ✅ FUNCIÓN MEJORADA: Validación de edad exacta de 16 años
+function validarEdadMinima() {
+    const fechaNacimientoInput = document.getElementById('fecha_nacimiento');
+    const fechaNacimiento = new Date(fechaNacimientoInput.value);
     const hoy = new Date();
-    const edad = hoy.getFullYear() - fechaNacimiento.getFullYear();
+    
+    if (!fechaNacimientoInput.value) {
+        fechaNacimientoInput.classList.add('is-invalid');
+        return { valido: false, mensaje: 'La fecha de nacimiento es requerida' };
+    }
+    
+    // Calcular edad exacta
+    let edad = hoy.getFullYear() - fechaNacimiento.getFullYear();
     const mes = hoy.getMonth() - fechaNacimiento.getMonth();
     const dia = hoy.getDate() - fechaNacimiento.getDate();
     
-    // Calcular edad exacta
-    let edadExacta = edad;
+    // Ajustar si aún no ha cumplido años este año
     if (mes < 0 || (mes === 0 && dia < 0)) {
-        edadExacta--;
+        edad--;
     }
     
-    if (edadExacta < 16) {
+    console.log('📅 Validación de edad:', {
+        fechaNacimiento: fechaNacimientoInput.value,
+        hoy: hoy.toISOString().split('T')[0],
+        edadCalculada: edad,
+        mesDiferencia: mes,
+        diaDiferencia: dia
+    });
+    
+    if (edad < 16) {
+        fechaNacimientoInput.classList.add('is-invalid');
+        return { 
+            valido: false, 
+            mensaje: `El empleado debe tener al menos 16 años. Edad calculada: ${edad} años. 
+                     Faltan ${16 - edad} años para cumplir 16.` 
+        };
+    }
+    
+    fechaNacimientoInput.classList.remove('is-invalid');
+    fechaNacimientoInput.classList.add('is-valid');
+    return { valido: true, edad: edad };
+}
+
+// ✅ FUNCIÓN MEJORADA: Validación de DNI más robusta
+function validarDNI() {
+    const dniInput = document.getElementById('dni');
+    const dni = dniInput.value.trim().toUpperCase();
+    
+    // Expresión regular para validar DNI español (8 números + 1 letra)
+    const dniRegex = /^[0-9]{8}[TRWAGMYFPDXBNJZSQVHLCKE]$/i;
+    
+    if (dni.length === 9) {
+        if (!dniRegex.test(dni)) {
+            dniInput.classList.add('is-invalid');
+            showDNIHelp('Formato incorrecto. Use: 8 números + 1 letra', 'error');
+            return false;
+        }
+        
+        // Validar letra del DNI
+        const numero = dni.substring(0, 8);
+        const letra = dni.substring(8, 9).toUpperCase();
+        const letrasValidas = 'TRWAGMYFPDXBNJZSQVHLCKE';
+        const letraCalculada = letrasValidas[numero % 23];
+        
+        if (letra !== letraCalculada) {
+            dniInput.classList.add('is-invalid');
+            showDNIHelp(`Letra incorrecta. La letra debería ser: ${letraCalculada}`, 'error');
+            return false;
+        }
+        
+        dniInput.classList.remove('is-invalid');
+        dniInput.classList.add('is-valid');
+        showDNIHelp('DNI válido', 'success');
+        return true;
+    } else {
+        dniInput.classList.remove('is-valid');
+        if (dni.length > 0) {
+            dniInput.classList.add('is-invalid');
+            showDNIHelp('El DNI debe tener 9 caracteres', 'error');
+        } else {
+            dniInput.classList.remove('is-invalid');
+            showDNIHelp('Ingrese 8 números + 1 letra', 'info');
+        }
+        return false;
+    }
+}
+
+// Función para mostrar ayuda del DNI
+function showDNIHelp(message, type) {
+    let helpElement = document.getElementById('dniHelp');
+    if (!helpElement) {
+        helpElement = document.createElement('small');
+        helpElement.id = 'dniHelp';
+        helpElement.className = 'form-text';
+        document.getElementById('dni').parentNode.appendChild(helpElement);
+    }
+    
+    helpElement.textContent = message;
+    helpElement.className = `form-text text-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'muted'}`;
+}
+
+// Función auxiliar para obtener nombres legibles de campos
+function getFieldName(field) {
+    const fieldNames = {
+        'nombre': 'Nombre',
+        'apellidos': 'Apellidos',
+        'dni': 'DNI',
+        'fecha_nacimiento': 'Fecha de Nacimiento',
+        'domicilio': 'Domicilio',
+        'username': 'Username',
+        'password': 'Contraseña',
+        'latitud': 'Latitud',
+        'longitud': 'Longitud'
+    };
+    
+    return fieldNames[field] || field;
+}
+
+// ✅ FUNCIÓN PARA GENERAR USERNAME ALTERNATIVO
+function generarUsernameAlternativo() {
+    const dniBase = document.getElementById('dni').value.replace(/[^0-9]/g, '').substring(0, 8);
+    let username = dniBase;
+    let counter = 1;
+    
+    // Buscar un username disponible
+    function verificarUsername(user) {
+        return fetch(`/admin/empleados/verificar-username/${user}`)
+            .then(response => response.json())
+            .then(data => !data.exists);
+    }
+    
+    function generarYVerificar() {
+        const testUsername = counter === 1 ? username : `${username}${counter}`;
+        
+        verificarUsername(testUsername).then(disponible => {
+            if (disponible) {
+                document.getElementById('username').value = testUsername;
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Username Generado',
+                    text: `Nuevo username: ${testUsername}`,
+                    confirmButtonText: 'Aceptar'
+                });
+            } else {
+                counter++;
+                generarYVerificar();
+            }
+        });
+    }
+    
+    generarYVerificar();
+}
+
+// ✅ FUNCIÓN MEJORADA: Validación de coordenadas
+function validarCoordenadas() {
+    const latitud = document.getElementById('latitud').value;
+    const longitud = document.getElementById('longitud').value;
+    const infoElement = document.getElementById('coordenadas-info');
+    
+    if (!latitud || !longitud || isNaN(latitud) || isNaN(longitud)) {
+        if (infoElement) {
+            infoElement.innerHTML = `<i class="fas fa-exclamation-triangle text-warning"></i> Coordenadas: No válidas`;
+            infoElement.className = 'text-warning';
+        }
+        return false;
+    }
+    
+    const lat = parseFloat(latitud);
+    const lng = parseFloat(longitud);
+    
+    // Validar rangos aproximados de España
+    if (lat < 35 || lat > 44 || lng < -10 || lng > 5) {
+        if (infoElement) {
+            infoElement.innerHTML = `<i class="fas fa-exclamation-triangle text-warning"></i> Coordenadas fuera de rango: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            infoElement.className = 'text-warning';
+        }
+        return false;
+    }
+    
+    if (infoElement) {
+        infoElement.innerHTML = `<i class="fas fa-check-circle text-success"></i> Coordenadas válidas: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        infoElement.className = 'text-success';
+    }
+    return true;
+}
+
+
+
+// ✅ FUNCIÓN MEJORADA: submitEmployeeForm con validaciones completas
+function submitEmployeeForm() {
+    
+    console.log('=== INICIANDO VALIDACIÓN ===');
+    
+    // 1. Validar DNI COMPLETO (8 números + 1 letra)
+    if (!validarDNI()) {
         Swal.fire({
             icon: 'error',
-            title: 'Error',
-            text: 'El empleado debe ser mayor de 16 años'
+            title: 'DNI incompleto',
+            text: 'El DNI debe tener 8 números + 1 letra (ej: 12345678A)'
         });
         return;
     }
 
-    // Validar campos requeridos
+    // 2. Validar que el DNI tenga formato correcto
+    const dni = document.getElementById('dni').value.trim().toUpperCase();
+    if (dni.length !== 9) {
+        Swal.fire({
+            icon: 'error',
+            title: 'DNI incorrecto',
+            text: 'El DNI debe tener exactamente 9 caracteres: 8 números + 1 letra'
+        });
+        return;
+    }
+
+    // 3. Validar edad
+    const validacionEdad = validarEdadMinima();
+    if (!validacionEdad.valido) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de edad',
+            text: validacionEdad.mensaje
+        });
+        return;
+    }
+
+    // 4. Validar coordenadas
+    const latitud = document.getElementById('latitud').value;
+    const longitud = document.getElementById('longitud').value;
+    
+    if (!latitud || !longitud || isNaN(latitud) || isNaN(longitud)) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Ubicación requerida',
+            text: 'Por favor, complete la dirección y asegúrese de que el mapa tenga coordenadas válidas'
+        });
+        return;
+    }
+
+    // 5. Validar dirección completa
+    const domicilio = document.getElementById('domicilio').value.trim();
+    if (!domicilio || domicilio.split(',').length < 3) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Dirección incompleta',
+            text: 'Por favor, ingrese una dirección completa: calle, número, ciudad y código postal'
+        });
+        return;
+    }
+
+    // 6. Validar campos requeridos
     const camposRequeridos = ['nombre', 'apellidos', 'dni', 'fecha_nacimiento', 'domicilio'];
     const camposFaltantes = [];
     
@@ -477,6 +978,9 @@ function submitEmployeeForm() {
         const elemento = document.getElementById(campo);
         if (!elemento || !elemento.value.trim()) {
             camposFaltantes.push(campo);
+            elemento.classList.add('is-invalid');
+        } else {
+            elemento.classList.remove('is-invalid');
         }
     });
     
@@ -484,101 +988,73 @@ function submitEmployeeForm() {
         Swal.fire({
             icon: 'error',
             title: 'Campos incompletos',
-            text: 'Por favor, complete todos los campos obligatorios'
+            text: 'Por favor, complete todos los campos obligatorios marcados con *'
         });
         return;
     }
-    
-    // Verificar coordenadas
-    let latitud = document.getElementById('latitud').value;
-    let longitud = document.getElementById('longitud').value;
-    
-    if (!latitud || !longitud) {
-        latitud = '40.4168';
-        longitud = '-3.7038';
-    }
-    
-    // ✅ CORREGIDO: Obtener username y password generados para enviar al servidor
+
+    // 7. Obtener credenciales generadas
     const usernameGenerado = document.getElementById('username').value;
     const passwordGenerado = document.getElementById('password-display').value;
     
-    // Validar que las credenciales estén generadas
-    if (!usernameGenerado || !passwordGenerado) {
+    if (!usernameGenerado || usernameGenerado.length !== 8) {
         Swal.fire({
             icon: 'error',
-            title: 'Error',
-            text: 'No se pudieron generar las credenciales automáticamente. Verifique el DNI.'
+            title: 'Username inválido',
+            text: 'El username debe tener 8 dígitos. Verifique el DNI.'
         });
         return;
     }
-    
-    // Obtener el token CSRF
+
+    // 8. Preparar datos para enviar
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     
-    // ✅ CORREGIDO: Incluir username y password en los datos enviados
     const empleadoData = {
         _token: csrfToken,
         nombre: document.getElementById('nombre').value.trim(),
         apellidos: document.getElementById('apellidos').value.trim(),
-        dni: document.getElementById('dni').value.trim(),
+        dni: dni,
         fecha_nacimiento: document.getElementById('fecha_nacimiento').value,
-        domicilio: document.getElementById('domicilio').value.trim(),
-        latitud: latitud,
-        longitud: longitud,
-        username: usernameGenerado, // ✅ Ahora se envía
-        password: passwordGenerado, // ✅ Ahora se envía
-        password_confirmation: passwordGenerado // ✅ Confirmación requerida
+        domicilio: domicilio,
+        latitud: parseFloat(latitud).toFixed(6),
+        longitud: parseFloat(longitud).toFixed(6),
+        username: usernameGenerado,
+        password: passwordGenerado,
+        password_confirmation: passwordGenerado
     };
     
-    console.log('📤 Datos a enviar:', empleadoData);
+    console.log('📤 Datos validados para enviar:', empleadoData);
     
-    // Mostrar loading
+    // 9. Enviar datos al servidor
+    enviarDatosAlServidor(empleadoData, validacionEdad.edad);
+}
+
+// ✅ FUNCIÓN MEJORADA: Envío de datos con debug completo
+function enviarDatosAlServidor(empleadoData, edadEmpleado) {
+    console.log('🚀 Enviando datos al servidor...', empleadoData);
+    
     const submitBtn = document.querySelector('#employeeModal .btn-success');
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Creando...';
     submitBtn.disabled = true;
     
-    // Enviar datos
     fetch('{{ route("admin.empleados.store") }}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRF-TOKEN': csrfToken,
+            'X-CSRF-TOKEN': empleadoData._token,
             'Accept': 'application/json'
         },
         body: JSON.stringify(empleadoData)
     })
-    .then(response => {
-        if (response.status === 422) {
-            return response.json().then(data => {
-                let errorMessage = 'Errores de validación:\n';
-                for (const field in data.errors) {
-                    errorMessage += `• ${data.errors[field][0]}\n`;
-                }
-                throw new Error(errorMessage);
-            });
-        }
-        
-        if (!response.ok) {
-            return response.text().then(text => {
-                try {
-                    const errorData = JSON.parse(text);
-                    throw new Error(errorData.message || text);
-                } catch (e) {
-                    throw new Error(text);
-                }
-            });
-        }
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
-        console.log('✅ Respuesta del servidor:', data);
+        console.log('✅ Respuesta exitosa:', data);
         
         if (data.success) {
             $('#employeeModal').modal('hide');
             
-            // Mostrar las credenciales generadas automáticamente
             Swal.fire({
                 icon: 'success',
                 title: '¡Éxito!',
@@ -586,16 +1062,12 @@ function submitEmployeeForm() {
                     <div class="text-left">
                         <p>${data.message}</p>
                         <div class="alert alert-success mt-3">
-                            <h6><i class="fas fa-key"></i> Credenciales Generadas Automáticamente</h6>
+                            <h6><i class="fas fa-key"></i> Credenciales Generadas</h6>
                             <hr>
-                            <strong>Username:</strong> ${usernameGenerado}<br>
-                            <strong>Contraseña:</strong> <code class="bg-light p-1 rounded">${passwordGenerado}</code><br>
-                            <strong>Edad del empleado:</strong> ${edadExacta} años
+                            <strong>Username:</strong> ${empleadoData.username}<br>
+                            <strong>Contraseña (4 dígitos):</strong> <code class="bg-light p-1 rounded">${empleadoData.password}</code><br>
+                            <strong>Edad:</strong> ${edadEmpleado} años
                         </div>
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle"></i> 
-                            La contraseña son los primeros 4 dígitos del DNI
-                        </small>
                     </div>
                 `,
                 showConfirmButton: true,
@@ -603,41 +1075,177 @@ function submitEmployeeForm() {
                 allowOutsideClick: false,
                 width: '600px'
             }).then((result) => {
-                location.reload();
+                // ✅ RECARGAR DATATABLE Y ACTUALIZAR ESTADÍSTICAS
+                if (typeof table !== 'undefined' && $.fn.DataTable.isDataTable('#empleadosTable')) {
+                    table.ajax.reload(function() {
+                        console.log('🔄 DataTable recargado completamente');
+                        // ✅ ACTUALIZAR ESTADÍSTICAS DESPUÉS DE RECARGAR EL DATATABLE
+                        updateStats();
+                    }, false);
+                } else {
+                    console.log('⚠️ DataTable no encontrado, recargando página');
+                    location.reload();
+                }
             });
             
         } else {
-            throw new Error(data.message);
+            throw new Error(data.message || 'Error desconocido del servidor');
         }
     })
     .catch(error => {
         console.error('❌ Error completo:', error);
         
-        // Manejar errores específicos
-        if (error.message.includes('dni') && error.message.includes('duplicate')) {
-            Swal.fire({
-                icon: 'error',
-                title: 'DNI duplicado',
-                text: 'El DNI ingresado ya existe en el sistema. Por favor, verifique los datos.'
-            });
-        } else if (error.message.includes('username') && error.message.includes('duplicate')) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Username duplicado',
-                text: 'El username generado ya existe. Esto puede ocurrir si el DNI es muy similar a uno existente.'
-            });
-        } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                html: `<div class="text-left">${error.message}</div>`
-            });
+        let errorMessage = 'Error desconocido';
+        
+        try {
+            // Intentar parsear el mensaje de error como JSON
+            const errorData = JSON.parse(error.message);
+            if (errorData.errors) {
+                errorMessage = 'Errores de validación:\n\n';
+                for (const field in errorData.errors) {
+                    const fieldName = getFieldName(field);
+                    errorMessage += `• ${fieldName}: ${errorData.errors[field][0]}\n`;
+                }
+            } else if (errorData.message) {
+                errorMessage = errorData.message;
+            }
+        } catch (e) {
+            // Si no es JSON, usar el mensaje original
+            errorMessage = error.message;
         }
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'Error al crear empleado',
+            html: `
+                <div class="text-left">
+                    <div class="alert alert-danger">
+                        <h6>Detalles del error:</h6>
+                        <pre style="white-space: pre-wrap; font-size: 12px; background: #f8f9fa; padding: 10px; border-radius: 5px;">${errorMessage}</pre>
+                    </div>
+                </div>
+            `,
+            showConfirmButton: true,
+            confirmButtonText: 'Entendido',
+            width: '700px'
+        });
     })
     .finally(() => {
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
     });
+}
+
+// ✅ FUNCIÓN PARA BUSCAR EMPLEADO EXISTENTE
+function buscarEmpleadoPorDNI(dni) {
+    Swal.fire({
+        title: 'Buscando empleado...',
+        text: `Buscando DNI: ${dni}`,
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
+    fetch(`/admin/empleados/buscar-por-dni/${dni}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.exists) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Empleado Encontrado',
+                    html: `
+                        <div class="text-left">
+                            <p>El empleado con DNI <strong>${dni}</strong> ya existe:</p>
+                            <div class="alert alert-info">
+                                <strong>Nombre:</strong> ${data.empleado.nombre} ${data.empleado.apellidos}<br>
+                                <strong>Username:</strong> ${data.empleado.username}<br>
+                                <strong>Fecha registro:</strong> ${data.empleado.created_at}
+                            </div>
+                            <p>¿Desea ver los detalles del empleado?</p>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Ver Detalles',
+                    cancelButtonText: 'Cerrar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Redirigir a la vista de detalles del empleado
+                        window.location.href = `/admin/empleados/${data.empleado.id}`;
+                    }
+                });
+            } else {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Empleado No Encontrado',
+                    text: `No se encontró un empleado con DNI: ${dni}`,
+                    confirmButtonText: 'Aceptar'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error buscando empleado:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudo buscar el empleado. Contacte al administrador.'
+            });
+        });
+}
+
+// ✅ FUNCIÓN PARA CORREGIR DNI
+function corregirDNI() {
+    Swal.fire({
+        title: 'Corregir DNI',
+        html: `
+            <div class="text-left">
+                <p>Ingrese un nuevo DNI:</p>
+                <input type="text" id="nuevoDni" class="swal2-input" placeholder="Nuevo DNI" value="${document.getElementById('dni').value}">
+                <small class="form-text text-muted">Formato: 8 números + 1 letra</small>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Actualizar',
+        cancelButtonText: 'Cancelar',
+        preConfirm: () => {
+            const nuevoDni = document.getElementById('nuevoDni').value.trim().toUpperCase();
+            if (!nuevoDni || nuevoDni.length !== 9) {
+                Swal.showValidationMessage('El DNI debe tener 9 caracteres');
+                return false;
+            }
+            return nuevoDni;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('dni').value = result.value;
+            validarDNI();
+            generarUsername();
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'DNI Actualizado',
+                text: 'El DNI ha sido actualizado correctamente',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+    });
+}
+
+// ✅ FUNCIÓN ADICIONAL: Validar contraseña en tiempo real
+function validarPassword4Digitos() {
+    const passwordInput = document.getElementById('password-display');
+    const password = passwordInput.value;
+    
+    if (password.length === 4 && /^\d+$/.test(password)) {
+        passwordInput.classList.remove('is-invalid');
+        passwordInput.classList.add('is-valid');
+        return true;
+    } else {
+        passwordInput.classList.remove('is-valid');
+        passwordInput.classList.add('is-invalid');
+        return false;
+    }
 }
 
 // Función para validar que solo se ingresen números en la contraseña
@@ -868,7 +1476,7 @@ function geocodificarDireccion() {
             document.getElementById('domicilio').value = formattedAddress;
             updateMapFromPlace(place);
             
-            showAlert('Dirección encontrada correctamente', 'success', 2000);
+            //showAlert('Dirección encontrada correctamente', 'success', 2000);
         } else {
             handleGeocodingError(status);
         }
@@ -943,7 +1551,7 @@ function geocodificarDireccion() {
         
         if (status === 'OK' && results[0]) {
             updateMapFromPlace(results[0]);
-            showAlert('Dirección encontrada correctamente', 'success', 2000);
+            //showAlert('Dirección encontrada correctamente', 'success', 2000);
         } else {
             // Si falla la geocodificación, usar coordenadas por defecto
             console.warn(`Geocoding falló: ${status}, usando coordenadas por defecto`);
@@ -1157,9 +1765,637 @@ $('#employeeModal').on('hidden.bs.modal', function() {
     document.getElementById('longitud').value = '';
     updateCoordinatesInfo();
 });
-</script>
+
+
+// Función para cargar estadísticas
+function loadStats() {
+    console.log('📊 Cargando estadísticas...');
+    
+    $.ajax({
+        url: '{{ route("admin.empleados.stats") }}',
+        type: 'GET',
+        success: function(response) {
+            if (response.success) {
+                $('#totalEmpleados').text(response.data.total);
+                $('#registrosMes').text(response.data.registros_mes);
+                $('#promedioEdad').text(response.data.promedio_edad + ' años');
+                console.log('✅ Estadísticas actualizadas:', response.data);
+            } else {
+                console.error('❌ Error en respuesta de estadísticas:', response);
+                setDefaultStats();
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('❌ Error cargando estadísticas:', error);
+            setDefaultStats();
+        }
+    });
+}
+
+// Función para establecer valores por defecto
+function setDefaultStats() {
+    $('#totalEmpleados').text('0');
+    $('#registrosMes').text('0');
+    $('#promedioEdad').text('0 años');
+}
+
+// Función para cargar estadísticas al inicializar la página
+function loadStats() {
+    console.log('📊 Cargando estadísticas iniciales...');
+    updateStats();
+}
+
+// Funciones de filtros
+function aplicarFiltros() {
+    console.log('🔍 Aplicando filtros...');
+    console.log('📋 Valores de filtros:', {
+        dni: $('#filterDni').val(),
+        nombre: $('#filterNombre').val(),
+        mes: $('#filterMes').val()
+    });
+    
+    table.ajax.reload();
+}
+
+function limpiarFiltros() {
+    console.log('🧹 Limpiando filtros...');
+    $('#filterDni').val('');
+    $('#filterNombre').val('');
+    $('#filterMes').val('');
+    table.ajax.reload();
+}
+
+function limpiarFiltroMes() {
+    $('#filterMes').val('');
+    table.ajax.reload();
+}
+
+// Función para exportar Excel
+function exportarExcel() {
+    // Implementar exportación a Excel
+    Swal.fire({
+        icon: 'info',
+        title: 'Exportar Excel',
+        text: 'Función de exportación en desarrollo',
+        confirmButtonText: 'Aceptar'
+    });
+}
+
+// Funciones para las acciones de la tabla
+function verEmpleado(id) {
+    Swal.fire({
+        icon: 'info',
+        title: 'Ver Empleado',
+        text: 'Función de ver detalles en desarrollo para ID: ' + id,
+        confirmButtonText: 'Aceptar'
+    });
+}
+
+function editarEmpleado(id) {
+    Swal.fire({
+        icon: 'info',
+        title: 'Editar Empleado',
+        text: 'Función de edición en desarrollo para ID: ' + id,
+        confirmButtonText: 'Aceptar'
+    });
+}
+
+function eliminarEmpleado(id) {
+    Swal.fire({
+        icon: 'warning',
+        title: '¿Eliminar Empleado?',
+        text: 'Esta acción no se puede deshacer',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: `/admin/empleados/${id}`,
+                type: 'DELETE',
+                data: {
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire('¡Eliminado!', response.message, 'success');
+                        table.ajax.reload();
+                    } else {
+                        Swal.fire('Error', response.message, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error', 'No se pudo eliminar el empleado', 'error');
+                }
+            });
+        }
+    });
+}
+
+// Función para actualizar estadísticas
+function updateStats() {
+    console.log('📊 Actualizando estadísticas...');
+    
+    // Hacer petición al servidor para obtener estadísticas actualizadas
+    fetch('{{ route("admin.empleados.stats") }}', {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            $('#totalEmpleados').text(data.data.total);
+            $('#registrosMes').text(data.data.registros_mes);
+            $('#promedioEdad').text(data.data.promedio_edad + ' años');
+            console.log('✅ Estadísticas actualizadas:', data.data);
+        } else {
+            console.error('❌ Error en respuesta de estadísticas:', data);
+            setDefaultStats();
+        }
+    })
+    .catch(error => {
+        console.error('❌ Error cargando estadísticas:', error);
+        setDefaultStats();
+    });
+}
+
+
+/// ---------------------------- Editar Empleado --------------------------------------------
+
+// Variables globales para el mapa de edición
+let editMap = null;
+let editMarker = null;
+let editGeocoder = null;
+let editAutocomplete = null;
+
+// Función para abrir el modal de edición
+function editarEmpleado(id) {
+    console.log('📝 Editando empleado ID:', id);
+    
+    // Mostrar loading
+    Swal.fire({
+        title: 'Cargando...',
+        text: 'Obteniendo datos del empleado',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    // Obtener datos del empleado
+    fetch(`/admin/empleados/${id}/edit`)
+        .then(response => response.json())
+        .then(data => {
+            Swal.close();
+            
+            if (data.success) {
+                console.log('✅ Datos del empleado:', data.data);
+                populateEditForm(data.data);
+                $('#editEmployeeModal').modal('show');
+            } else {
+                throw new Error(data.message || 'Error al cargar datos del empleado');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error cargando empleado:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudieron cargar los datos del empleado: ' + error.message
+            });
+        });
+}
+
+// Función para llenar el formulario de edición
+function populateEditForm(empleado) {
+    // Llenar campos de solo lectura
+    document.getElementById('edit_nombre').value = empleado.nombre || '';
+    document.getElementById('edit_apellidos').value = empleado.apellidos || '';
+    document.getElementById('edit_dni').value = empleado.dni || '';
+    document.getElementById('edit_fecha_nacimiento').value = empleado.fecha_nacimiento_formatted || '';
+    document.getElementById('edit_username').value = empleado.username || '';
+    document.getElementById('edit_edad').value = empleado.edad ? empleado.edad + ' años' : '';
+    
+    // Llenar campo editable
+    document.getElementById('edit_domicilio').value = empleado.domicilio || '';
+    document.getElementById('edit_latitud').value = empleado.latitud || '40.4168';
+    document.getElementById('edit_longitud').value = empleado.longitud || '-3.7038';
+    document.getElementById('edit_empleado_id').value = empleado.id || '';
+    
+    // Actualizar información de coordenadas
+    updateEditCoordinatesInfo();
+    
+    // Inicializar mapa de edición
+    initializeEditMap();
+}
+
+// Función para inicializar el mapa de edición
+function initializeEditMap() {
+    const lat = parseFloat(document.getElementById('edit_latitud').value) || 40.4168;
+    const lng = parseFloat(document.getElementById('edit_longitud').value) || -3.7038;
+    
+    const mapElement = document.getElementById('edit_map');
+    if (!mapElement) return;
+    
+    // Limpiar mapa existente
+    mapElement.innerHTML = '';
+    
+    const mapInnerDiv = document.createElement('div');
+    mapInnerDiv.style.width = '100%';
+    mapInnerDiv.style.height = '100%';
+    mapElement.appendChild(mapInnerDiv);
+    
+    // Crear nuevo mapa
+    editMap = new google.maps.Map(mapInnerDiv, {
+        zoom: 15,
+        center: { lat: lat, lng: lng },
+        mapTypeControl: true,
+        streetViewControl: true,
+        fullscreenControl: true,
+        zoomControl: true
+    });
+    
+    // Crear marcador
+    editMarker = new google.maps.Marker({
+        map: editMap,
+        draggable: true,
+        title: "Arrastre para ajustar la ubicación",
+        position: { lat: lat, lng: lng }
+    });
+    
+    // Eventos del marcador
+    editMarker.addListener('dragend', function() {
+        if (editGeocoder) {
+            reverseGeocodeEdit(editMarker.getPosition());
+        }
+    });
+    
+    // Evento para hacer clic en el mapa
+    editMap.addListener('click', function(event) {
+        editMarker.setPosition(event.latLng);
+        if (editGeocoder) {
+            reverseGeocodeEdit(event.latLng);
+        }
+    });
+    
+    // Inicializar geocoder para edición
+    if (typeof google !== 'undefined' && google.maps && google.maps.Geocoder) {
+        editGeocoder = new google.maps.Geocoder();
+        initEditAutocomplete();
+    }
+    
+    console.log('✅ Mapa de edición inicializado');
+}
+
+// Función para inicializar autocompletado en edición
+function initEditAutocomplete() {
+    try {
+        const domicilioInput = document.getElementById('edit_domicilio');
+        if (!domicilioInput) return;
+        
+        editAutocomplete = new google.maps.places.Autocomplete(domicilioInput, {
+            types: ['address'],
+            componentRestrictions: { country: 'es' },
+            fields: ['address_components', 'formatted_address', 'geometry']
+        });
+        
+        editAutocomplete.addListener('place_changed', function() {
+            const place = editAutocomplete.getPlace();
+            
+            if (!place.geometry) {
+                console.log('No hay detalles disponibles para: ' + place.name);
+                return;
+            }
+            
+            const formattedAddress = formatAddress(place);
+            domicilioInput.value = formattedAddress;
+            updateEditMapFromPlace(place);
+        });
+        
+    } catch (error) {
+        console.error('Error en autocompletado de edición:', error);
+    }
+}
+
+// Función para geocodificar dirección en edición
+function geocodificarDireccionEdit() {
+    const address = document.getElementById('edit_domicilio').value.trim();
+    
+    if (!address) {
+        showAlert('Por favor, ingrese una dirección para buscar.', 'warning');
+        return;
+    }
+    
+    if (!editGeocoder) {
+        showAlert('Servicios de mapa no disponibles.', 'warning');
+        return;
+    }
+    
+    showEditGeocodingLoading(true);
+    
+    editGeocoder.geocode({
+        address: address,
+        componentRestrictions: { country: 'ES' }
+    }, function(results, status) {
+        showEditGeocodingLoading(false);
+        
+        if (status === 'OK' && results[0]) {
+            updateEditMapFromPlace(results[0]);
+            showAlert('Dirección encontrada correctamente', 'success', 2000);
+        } else {
+            showAlert('No se pudo encontrar la ubicación exacta.', 'info', 2000);
+        }
+    });
+}
+
+// Función para actualizar mapa desde un lugar en edición
+function updateEditMapFromPlace(place) {
+    if (!editMap || !editMarker) return;
+    
+    if (place.geometry && place.geometry.location) {
+        const location = place.geometry.location;
+        
+        editMap.setCenter(location);
+        editMap.setZoom(16);
+        editMarker.setPosition(location);
+        
+        document.getElementById('edit_latitud').value = location.lat();
+        document.getElementById('edit_longitud').value = location.lng();
+        updateEditCoordinatesInfo();
+    }
+}
+
+// Reverse geocoding para edición
+function reverseGeocodeEdit(location) {
+    if (!editGeocoder) return;
+    
+    editGeocoder.geocode({ location: location }, function(results, status) {
+        if (status === 'OK' && results[0]) {
+            const formattedAddress = formatAddress(results[0]);
+            document.getElementById('edit_domicilio').value = formattedAddress;
+            
+            document.getElementById('edit_latitud').value = location.lat();
+            document.getElementById('edit_longitud').value = location.lng();
+            updateEditCoordinatesInfo();
+        }
+    });
+}
+
+// Función para actualizar información de coordenadas en edición
+function updateEditCoordinatesInfo() {
+    const lat = document.getElementById('edit_latitud').value;
+    const lng = document.getElementById('edit_longitud').value;
+    const infoElement = document.getElementById('edit_coordenadas-info');
+    
+    if (!infoElement) return;
+    
+    if (lat && lng) {
+        infoElement.innerHTML = `<i class="fas fa-check-circle text-success"></i> Coordenadas: ${lat}, ${lng}`;
+        infoElement.className = 'text-success';
+    } else {
+        infoElement.innerHTML = `<i class="fas fa-info-circle"></i> Coordenadas: No especificadas`;
+        infoElement.className = 'text-muted';
+    }
+}
+
+// Mostrar/ocultar loading en geocodificación de edición
+function showEditGeocodingLoading(show) {
+    const button = document.getElementById('btn-geocodificar-edit');
+    if (button) {
+        if (show) {
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando...';
+            button.disabled = true;
+        } else {
+            button.innerHTML = '<i class="fas fa-search-location"></i> Buscar';
+            button.disabled = false;
+        }
+    }
+}
+
+// Función para actualizar el empleado
+function updateEmployee() {
+    const empleadoId = document.getElementById('edit_empleado_id').value;
+    const domicilio = document.getElementById('edit_domicilio').value.trim();
+    const latitud = document.getElementById('edit_latitud').value;
+    const longitud = document.getElementById('edit_longitud').value;
+    
+    if (!domicilio) {
+        showAlert('Por favor, ingrese el domicilio.', 'warning');
+        return;
+    }
+    
+    if (!empleadoId) {
+        showAlert('Error: ID de empleado no válido.', 'error');
+        return;
+    }
+    
+    const submitBtn = document.querySelector('#editEmployeeModal .btn-warning');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Actualizando...';
+    submitBtn.disabled = true;
+    
+    const data = {
+        _token: '{{ csrf_token() }}',
+        _method: 'PUT',
+        domicilio: domicilio,
+        latitud: latitud,
+        longitud: longitud
+    };
+    
+    fetch(`/admin/empleados/${empleadoId}`, {
+        method: 'POST', // Usar POST para simular PUT (Laravel)
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            $('#editEmployeeModal').modal('hide');
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: data.message,
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                // Recargar DataTable y estadísticas
+                if (table && $.fn.DataTable.isDataTable('#empleadosTable')) {
+                    table.ajax.reload(null, false);
+                    updateStats();
+                }
+            });
+        } else {
+            throw new Error(data.message || 'Error al actualizar empleado');
+        }
+    })
+    .catch(error => {
+        console.error('❌ Error actualizando empleado:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo actualizar el empleado: ' + error.message
+        });
+    })
+    .finally(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+}
+
+// Limpiar modal cuando se cierre
+$('#editEmployeeModal').on('hidden.bs.modal', function () {
+    document.getElementById('editEmployeeForm').reset();
+    document.getElementById('edit_empleado_id').value = '';
+    
+    // Limpiar mapa
+    if (editMap) {
+        const mapElement = document.getElementById('edit_map');
+        if (mapElement) {
+            mapElement.innerHTML = '';
+        }
+        editMap = null;
+        editMarker = null;
+    }
+});
+
+///  ----------------------------- Eliminar Empleado ------------------------------------------------
+
+// Variable global para almacenar el ID del empleado a eliminar
+let employeeToDeleteId = null;
+
+// Función para abrir el modal de eliminación
+function eliminarEmpleado(id) {
+    console.log('🗑️ Solicitando eliminar empleado ID:', id);
+    employeeToDeleteId = id;
+    
+    // Mostrar loading
+    Swal.fire({
+        title: 'Cargando...',
+        text: 'Obteniendo información del empleado',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    // Obtener datos del empleado para mostrar en el modal
+    fetch(`/admin/empleados/${id}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Empleado no encontrado');
+            }
+            return response.json();
+        })
+        .then(data => {
+            Swal.close();
+            
+            if (data.success) {
+                console.log('✅ Datos del empleado para eliminar:', data.data);
+                populateDeleteModal(data.data);
+                $('#deleteEmployeeModal').modal('show');
+            } else {
+                throw new Error(data.message || 'Error al cargar datos del empleado');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error cargando empleado para eliminar:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudieron cargar los datos del empleado: ' + error.message
+            });
+        });
+}
+
+// Función para llenar el modal de eliminación con datos del empleado
+function populateDeleteModal(empleado) {
+    document.getElementById('delete_employee_name').textContent = 
+        `${empleado.nombre} ${empleado.apellidos}`;
+    document.getElementById('delete_employee_dni').textContent = empleado.dni || 'N/A';
+    document.getElementById('delete_employee_username').textContent = empleado.username || 'N/A';
+    document.getElementById('delete_employee_age').textContent = empleado.edad ? empleado.edad + ' años' : 'N/A';
+    document.getElementById('delete_employee_address').textContent = empleado.domicilio || 'N/A';
+}
+
+// Función para confirmar la eliminación
+function confirmDeleteEmployee() {
+    if (!employeeToDeleteId) {
+        showAlert('Error: ID de empleado no válido.', 'error');
+        return;
+    }
+    
+    const submitBtn = document.querySelector('#deleteEmployeeModal .btn-danger');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Eliminando...';
+    submitBtn.disabled = true;
+    
+    // Usar fetch para enviar la solicitud DELETE
+    fetch(`/admin/empleados/${employeeToDeleteId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error en la respuesta del servidor');
+        }
+        return response.json();
+    })
+    .then(data => {
+        $('#deleteEmployeeModal').modal('hide');
+        
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Eliminado!',
+                text: data.message,
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                // Recargar DataTable y estadísticas
+                if (table && $.fn.DataTable.isDataTable('#empleadosTable')) {
+                    table.ajax.reload(null, false);
+                    updateStats();
+                }
+            });
+        } else {
+            throw new Error(data.message || 'Error al eliminar empleado');
+        }
+    })
+    .catch(error => {
+        console.error('❌ Error eliminando empleado:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo eliminar el empleado: ' + error.message
+        });
+    })
+    .finally(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        employeeToDeleteId = null;
+    });
+}
+
+// Limpiar variable cuando se cierre el modal
+$('#deleteEmployeeModal').on('hidden.bs.modal', function () {
+    employeeToDeleteId = null;
+});
 
 </script>
+
+<!-- ******************************************** CSS ****************************************************  -->
 
 <style>
 .page-header {
@@ -1285,6 +2521,187 @@ $('#employeeModal').on('hidden.bs.modal', function() {
 
 .input-group-append .btn {
     border-radius: 0 0.375rem 0.375rem 0;
+}
+
+.modal-title {
+    color: white !important;
+    font-weight: 600;
+}
+
+.modal-header {
+    border-bottom: none;
+}
+
+/* Estilos específicos para cada modal */
+.bg-gradient-warning {
+    background: linear-gradient(45deg, #ffc107, #e0a800) !important;
+}
+
+.bg-gradient-danger {
+    background: linear-gradient(45deg, #dc3545, #c82333) !important;
+}
+
+.bg-gradient-success {
+    background: linear-gradient(45deg, #28a745, #20c997) !important;
+}
+
+/* Asegurar que el texto sea visible en los headers */
+.modal-header .close {
+    color: white !important;
+    opacity: 0.9;
+}
+
+.modal-header .close:hover {
+    opacity: 1;
+}
+.page-header {
+    border-bottom: 1px solid #e3e6f0;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Botones responsivos */
+.btn-lg-md {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+}
+
+@media (min-width: 768px) {
+    .btn-lg-md {
+        padding: 0.75rem 1.5rem;
+        font-size: 1.1rem;
+    }
+}
+
+/* Texto responsivo */
+.small-lg {
+    font-size: 0.8rem;
+}
+
+@media (min-width: 768px) {
+    .small-lg {
+        font-size: 0.875rem;
+    }
+}
+
+/* Controles de formulario responsivos */
+.form-control-lg-md {
+    height: calc(1.5em + 0.75rem + 2px);
+    padding: 0.375rem 0.75rem;
+    font-size: 0.9rem;
+}
+
+@media (min-width: 768px) {
+    .form-control-lg-md {
+        height: calc(1.5em + 1rem + 2px);
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+    }
+}
+
+/* Iconos responsivos */
+.fa-lg {
+    font-size: 1.25em;
+}
+
+@media (min-width: 768px) {
+    .fa-lg {
+        font-size: 2em;
+    }
+}
+
+/* Tabla responsiva */
+@media (max-width: 767.98px) {
+    .table-responsive {
+        font-size: 0.8rem;
+    }
+    
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter,
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_paginate {
+        font-size: 0.8rem;
+    }
+    
+    /* Botones de acción más pequeños en móvil */
+    .btn-group .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* Ajustes para tablets */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .container-fluid {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+
+/* Modal responsivo */
+@media (max-width: 575.98px) {
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+    
+    .modal-content {
+        border-radius: 0.3rem;
+    }
+    
+    .modal-body {
+        padding: 1rem;
+    }
+}
+
+/* Mejoras específicas para DataTables en móvil */
+.dtr-details {
+    font-size: 0.8rem;
+}
+
+.dtr-details li {
+    border-bottom: 1px solid #efefef;
+    padding: 0.5rem 0;
+}
+
+/* Botones de acción en tabla móvil */
+.btn-action-group {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.btn-action-group .btn {
+    flex: 1;
+    min-width: auto;
+}
+
+/* Asegurar que los elementos ocultos en móvil se muestren correctamente */
+.d-md-block {
+    display: none !important;
+}
+
+@media (min-width: 768px) {
+    .d-md-block {
+        display: block !important;
+    }
+    
+    .d-md-inline {
+        display: inline !important;
+    }
+    
+    .d-md-inline-block {
+        display: inline-block !important;
+    }
+}
+
+/* Anchos responsivos */
+.w-md-auto {
+    width: auto !important;
+}
+
+@media (min-width: 768px) {
+    .w-md-auto {
+        width: auto !important;
+    }
 }
 
 @media (min-width: 1200px) {
