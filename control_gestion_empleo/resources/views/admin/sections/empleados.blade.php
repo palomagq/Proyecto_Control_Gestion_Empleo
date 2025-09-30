@@ -494,6 +494,206 @@
     </div>
 </div>
 
+
+<!-- Modal para Ver Empleado -->
+<div class="modal fade" id="viewEmployeeModal" tabindex="-1" role="dialog" aria-labelledby="viewEmployeeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-info text-white">
+                <h5 class="modal-title" id="viewEmployeeModalLabel">
+                    <i class="fas fa-eye mr-2"></i> Detalles del Empleado
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <!-- Información Personal -->
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-user-circle mr-2 text-primary"></i>Información Personal
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-2">
+                                    <div class="col-4 font-weight-bold text-muted">ID:</div>
+                                    <div class="col-8" id="view_id">-</div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-4 font-weight-bold text-muted">Nombre:</div>
+                                    <div class="col-8" id="view_nombre">-</div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-4 font-weight-bold text-muted">Apellidos:</div>
+                                    <div class="col-8" id="view_apellidos">-</div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-4 font-weight-bold text-muted">DNI:</div>
+                                    <div class="col-8">
+                                        <span class="badge badge-primary" id="view_dni">-</span>
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-4 font-weight-bold text-muted">Fecha Nac.:</div>
+                                    <div class="col-8" id="view_fecha_nacimiento">-</div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-4 font-weight-bold text-muted">Edad:</div>
+                                    <div class="col-8">
+                                        <span class="badge badge-info" id="view_edad">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información de Cuenta -->
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-key mr-2 text-warning"></i>Información de Cuenta
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-2">
+                                    <div class="col-4 font-weight-bold text-muted">Username:</div>
+                                    <div class="col-8">
+                                        <code class="bg-light p-1 rounded" id="view_username">-</code>
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-4 font-weight-bold text-muted">Estado:</div>
+                                    <div class="col-8">
+                                        <span class="badge badge-success" id="view_estado">Activo</span>
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-4 font-weight-bold text-muted">Rol:</div>
+                                    <div class="col-8">
+                                        <span class="badge badge-secondary" id="view_rol">Empleado</span>
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-4 font-weight-bold text-muted">Registrado:</div>
+                                    <div class="col-8" id="view_created_at">-</div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-4 font-weight-bold text-muted">Actualizado:</div>
+                                    <div class="col-8" id="view_updated_at">-</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Domicilio y Ubicación -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-map-marker-alt mr-2 text-danger"></i>Domicilio y Ubicación
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-8">
+                                        <div class="row">
+                                            <div class="col-3 font-weight-bold text-muted">Domicilio:</div>
+                                            <div class="col-9" id="view_domicilio">-</div>
+                                        </div>
+                                        <div class="row mt-2">
+                                            <div class="col-3 font-weight-bold text-muted">Coordenadas:</div>
+                                            <div class="col-9">
+                                                <small class="text-muted" id="view_coordenadas">-</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 text-right">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="abrirEnGoogleMaps()">
+                                            <i class="fas fa-external-link-alt mr-1"></i> Abrir en Maps
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Mapa de visualización -->
+                                <div id="view_map" style="height: 250px; width: 100%; border-radius: 5px; border: 1px solid #ddd; background-color: #f8f9fa;">
+                                    <div class="h-100 d-flex align-items-center justify-content-center text-muted">
+                                        <div class="text-center">
+                                            <i class="fas fa-map fa-2x mb-2"></i>
+                                            <p>Cargando mapa...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información Adicional -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-chart-bar mr-2 text-success"></i>Información Adicional
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row text-center">
+                                    <div class="col-md-3 mb-3">
+                                        <div class="border rounded p-3">
+                                            <i class="fas fa-calendar-day fa-2x text-primary mb-2"></i>
+                                            <h5 id="view_dias_registro">0</h5>
+                                            <small class="text-muted">Días registrado</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <div class="border rounded p-3">
+                                            <i class="fas fa-birthday-cake fa-2x text-warning mb-2"></i>
+                                            <h5 id="view_proximo_cumple">-</h5>
+                                            <small class="text-muted">Próximo cumpleaños</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <div class="border rounded p-3">
+                                            <i class="fas fa-map-marked-alt fa-2x text-info mb-2"></i>
+                                            <h5 id="view_region">-</h5>
+                                            <small class="text-muted">Región</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <div class="border rounded p-3">
+                                            <i class="fas fa-clock fa-2x text-secondary mb-2"></i>
+                                            <h5 id="view_ultima_actualizacion">-</h5>
+                                            <small class="text-muted">Última actualización</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cerrar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="imprimirDetalles()">
+                    <i class="fas fa-print mr-1"></i> Imprimir
+                </button>
+                <button type="button" class="btn btn-warning" id="btnEditarDesdeVista">
+                    <i class="fas fa-edit mr-1"></i> Editar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
@@ -559,6 +759,9 @@ function initializeDataTable() {
         //processing: true,
         responsive: true,
         serverSide: true,
+         language: {
+            "url": "{{ asset('js/datatables/Spanish.json') }}"
+        },
         ajax: {
             url: '{{ route("admin.empleados.datatable") }}',
             type: 'GET',
@@ -595,12 +798,9 @@ function initializeDataTable() {
                 className: 'text-center'
             }
         ],
-        language: {
-            url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json'
-        },
-        order: [[0, 'desc']],
+       
+        order: [[0, 'asc']],
         pageLength: 10,
-        responsive: true,
         drawCallback: function(settings) {
             console.log('📊 DataTable actualizado - refrescando estadísticas');
             updateStats(); // ✅ LLAMADA CORRECTA A updateStats
@@ -2393,6 +2593,335 @@ $('#deleteEmployeeModal').on('hidden.bs.modal', function () {
     employeeToDeleteId = null;
 });
 
+
+// Variables globales para el modal de vista
+let viewMap = null;
+let viewMarker = null;
+let currentEmployeeId = null;
+
+// Función para abrir el modal de vista
+function verEmpleado(id) {
+    console.log('👁️ Viendo empleado ID:', id);
+    
+    // Mostrar loading
+    Swal.fire({
+        title: 'Cargando...',
+        text: 'Obteniendo información del empleado',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    // Obtener datos del empleado
+    fetch(`/admin/empleados/${id}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Empleado no encontrado');
+            }
+            return response.json();
+        })
+        .then(data => {
+            Swal.close();
+            
+            if (data.success) {
+                console.log('✅ Datos del empleado para vista:', data.data);
+                populateViewModal(data.data);
+                $('#viewEmployeeModal').modal('show');
+            } else {
+                throw new Error(data.message || 'Error al cargar datos del empleado');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error cargando empleado para vista:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudieron cargar los datos del empleado: ' + error.message
+            });
+        });
+}
+
+// Función para llenar el modal de vista
+function populateViewModal(empleado) {
+    // Información Personal
+    document.getElementById('view_id').textContent = empleado.id || 'N/A';
+    document.getElementById('view_nombre').textContent = empleado.nombre || 'N/A';
+    document.getElementById('view_apellidos').textContent = empleado.apellidos || 'N/A';
+    document.getElementById('view_dni').textContent = empleado.dni || 'N/A';
+    document.getElementById('view_fecha_nacimiento').textContent = empleado.fecha_nacimiento_formatted || 'N/A';
+    document.getElementById('view_edad').textContent = empleado.edad ? empleado.edad + ' años' : 'N/A';
+
+    // Información de Cuenta
+    document.getElementById('view_username').textContent = empleado.username || 'N/A';
+    document.getElementById('view_created_at').textContent = formatDateTime(empleado.created_at);
+    document.getElementById('view_updated_at').textContent = formatDateTime(empleado.updated_at);
+
+    // Domicilio y Ubicación
+    document.getElementById('view_domicilio').textContent = empleado.domicilio || 'N/A';
+    
+    const lat = empleado.latitud || '40.4168';
+    const lng = empleado.longitud || '-3.7038';
+    document.getElementById('view_coordenadas').textContent = `${lat}, ${lng}`;
+
+    // Información Adicional
+    calcularInformacionAdicional(empleado);
+
+    // Configurar botón de editar
+    document.getElementById('btnEditarDesdeVista').onclick = function() {
+        $('#viewEmployeeModal').modal('hide');
+        setTimeout(() => editarEmpleado(empleado.id), 500);
+    };
+
+    // Inicializar mapa de vista
+    initializeViewMap(empleado);
+}
+
+// Función para inicializar el mapa de vista
+function initializeViewMap(empleado) {
+    const lat = parseFloat(empleado.latitud) || 40.4168;
+    const lng = parseFloat(empleado.longitud) || -3.7038;
+    
+    const mapElement = document.getElementById('view_map');
+    if (!mapElement) return;
+
+    // Limpiar mapa existente
+    mapElement.innerHTML = '';
+
+    try {
+        const mapInnerDiv = document.createElement('div');
+        mapInnerDiv.style.width = '100%';
+        mapInnerDiv.style.height = '100%';
+        mapElement.appendChild(mapInnerDiv);
+
+        // Crear mapa
+        viewMap = new google.maps.Map(mapInnerDiv, {
+            zoom: 15,
+            center: { lat: lat, lng: lng },
+            mapTypeControl: true,
+            streetViewControl: true,
+            fullscreenControl: true,
+            zoomControl: true,
+            styles: [
+                {
+                    featureType: "poi",
+                    elementType: "labels",
+                    stylers: [{ visibility: "off" }]
+                }
+            ]
+        });
+
+        // Crear marcador
+        viewMarker = new google.maps.Marker({
+            map: viewMap,
+            draggable: false,
+            title: `${empleado.nombre} ${empleado.apellidos}`,
+            position: { lat: lat, lng: lng },
+            animation: google.maps.Animation.DROP
+        });
+
+        // Crear ventana de información
+        const infoWindow = new google.maps.InfoWindow({
+            content: `
+                <div class="p-2">
+                    <h6 class="mb-1">${empleado.nombre} ${empleado.apellidos}</h6>
+                    <p class="mb-1 small">${empleado.domicilio || 'Dirección no disponible'}</p>
+                    <p class="mb-0 small text-muted">Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
+                </div>
+            `
+        });
+
+        // Mostrar infoWindow al hacer clic en el marcador
+        viewMarker.addListener('click', () => {
+            infoWindow.open(viewMap, viewMarker);
+        });
+
+        console.log('✅ Mapa de vista inicializado');
+
+    } catch (error) {
+        console.error('❌ Error inicializando mapa de vista:', error);
+        mapElement.innerHTML = `
+            <div class="alert alert-warning text-center h-100 d-flex align-items-center justify-content-center">
+                <div>
+                    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                    <h5>Error al cargar el mapa</h5>
+                    <p class="mb-0">Coordenadas: ${lat}, ${lng}</p>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Función para calcular información adicional
+function calcularInformacionAdicional(empleado) {
+    // Días registrado
+    if (empleado.created_at) {
+        const created = new Date(empleado.created_at);
+        const hoy = new Date();
+        const diffTime = Math.abs(hoy - created);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        document.getElementById('view_dias_registro').textContent = diffDays;
+    }
+
+    // Próximo cumpleaños
+    if (empleado.fecha_nacimiento) {
+        const fechaNac = new Date(empleado.fecha_nacimiento);
+        const hoy = new Date();
+        const proximoCumple = new Date(hoy.getFullYear(), fechaNac.getMonth(), fechaNac.getDate());
+        
+        if (proximoCumple < hoy) {
+            proximoCumple.setFullYear(hoy.getFullYear() + 1);
+        }
+        
+        const diffTime = Math.abs(proximoCumple - hoy);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        document.getElementById('view_proximo_cumple').textContent = `En ${diffDays} días`;
+    }
+
+    // Región (inferida desde coordenadas)
+    const lat = parseFloat(empleado.latitud);
+    if (lat) {
+        let region = 'España';
+        if (lat >= 43.5) region = 'Norte';
+        else if (lat >= 40.0) region = 'Centro';
+        else region = 'Sur';
+        document.getElementById('view_region').textContent = region;
+    }
+
+    // Última actualización
+    if (empleado.updated_at) {
+        const updated = new Date(empleado.updated_at);
+        const hoy = new Date();
+        const diffTime = Math.abs(hoy - updated);
+        const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+        
+        let texto = '';
+        if (diffHours < 24) {
+            texto = `Hace ${diffHours} horas`;
+        } else {
+            const diffDays = Math.floor(diffHours / 24);
+            texto = `Hace ${diffDays} días`;
+        }
+        document.getElementById('view_ultima_actualizacion').textContent = texto;
+    }
+}
+
+// Función para formatear fecha y hora
+function formatDateTime(dateTimeString) {
+    if (!dateTimeString) return 'N/A';
+    
+    const date = new Date(dateTimeString);
+    return date.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+// Función para abrir en Google Maps
+function abrirEnGoogleMaps() {
+    const lat = document.getElementById('view_coordenadas').textContent.split(',')[0];
+    const lng = document.getElementById('view_coordenadas').textContent.split(',')[1];
+    
+    if (lat && lng) {
+        const url = `https://www.google.com/maps?q=${lat},${lng}`;
+        window.open(url, '_blank');
+    } else {
+        showAlert('No hay coordenadas disponibles', 'warning');
+    }
+}
+
+// Función para imprimir detalles
+function imprimirDetalles() {
+    const ventanaImpresion = window.open('', '_blank');
+    const contenido = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Detalles del Empleado - ${document.getElementById('view_nombre').textContent}</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+                .section { margin-bottom: 20px; }
+                .section h3 { background: #f0f0f0; padding: 10px; border-left: 4px solid #007bff; }
+                .info-row { display: flex; margin-bottom: 5px; }
+                .label { font-weight: bold; width: 150px; }
+                @media print {
+                    .no-print { display: none; }
+                    body { margin: 0; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Detalles del Empleado</h1>
+                <p>Generado el ${new Date().toLocaleDateString('es-ES')}</p>
+            </div>
+            
+            <div class="section">
+                <h3>Información Personal</h3>
+                <div class="info-row"><div class="label">ID:</div><div>${document.getElementById('view_id').textContent}</div></div>
+                <div class="info-row"><div class="label">Nombre:</div><div>${document.getElementById('view_nombre').textContent}</div></div>
+                <div class="info-row"><div class="label">Apellidos:</div><div>${document.getElementById('view_apellidos').textContent}</div></div>
+                <div class="info-row"><div class="label">DNI:</div><div>${document.getElementById('view_dni').textContent}</div></div>
+                <div class="info-row"><div class="label">Fecha Nacimiento:</div><div>${document.getElementById('view_fecha_nacimiento').textContent}</div></div>
+                <div class="info-row"><div class="label">Edad:</div><div>${document.getElementById('view_edad').textContent}</div></div>
+            </div>
+            
+            <div class="section">
+                <h3>Información de Cuenta</h3>
+                <div class="info-row"><div class="label">Username:</div><div>${document.getElementById('view_username').textContent}</div></div>
+                <div class="info-row"><div class="label">Registrado:</div><div>${document.getElementById('view_created_at').textContent}</div></div>
+                <div class="info-row"><div class="label">Actualizado:</div><div>${document.getElementById('view_updated_at').textContent}</div></div>
+            </div>
+            
+            <div class="section">
+                <h3>Domicilio</h3>
+                <div class="info-row"><div class="label">Dirección:</div><div>${document.getElementById('view_domicilio').textContent}</div></div>
+                <div class="info-row"><div class="label">Coordenadas:</div><div>${document.getElementById('view_coordenadas').textContent}</div></div>
+            </div>
+            
+            <div class="no-print" style="margin-top: 30px; text-align: center;">
+                <button onclick="window.print()">Imprimir</button>
+                <button onclick="window.close()">Cerrar</button>
+            </div>
+        </body>
+        </html>
+    `;
+    
+    ventanaImpresion.document.write(contenido);
+    ventanaImpresion.document.close();
+}
+
+// Limpiar cuando se cierre el modal
+$('#viewEmployeeModal').on('hidden.bs.modal', function () {
+    currentEmployeeId = null;
+    
+    // Limpiar mapa
+    if (viewMap) {
+        const mapElement = document.getElementById('view_map');
+        if (mapElement) {
+            mapElement.innerHTML = '';
+        }
+        viewMap = null;
+        viewMarker = null;
+    }
+});
+
+// Redimensionar mapa cuando el modal se muestre
+$('#viewEmployeeModal').on('shown.bs.modal', function() {
+    if (viewMap) {
+        setTimeout(() => {
+            google.maps.event.trigger(viewMap, 'resize');
+            if (viewMarker && viewMarker.getPosition()) {
+                viewMap.setCenter(viewMarker.getPosition());
+            }
+        }, 300);
+    }
+});
+
 </script>
 
 <!-- ******************************************** CSS ****************************************************  -->
@@ -2693,6 +3222,8 @@ $('#deleteEmployeeModal').on('hidden.bs.modal', function () {
     }
 }
 
+
+
 /* Anchos responsivos */
 .w-md-auto {
     width: auto !important;
@@ -2731,6 +3262,67 @@ $('#deleteEmployeeModal').on('hidden.bs.modal', function () {
 @media (min-width: 2000px) {
     .container, .container-lg, .container-md, .container-sm, .container-xl, .container-xxl {
         max-width: 110rem; /* Aproximadamente 1760px */
+    }
+}
+
+
+/* Estilos para el modal de vista */
+.bg-gradient-info {
+    background: linear-gradient(45deg, #17a2b8, #138496) !important;
+}
+
+.card-header.bg-light {
+    background-color: #f8f9fa !important;
+    border-bottom: 1px solid #e3e6f0;
+}
+
+.border-0 {
+    border: none !important;
+}
+
+.shadow-sm {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+}
+
+/* Mejoras para la información */
+.font-weight-bold.text-muted {
+    color: #6c757d !important;
+    font-weight: 600 !important;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+code {
+    font-family: 'Courier New', monospace;
+    background-color: #f8f9fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+}
+
+/* Estilos para las tarjetas de información adicional */
+.border.rounded {
+    transition: all 0.3s ease;
+}
+
+.border.rounded:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    #viewEmployeeModal .modal-dialog {
+        margin: 0.5rem;
+    }
+    
+    #viewEmployeeModal .modal-body {
+        padding: 1rem;
+    }
+    
+    .btn-action-group .btn {
+        margin-bottom: 0.25rem;
     }
 }
 

@@ -578,29 +578,28 @@ public function show($id)
     try {
         $empleado = Empleado::with('credencial')->findOrFail($id);
         
-        $data = [
-            'id' => $empleado->id,
-            'nombre' => $empleado->nombre,
-            'apellidos' => $empleado->apellidos,
-            'dni' => $empleado->dni,
-            'fecha_nacimiento' => $empleado->fecha_nacimiento,
-            'domicilio' => $empleado->domicilio,
-            'latitud' => $empleado->latitud,
-            'longitud' => $empleado->longitud,
-            'username' => $empleado->credencial->username ?? 'N/A',
-            'edad' => \Carbon\Carbon::parse($empleado->fecha_nacimiento)->age
-        ];
-
         return response()->json([
             'success' => true,
-            'data' => $data
+            'data' => [
+                'id' => $empleado->id,
+                'nombre' => $empleado->nombre,
+                'apellidos' => $empleado->apellidos,
+                'dni' => $empleado->dni,
+                'fecha_nacimiento' => $empleado->fecha_nacimiento,
+                'fecha_nacimiento_formatted' => \Carbon\Carbon::parse($empleado->fecha_nacimiento)->format('d/m/Y'),
+                'edad' => \Carbon\Carbon::parse($empleado->fecha_nacimiento)->age,
+                'domicilio' => $empleado->domicilio,
+                'latitud' => $empleado->latitud,
+                'longitud' => $empleado->longitud,
+                'username' => $empleado->credencial->username,
+                'created_at' => $empleado->created_at,
+                'updated_at' => $empleado->updated_at,
+            ]
         ]);
-
     } catch (\Exception $e) {
-        \Log::error('Error obteniendo empleado:', ['id' => $id, 'error' => $e->getMessage()]);
         return response()->json([
             'success' => false,
-            'message' => 'Empleado no encontrado'
+            'message' => 'Error al cargar el empleado: ' . $e->getMessage()
         ], 404);
     }
 }
