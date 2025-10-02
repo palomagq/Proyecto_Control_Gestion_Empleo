@@ -83,8 +83,11 @@
                         <button type="button" class="btn btn-success btn-sm btn-lg-md w-50 w-md-auto" data-toggle="modal" data-target="#employeeModal">
                             <i class="fas fa-user-plus mr-1"></i> <span class="d-none d-md-inline">Crear Nuevo Empleado</span><span class="d-md-none">Nuevo</span>
                         </button>
-                        <button type="button" class="btn btn-outline-primary btn-sm btn-lg-md w-50 w-md-auto ml-1 ml-md-2" onclick="exportarExcel()">
-                            <i class="fas fa-file-excel mr-1"></i> <span class="d-none d-md-inline">Exportar Excel</span><span class="d-md-none">Excel</span>
+                        <button type="button" class="btn btn-outline-success btn-sm btn-lg-md w-100 w-md-auto ml-0 ml-md-2" 
+                                data-toggle="modal" data-target="#exportExcelModal">
+                            <i class="fas fa-file-excel mr-1"></i> 
+                            <span class="d-none d-md-inline">Exportar Excel</span>
+                            <span class="d-md-none">Excel</span>
                         </button>
                     </div>
                 </div>
@@ -694,6 +697,55 @@
     </div>
 </div>
 
+
+
+<!-- Modal para Exportar Excel -->
+<div class="modal fade" id="exportExcelModal" tabindex="-1" role="dialog" aria-labelledby="exportExcelModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-success text-white">
+                <h5 class="modal-title" id="exportExcelModalLabel">
+                    <i class="fas fa-file-excel mr-2"></i> Exportar a Excel
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="exportExcelForm">
+                    @csrf
+                    <div class="form-group">
+                        <label for="export_mes" class="font-weight-bold">
+                            <i class="fas fa-calendar-alt mr-1"></i> Seleccionar Mes y Año *
+                        </label>
+                        <input type="text" class="form-control" id="export_mes" name="export_mes" 
+                               placeholder="Seleccione el mes a exportar" required>
+                        <small class="form-text text-muted">
+                            Seleccione el mes y año para exportar los empleados registrados en ese período
+                        </small>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <small>
+                            <i class="fas fa-info-circle"></i> 
+                            Se exportará un archivo Excel con todos los empleados registrados en el mes seleccionado, 
+                            incluyendo información completa de cada empleado.
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-success" onclick="confirmarExportacion()">
+                    <i class="fas fa-file-excel mr-1"></i> Generar Excel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
@@ -752,33 +804,23 @@ function initializeDataTable() {
     // Destruir instancia anterior si existe
     if ($.fn.DataTable.isDataTable('#empleadosTable')) {
         $('#empleadosTable').DataTable().destroy();
-        $('#empleadosTable').empty();
+        $('#empleadosTable tbody').empty();
     }
     
     table = $('#empleadosTable').DataTable({
         //processing: true,
+        serverSide: false, // ✅ IMPORTANTE: Cambiar a false
         responsive: true,
-        serverSide: true,
-         language: {
+        language: {
             "url": "{{ asset('js/datatables/Spanish.json') }}"
         },
         ajax: {
             url: '{{ route("admin.empleados.datatable") }}',
             type: 'GET',
-            data: function (d) {
-                return {
-                    filterDni: $('#filterDni').val(),
-                    filterNombre: $('#filterNombre').val(),
-                    filterMes: $('#filterMes').val(),
-                    draw: d.draw,
-                    start: d.start,
-                    length: d.length,
-                    search: d.search,
-                    order: d.order
-                };
-            },
+            dataSrc: 'data', // ✅ Especificar que los datos están en 'data'
             error: function(xhr, error, thrown) {
                 console.error('❌ Error cargando DataTable:', error);
+                console.error('Response:', xhr.responseText);
             }
         },
         columns: [
@@ -798,31 +840,17 @@ function initializeDataTable() {
                 className: 'text-center'
             }
         ],
-       
         order: [[0, 'asc']],
         pageLength: 10,
         drawCallback: function(settings) {
-            console.log('📊 DataTable actualizado - refrescando estadísticas');
-            updateStats(); // ✅ LLAMADA CORRECTA A updateStats
+            console.log('📊 DataTable actualizado');
+            // Actualizar estadísticas después de cargar datos
+            setTimeout(updateStats, 500);
         },
         initComplete: function(settings, json) {
             console.log('✅ DataTable inicializado correctamente');
+            console.log('Datos recibidos:', json);
         }
-    });
-
-    // Agregar event listeners para aplicar filtros automáticamente al escribir
-    $('#filterDni, #filterNombre').on('keyup', function(e) {
-        if (e.keyCode === 13) { // Enter key
-            aplicarFiltros();
-        } else {
-            // Opcional: Búsqueda en tiempo real con debounce
-            clearTimeout(window.filterTimeout);
-            window.filterTimeout = setTimeout(aplicarFiltros, 500);
-        }
-    });
-    
-    $('#filterMes').on('change', function() {
-        aplicarFiltros();
     });
 }
 
@@ -831,7 +859,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // Fecha de nacimiento con restricción de +16 años
     // ✅ CORREGIDO: Fecha de nacimiento con restricción exacta de +16 años
     flatpickr("#fecha_nacimiento", {
-        dateFormat: "Y-m-d",
+        dateFormat: "d-m-Y",
         maxDate: new Date(new Date().setFullYear(new Date().getFullYear() - 16)), // Exactamente 16 años atrás
         locale: "es",
         errorHandler: function(error) {
@@ -844,7 +872,7 @@ document.addEventListener("DOMContentLoaded", function() {
         plugins: [
             new monthSelectPlugin({
                 shorthand: true,
-                dateFormat: "Y-m",
+                dateFormat: "m-Y",
                 altFormat: "F Y",
                 theme: "material_blue"
             })
@@ -2008,37 +2036,357 @@ function loadStats() {
 // Funciones de filtros
 function aplicarFiltros() {
     console.log('🔍 Aplicando filtros...');
-    console.log('📋 Valores de filtros:', {
-        dni: $('#filterDni').val(),
-        nombre: $('#filterNombre').val(),
-        mes: $('#filterMes').val()
+    
+    // Obtener y normalizar datos
+    const filtros = prepararDatosFiltros();
+    
+    // Validar que los 3 campos estén completos
+    if (!filtros.filterDni || !filtros.filterNombre || !filtros.filterMes) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Filtros incompletos',
+            html: `
+                <div class="text-left">
+                    <p>Debe completar los 3 filtros para realizar la búsqueda:</p>
+                    <ul>
+                        <li><strong>DNI:</strong> ${filtros.filterDni ? '✅ Completado' : '❌ Faltante'}</li>
+                        <li><strong>Nombre:</strong> ${filtros.filterNombre ? '✅ Completado' : '❌ Faltante'}</li>
+                        <li><strong>Mes completo:</strong> ${filtros.filterMes ? '✅ Completado' : '❌ Faltante'}</li>
+                    </ul>
+                </div>
+            `,
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+    
+    // Validar formato del DNI
+    if (filtros.filterDni.length === 9) {
+        const numero = filtros.filterDni.substring(0, 8);
+        const letra = filtros.filterDni.substring(8, 9);
+        const letrasValidas = 'TRWAGMYFPDXBNJZSQVHLCKE';
+        const letraCalculada = letrasValidas[numero % 23];
+        
+        if (letra !== letraCalculada) {
+            Swal.fire({
+                icon: 'error',
+                title: 'DNI incorrecto',
+                html: `
+                    <div class="text-left">
+                        <p>La letra del DNI <strong>${filtros.filterDni}</strong> es incorrecta.</p>
+                        <p>La letra debería ser: <strong>${letraCalculada}</strong></p>
+                        <p class="text-muted">DNI correcto: <code>${numero}${letraCalculada}</code></p>
+                    </div>
+                `,
+                confirmButtonText: 'Corregir'
+            });
+            return;
+        }
+    }
+    
+    // Mostrar información del filtro aplicado
+    mostrarInfoFiltro($('#filterMes').val().trim());
+    
+    // Aplicar filtros - Los datos se enviarán a través del DataTable
+    table.ajax.reload();
+}
+
+function prepararDatosFiltros() {
+    const filterDni = $('#filterDni').val().trim();
+    const filterNombre = $('#filterNombre').val().trim();
+    const filterMes = $('#filterMes').val().trim();
+    
+    // Normalizar DNI (quitar espacios, poner mayúsculas)
+    const dniNormalizado = filterDni.toUpperCase().replace(/\s/g, '');
+    
+    // Normalizar mes (convertir MM-YYYY a YYYY-MM)
+    let mesNormalizado = filterMes;
+    if (filterMes.match(/^\d{2}-\d{4}$/)) {
+        const partes = filterMes.split('-');
+        mesNormalizado = `${partes[1]}-${partes[0]}`; // Convertir a YYYY-MM
+    }
+    
+    console.log('📤 Datos normalizados:', {
+        dni_original: filterDni,
+        dni_normalizado: dniNormalizado,
+        mes_original: filterMes,
+        mes_normalizado: mesNormalizado,
+        nombre: filterNombre
     });
     
-    table.ajax.reload();
+    return {
+        filterDni: dniNormalizado,
+        filterNombre: filterNombre,
+        filterMes: mesNormalizado
+    };
+}
+
+function mostrarInfoFiltro(mes) {
+    const filtroInfo = $('#filtroInfo');
+    const infoMes = $('#infoMes');
+    
+    console.log('🔍 Valor recibido en mostrarInfoFiltro:', mes);
+    
+    if (!mes || mes.trim() === '') {
+        filtroInfo.hide();
+        return;
+    }
+    
+    const mesLimpio = mes.trim();
+    
+    // ✅ ACEPTAR AMBOS FORMATOS
+    let año, mesNumero;
+    
+    // Formato YYYY-MM (2025-09)
+    if (mesLimpio.match(/^(\d{4})-(\d{2})$/)) {
+        const partes = mesLimpio.split('-');
+        año = partes[0];
+        mesNumero = partes[1];
+        console.log('✅ Formato YYYY-MM detectado');
+    }
+    // Formato MM-YYYY (09-2025) 
+    else if (mesLimpio.match(/^(\d{2})-(\d{4})$/)) {
+        const partes = mesLimpio.split('-');
+        año = partes[1];
+        mesNumero = partes[0];
+        console.log('✅ Formato MM-YYYY detectado');
+    }
+    else {
+        // Formato no reconocido
+        console.warn('⚠️ Formato no reconocido:', mesLimpio);
+        infoMes.text(`Filtrando por: ${mesLimpio}`);
+        filtroInfo.show();
+        return;
+    }
+    
+    // Mapeo de meses en español
+    const meses = {
+        '01': 'enero', '02': 'febrero', '03': 'marzo', '04': 'abril',
+        '05': 'mayo', '06': 'junio', '07': 'julio', '08': 'agosto',
+        '09': 'septiembre', '10': 'octubre', '11': 'noviembre', '12': 'diciembre'
+    };
+    
+    if (año && mesNumero && meses[mesNumero]) {
+        const mesFormateado = `${meses[mesNumero]} de ${año}`;
+        infoMes.text(mesFormateado);
+        filtroInfo.show();
+        console.log('✅ Mes formateado:', mesFormateado);
+    } else {
+        // Fallback
+        infoMes.text(`Filtrando por: ${mesLimpio}`);
+        filtroInfo.show();
+    }
+}
+
+function normalizarFormatoMes(mes) {
+    if (!mes) return '';
+    
+    const mesLimpio = mes.trim();
+    
+    // Si ya está en formato YYYY-MM, dejarlo así
+    if (mesLimpio.match(/^\d{4}-\d{1,2}$/)) {
+        const partes = mesLimpio.split('-');
+        return `${partes[0]}-${partes[1].padStart(2, '0')}`;
+    }
+    
+    // Convertir de MM-YYYY a YYYY-MM
+    if (mesLimpio.match(/^(\d{1,2})-(\d{4})$/)) {
+        const partes = mesLimpio.split('-');
+        return `${partes[1]}-${partes[0].padStart(2, '0')}`;
+    }
+    
+    // Convertir de MM/YYYY a YYYY-MM
+    if (mesLimpio.match(/^(\d{1,2})\/(\d{4})$/)) {
+        const partes = mesLimpio.split('/');
+        return `${partes[1]}-${partes[0].padStart(2, '0')}`;
+    }
+    
+    // Si no coincide con ningún formato conocido, devolver original
+    return mesLimpio;
 }
 
 function limpiarFiltros() {
     console.log('🧹 Limpiando filtros...');
-    $('#filterDni').val('');
-    $('#filterNombre').val('');
-    $('#filterMes').val('');
-    table.ajax.reload();
+    
+    Swal.fire({
+        title: '¿Limpiar filtros?',
+        text: 'Se eliminarán todos los filtros aplicados',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, limpiar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $('#filterDni').val('');
+            $('#filterNombre').val('');
+            $('#filterMes').val('');
+            $('#filtroInfo').hide();
+            
+            // Recargar tabla sin filtros
+            table.ajax.reload();
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Filtros limpiados',
+                text: 'Todos los filtros han sido eliminados',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+    });
 }
 
 function limpiarFiltroMes() {
     $('#filterMes').val('');
-    table.ajax.reload();
+    $('#filtroInfo').hide();
+    // No recargar la tabla automáticamente, esperar a que se apliquen los filtros
 }
 
-// Función para exportar Excel
 function exportarExcel() {
-    // Implementar exportación a Excel
+    const filterMes = $('#filterMes').val().trim();
+    
+    if (!filterMes) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Mes requerido',
+            text: 'Por favor, seleccione un mes para exportar',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
+    // Convertir formato MM-YYYY o YYYY-MM a mes y año separados
+    let mes, año;
+    
+    if (filterMes.match(/^(\d{2})-(\d{4})$/)) {
+        // Formato MM-YYYY
+        const partes = filterMes.split('-');
+        mes = parseInt(partes[0]);
+        año = parseInt(partes[1]);
+    } else if (filterMes.match(/^(\d{4})-(\d{2})$/)) {
+        // Formato YYYY-MM
+        const partes = filterMes.split('-');
+        mes = parseInt(partes[1]);
+        año = parseInt(partes[0]);
+    } else {
+        Swal.fire({
+            icon: 'error',
+            title: 'Formato inválido',
+            text: 'El formato del mes debe ser MM-AAAA o AAAA-MM',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
+    console.log('📤 Exportando Excel para:', { mes, año, filterMes });
+
+    // Mostrar confirmación
     Swal.fire({
-        icon: 'info',
-        title: 'Exportar Excel',
-        text: 'Función de exportación en desarrollo',
-        confirmButtonText: 'Aceptar'
+        title: 'Exportar a Excel',
+        html: `
+            <div class="text-left">
+                <p>¿Exportar empleados registrados en <strong>${getNombreMes(mes)} de ${año}</strong>?</p>
+                <p class="text-muted small">Se generará un archivo Excel con todos los empleados del mes seleccionado.</p>
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, Exportar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#28a745'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            exportarExcelConfirmado(mes, año);
+        }
     });
+}
+
+function exportarExcelConfirmado(mes, año) {
+    // Mostrar loading
+    Swal.fire({
+        title: 'Generando Excel...',
+        text: 'Por favor espere mientras se genera el archivo',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    // Hacer la petición para exportar
+    fetch(`/admin/empleados/exportar-excel-mes?mes=${mes}&año=${año}`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || 'Error en la respuesta del servidor');
+            });
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        Swal.close();
+        
+        // Crear URL para descargar el archivo
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        
+        // Nombre del archivo
+        const meses = {
+            1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril',
+            5: 'mayo', 6: 'junio', 7: 'julio', 8: 'agosto',
+            9: 'septiembre', 10: 'octubre', 11: 'noviembre', 12: 'diciembre'
+        };
+        
+        a.download = `empleados_${meses[mes]}_${año}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        // Mostrar mensaje de éxito
+        Swal.fire({
+            icon: 'success',
+            title: '¡Excel Exportado!',
+            html: `
+                <div class="text-left">
+                    <p>El archivo <strong>${a.download}</strong> se ha descargado correctamente.</p>
+                    <p class="text-muted small">Empleados registrados en ${getNombreMes(mes)} de ${año}</p>
+                </div>
+            `,
+            confirmButtonText: 'Aceptar'
+        });
+        
+    })
+    .catch(error => {
+        console.error('❌ Error exportando Excel:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error al Exportar',
+            html: `
+                <div class="text-left">
+                    <p><strong>No se pudo generar el archivo Excel</strong></p>
+                    <p>${error.message}</p>
+                    <p class="text-muted small">Verifique que haya empleados registrados en el mes seleccionado.</p>
+                </div>
+            `,
+            confirmButtonText: 'Entendido'
+        });
+    });
+}
+
+// Función auxiliar para obtener nombre del mes
+function getNombreMes(mes) {
+    const meses = {
+        1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril',
+        5: 'mayo', 6: 'junio', 7: 'julio', 8: 'agosto',
+        9: 'septiembre', 10: 'octubre', 11: 'noviembre', 12: 'diciembre'
+    };
+    return meses[mes] || 'mes';
 }
 
 // Funciones para las acciones de la tabla
@@ -2922,6 +3270,344 @@ $('#viewEmployeeModal').on('shown.bs.modal', function() {
     }
 });
 
+
+// Inicializar Flatpickr para el modal de exportación
+function initializeExportDatepicker() {
+    flatpickr("#export_mes", {
+        plugins: [
+            new monthSelectPlugin({
+                shorthand: true,
+                dateFormat: "Y-m",  // Formato YYYY-MM
+                altFormat: "F Y",   // Formato visual: Mes Año
+                theme: "material_blue"
+            })
+        ],
+        locale: "es",
+        onChange: function(selectedDates, dateStr, instance) {
+            console.log('📅 Mes seleccionado para exportar:', dateStr);
+        }
+    });
+}
+
+// Función para abrir el modal de exportación
+function abrirModalExportar() {
+    // Limpiar el campo al abrir el modal
+    $('#export_mes').val('');
+    $('#exportExcelModal').modal('show');
+}
+
+// Función para confirmar la exportación
+function confirmarExportacion() {
+    const mesSeleccionado = $('#export_mes').val().trim();
+    
+    if (!mesSeleccionado) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Mes requerido',
+            text: 'Por favor, seleccione un mes y año para exportar',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
+    // Convertir formato YYYY-MM a mes y año separados
+    let mes, año;
+    
+    if (mesSeleccionado.match(/^(\d{4})-(\d{2})$/)) {
+        const partes = mesSeleccionado.split('-');
+        año = parseInt(partes[0]);
+        mes = parseInt(partes[1]);
+    } else {
+        Swal.fire({
+            icon: 'error',
+            title: 'Formato inválido',
+            text: 'El formato del mes debe ser AAAA-MM',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
+    // Validar que no sea un mes futuro
+    const fechaSeleccionada = new Date(año, mes - 1);
+    const hoy = new Date();
+    const mesActual = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    
+    if (fechaSeleccionada > mesActual) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Mes inválido',
+            text: 'No se puede exportar meses futuros',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
+    console.log('📤 Confirmando exportación para:', { mes, año, mesSeleccionado });
+
+    // Mostrar confirmación final
+    mostrarConfirmacionExportacion(mes, año, mesSeleccionado);
+}
+
+// Función para mostrar confirmación final
+function mostrarConfirmacionExportacion(mes, año, mesSeleccionado) {
+    const nombreMes = getNombreMesCompleto(mes);
+    
+    Swal.fire({
+        title: 'Confirmar Exportación',
+        html: `
+            <div class="text-left">
+                <p>¿Está seguro que desea exportar los empleados registrados en:</p>
+                <div class="alert alert-info">
+                    <h5 class="text-center mb-0"><strong>${nombreMes} de ${año}</strong></h5>
+                </div>
+                <p class="text-muted small mt-3">
+                    <i class="fas fa-info-circle"></i>
+                    Se generará un archivo Excel con todos los empleados registrados durante este mes.
+                </p>
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, Exportar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#28a745',
+        width: '500px'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $('#exportExcelModal').modal('hide');
+            ejecutarExportacion(mes, año, nombreMes);
+        }
+    });
+}
+
+// Función para ejecutar la exportación
+function ejecutarExportacion(mes, año, nombreMes) {
+    // Mostrar loading
+    Swal.fire({
+        title: 'Generando Excel...',
+        html: `
+            <div class="text-center">
+                <div class="spinner-border text-success mb-3" role="status">
+                    <span class="sr-only">Generando...</span>
+                </div>
+                <p>Exportando empleados de <strong>${nombreMes} de ${año}</strong></p>
+                <p class="text-muted small">Buscando empleados registrados en este período...</p>
+            </div>
+        `,
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        width: '450px'
+    });
+
+    // ✅ **CORREGIDO: Usar parámetros en la URL correctamente**
+    const url = `/admin/empleados/exportar-excel-mes?mes=${mes}&año=${año}`;
+    
+    console.log('🔍 URL de exportación:', url);
+
+    // Hacer la petición para exportar
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json, application/vnd.ms-excel',
+        }
+    })
+    .then(response => {
+        console.log('📋 Respuesta del servidor:', {
+            status: response.status,
+            ok: response.ok,
+            contentType: response.headers.get('content-type')
+        });
+
+        // Si la respuesta no es OK, intentar obtener el mensaje de error
+        if (!response.ok) {
+            // Si es error 404 (no hay datos), manejarlo específicamente
+            if (response.status === 404) {
+                return response.json().then(errorData => {
+                    throw new Error(errorData.message || 'No hay empleados en el período seleccionado');
+                });
+            }
+            
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+            }).catch(() => {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            });
+        }
+
+        // Verificar si es un JSON (error) o un blob (archivo)
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return response.json().then(data => {
+                if (!data.success) {
+                    throw new Error(data.message || 'Error en la generación del archivo');
+                }
+                throw new Error('Respuesta inesperada del servidor');
+            });
+        }
+
+        // Si es un archivo Excel, devolver el blob
+        return response.blob();
+    })
+    .then(blob => {
+        // Verificar si el blob es un JSON de error disfrazado
+        if (blob.type && blob.type.includes('application/json')) {
+            return new Response(blob).json().then(errorData => {
+                throw new Error(errorData.message || 'Error en la generación del archivo');
+            });
+        }
+
+        // Verificar que el blob no esté vacío
+        if (blob.size === 0) {
+            throw new Error('El archivo generado está vacío. No hay datos para exportar.');
+        }
+
+        Swal.close();
+        
+        // Crear URL para descargar el archivo
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        
+        // Nombre del archivo
+        const nombreArchivo = `empleados_${getNombreMesCorto(mes)}_${año}.xlsx`;
+        a.download = nombreArchivo;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        // Mostrar mensaje de éxito
+        Swal.fire({
+            icon: 'success',
+            title: '¡Excel Exportado!',
+            html: `
+                <div class="text-left">
+                    <div class="alert alert-success">
+                        <h6 class="mb-2"><i class="fas fa-check-circle"></i> Exportación completada</h6>
+                        <p class="mb-1"><strong>Archivo:</strong> ${nombreArchivo}</p>
+                        <p class="mb-1"><strong>Período:</strong> ${nombreMes} de ${año}</p>
+                        <p class="mb-0"><strong>Tamaño del archivo:</strong> ${(blob.size / 1024).toFixed(2)} KB</p>
+                    </div>
+                    <p class="text-muted small">
+                        <i class="fas fa-download"></i>
+                        El archivo se ha descargado automáticamente. 
+                        Verifique su carpeta de descargas.
+                    </p>
+                </div>
+            `,
+            confirmButtonText: 'Aceptar',
+            width: '500px'
+        });
+        
+    })
+    .catch(error => {
+        console.error('❌ Error exportando Excel:', error);
+        
+        Swal.close();
+        
+        // Mensajes específicos según el tipo de error
+        let mensajeError = error.message;
+        let tituloError = 'Error al Exportar';
+        
+        if (error.message.includes('No hay empleados') || error.message.includes('no hay empleados')) {
+            tituloError = 'Sin datos para exportar';
+            mensajeError = `No se encontraron empleados registrados en <strong>${nombreMes} de ${año}</strong>`;
+        } else if (error.message.includes('404') || error.message.includes('No query results')) {
+            tituloError = 'Sin datos encontrados';
+            mensajeError = `No hay empleados registrados en el período seleccionado: <strong>${nombreMes} de ${año}</strong>`;
+        } else if (error.message.includes('500') || error.message.includes('Error interno')) {
+            tituloError = 'Error del servidor';
+            mensajeError = 'Ocurrió un error interno al generar el archivo. Por favor, intente más tarde.';
+        } else if (error.message.includes('vacío')) {
+            tituloError = 'Archivo vacío';
+            mensajeError = 'No hay datos para exportar en el período seleccionado.';
+        }
+
+        Swal.fire({
+            icon: 'error',
+            title: tituloError,
+            html: `
+                <div class="text-left">
+                    <div class="alert alert-warning">
+                        <p class="mb-2">${mensajeError}</p>
+                    </div>
+                    <div class="text-muted small">
+                        <p><strong>Sugerencias:</strong></p>
+                        <ul class="pl-3">
+                            <li>Verifique que el mes y año sean correctos</li>
+                            <li>Intente con otro período diferente</li>
+                            <li>Confirme que hay empleados registrados en el sistema</li>
+                            <li>Verifique las fechas de registro de los empleados</li>
+                        </ul>
+                    </div>
+                </div>
+            `,
+            confirmButtonText: 'Entendido',
+            width: '550px'
+        });
+    });
+}
+
+// Función auxiliar para nombre de mes corto
+function getNombreMesCorto(mes) {
+    const meses = {
+        1: 'ene', 2: 'feb', 3: 'mar', 4: 'abr',
+        5: 'may', 6: 'jun', 7: 'jul', 8: 'ago',
+        9: 'sep', 10: 'oct', 11: 'nov', 12: 'dic'
+    };
+    return meses[mes] || 'mes';
+}
+// Funciones auxiliares para nombres de meses
+function getNombreMesCompleto(mes) {
+    const meses = {
+        1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+        5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+        9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+    };
+    return meses[mes] || 'Mes';
+}
+
+function getNombreMesCorto(mes) {
+    const meses = {
+        1: 'ene', 2: 'feb', 3: 'mar', 4: 'abr',
+        5: 'may', 6: 'jun', 7: 'jul', 8: 'ago',
+        9: 'sep', 10: 'oct', 11: 'nov', 12: 'dic'
+    };
+    return meses[mes] || 'mes';
+}
+
+// Inicializar cuando el documento esté listo
+$(document).ready(function() {
+    initializeExportDatepicker();
+    
+    // Limpiar el modal cuando se cierre
+    $('#exportExcelModal').on('hidden.bs.modal', function () {
+        $('#export_mes').val('');
+    });
+    
+    // Permitir Enter en el campo de mes
+    $('#export_mes').on('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            confirmarExportacion();
+        }
+    });
+});
+
+// Función para verificar si hay datos antes de exportar
+function verificarDatosAntesDeExportar(mes, año) {
+    return fetch(`/admin/empleados/verificar-datos-mes?mes=${mes}&año=${año}`)
+        .then(response => response.json())
+        .then(data => {
+            return data.existenDatos;
+        })
+        .catch(error => {
+            console.error('Error verificando datos:', error);
+            return false;
+        });
+}
+
 </script>
 
 <!-- ******************************************** CSS ****************************************************  -->
@@ -3324,6 +4010,57 @@ code {
     .btn-action-group .btn {
         margin-bottom: 0.25rem;
     }
+}
+
+/* Estilos para filtros */
+.filter-status {
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+
+.filter-status.complete {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.filter-status.incomplete {
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+}
+
+.form-control:valid {
+    border-color: #28a745;
+}
+
+.form-control:invalid:not(:focus) {
+    border-color: #dc3545;
+}
+
+
+/* Estilos para el modal de exportación */
+#exportExcelModal .modal-header {
+    background: linear-gradient(45deg, #28a745, #20c997) !important;
+}
+
+#exportExcelModal .modal-content {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+#exportExcelModal .form-control:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+#exportExcelModal .alert-info {
+    background-color: #f8f9fa;
+    border-color: #e9ecef;
+    color: #495057;
 }
 
 </style>

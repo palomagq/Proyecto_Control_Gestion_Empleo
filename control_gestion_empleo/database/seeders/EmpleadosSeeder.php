@@ -3,135 +3,187 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Empleado;
-use App\Models\Credencial;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Log;
 
 class EmpleadosSeeder extends Seeder
 {
     public function run()
     {
-        // Desactivar logs de consultas para mejor rendimiento
-        DB::disableQueryLog();
-        
-        // Ruta al archivo JSON
         $jsonFile = database_path('seeders/data/empleados_data.json');
         
         if (!File::exists($jsonFile)) {
-            Log::error('❌ Archivo JSON no encontrado: ' . $jsonFile);
+            $this->command->error('❌ Archivo JSON no encontrado: ' . $jsonFile);
             return;
         }
 
-        // Leer archivo JSON
         $jsonData = File::get($jsonFile);
         $empleadosData = json_decode($jsonData, true);
 
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            Log::error('❌ Error decodificando JSON: ' . json_last_error_msg());
+        $this->command->info('🔄 Total registros en JSON: ' . count($empleadosData));
+
+        // **VERIFICAR EMPLEADOS EXISTENTES (SOLO PARA INFO)**
+        $empleadosExistentes = DB::table('tabla_empleados')->count();
+        $credencialesExistentes = DB::table('tabla_credenciales')->count();
+        
+        $this->command->info("📊 Empleados existentes en BD: " . $empleadosExistentes);
+        $this->command->info("📊 Credenciales existentes en BD: " . $credencialesExistentes);
+
+        // **OBTENER DNIs y USERNAMES EXISTENTES para evitar duplicados**
+        $dnisExistentes = DB::table('tabla_empleados')->pluck('dni')->toArray();
+        $usernamesExistentes = DB::table('tabla_credenciales')->pluck('username')->toArray();
+
+        $this->command->info("🎯 DNIs existentes: " . count($dnisExistentes));
+        $this->command->info("🎯 Usernames existentes: " . count($usernamesExistentes));
+
+        // **FILTRAR NUEVOS REGISTROS (que no existen en BD)**
+        $nuevosEmpleados = [];
+        $duplicadosEncontrados = 0;
+
+        foreach ($empleadosData as $data) {
+            $dni = $data['dni'];
+            
+            // **EXTRAER SOLO LOS NÚMEROS DEL DNI para username**
+            $username = $this->extraerNumerosDni($dni);
+            
+            // Verificar si ya existe por DNI o username
+            $existePorDni = in_array($dni, $dnisExistentes);
+            $existePorUsername = in_array($username, $usernamesExistentes);
+            
+            if (!$existePorDni && !$existePorUsername) {
+                $nuevosEmpleados[] = [
+                    'data' => $data,
+                    'username' => $username
+                ];
+            } else {
+                $duplicadosEncontrados++;
+                if ($existePorDni) {
+                    $this->command->info("⏭️ DNI duplicado omitido: {$dni} - {$data['nombre']}");
+                } else {
+                    $this->command->info("⏭️ Username duplicado omitido: {$username} - {$data['nombre']}");
+                }
+            }
+        }
+
+        $this->command->info("✅ Nuevos registros a insertar: " . count($nuevosEmpleados));
+        $this->command->info("⏭️ Duplicados omitidos: " . $duplicadosEncontrados);
+
+        if (count($nuevosEmpleados) === 0) {
+            $this->command->info('🎉 No hay nuevos registros para insertar. Los datos existentes se preservaron.');
             return;
         }
 
-        Log::info('🔄 Iniciando seeder. Total registros en JSON: ' . count($empleadosData));
-
         $insertados = 0;
-        $saltados = 0;
         $errores = 0;
 
-        // Obtener rol_id una sola vez
-        $rolEmpleado = DB::table('tabla_roles')->where('nombre', 'empleado')->first();
-        $rolId = $rolEmpleado ? $rolEmpleado->id : 2;
+        $rol = DB::table('tabla_roles')->where('nombre', 'empleado')->first();
+        $rolId = $rol ? $rol->id : 2;
 
-        Log::info('🎯 Rol ID para empleados: ' . $rolId);
-
-        // Procesar en lotes más pequeños
-        $chunks = array_chunk($empleadosData, 25); // Procesar de 25 en 25
-
-        foreach ($chunks as $chunkIndex => $chunk) {
-            Log::info("📦 Procesando lote " . ($chunkIndex + 1) . " de " . count($chunks));
-            
-            foreach ($chunk as $dataIndex => $data) {
-                $numeroRegistro = ($chunkIndex * 25) + $dataIndex + 1;
+        foreach ($nuevosEmpleados as $item) {
+            try {
+                $data = $item['data'];
+                $username = $item['username'];
                 
-                try {
-                    // Validar datos esenciales
-                    if (empty($data['dni']) || empty($data['nombre']) || empty($data['apellidos'])) {
-                        Log::warning("⏭️ Registro {$numeroRegistro} omitido - datos incompletos", [
-                            'dni' => $data['dni'] ?? 'N/A',
-                            'nombre' => $data['nombre'] ?? 'N/A'
-                        ]);
-                        $saltados++;
-                        continue;
-                    }
-
-                    // Verificar si ya existe (sin transacción)
-                    $existeEmpleado = Empleado::where('dni', $data['dni'])->exists();
-                    $existeUsername = Credencial::where('username', $data['username'])->exists();
-
-                    if ($existeEmpleado || $existeUsername) {
-                        Log::warning("⏭️ Registro {$numeroRegistro} omitido - ya existe", [
-                            'dni' => $data['dni'],
-                            'username' => $data['username'],
-                            'empleado_existe' => $existeEmpleado,
-                            'username_existe' => $existeUsername
-                        ]);
-                        $saltados++;
-                        continue;
-                    }
-
-                    // **CREAR CREDENCIAL**
-                    $credencial = new Credencial();
-                    $credencial->username = $data['username'];
-                    $credencial->password = bcrypt('1234');
-                    $credencial->rol_id = $rolId;
-                    $credencial->save();
-
-                    // **CREAR EMPLEADO**
-                    $empleado = new Empleado();
-                    $empleado->nombre = $data['nombre'];
-                    $empleado->apellidos = $data['apellidos'];
-                    $empleado->dni = $data['dni'];
-                    $empleado->fecha_nacimiento = $data['fecha_nacimiento'];
-                    $empleado->domicilio = $data['domicilio'];
-                    $empleado->latitud = $data['latitud'] ?? 40.4168;
-                    $empleado->longitud = $data['longitud'] ?? -3.7038;
-                    $empleado->credencial_id = $credencial->id;
-                    $empleado->rol_id = $rolId;
-                    $empleado->save();
-
-                    $insertados++;
-                    
-                    if ($insertados % 10 === 0) {
-                        Log::info("✅ {$insertados} registros insertados hasta ahora...");
-                    }
-
-                } catch (\Exception $e) {
-                    $errores++;
-                    Log::error("❌ Error en registro {$numeroRegistro}", [
-                        'dni' => $data['dni'] ?? 'N/A',
-                        'error' => $e->getMessage(),
-                        'linea' => $e->getLine(),
-                        'archivo' => $e->getFile()
-                    ]);
-                    
-                    // Continuar con el siguiente registro aunque falle uno
+                // **VERIFICAR ÚLTIMA VEZ por si hay concurrencia**
+                $dniExiste = DB::table('tabla_empleados')->where('dni', $data['dni'])->exists();
+                $usernameExiste = DB::table('tabla_credenciales')->where('username', $username)->exists();
+                
+                if ($dniExiste || $usernameExiste) {
+                    $this->command->info("⏭️ Duplicado detectado durante inserción: {$data['dni']}");
                     continue;
                 }
+
+                // Convertir fecha
+                $fechaFormateada = $this->convertirFecha($data['fecha_nacimiento']);
+
+                $now = now();
+
+                // **INSERTAR CREDENCIAL (SOLO NÚMEROS DEL DNI)**
+                $credencialId = DB::table('tabla_credenciales')->insertGetId([
+                    'username' => $username,
+                    'password' => bcrypt('1234'), // Contraseña por defecto
+                    'rol_id' => $rolId,
+                    'created_at' => $now,
+                    'updated_at' => $now
+                ]);
+
+                // **INSERTAR EMPLEADO**
+                DB::table('tabla_empleados')->insert([
+                    'nombre' => $data['nombre'],
+                    'apellidos' => $data['apellidos'],
+                    'dni' => $data['dni'],
+                    'fecha_nacimiento' => $fechaFormateada,
+                    'domicilio' => $data['domicilio'] ?? 'Sin dirección',
+                    'latitud' => $data['latitud'] ?? 40.4168,
+                    'longitud' => $data['longitud'] ?? -3.7038,
+                    'credencial_id' => $credencialId,
+                    'rol_id' => $rolId,
+                    'created_at' => $now,
+                    'updated_at' => $now
+                ]);
+
+                $insertados++;
+                
+                $this->command->info("✅ Nuevo empleado: {$data['nombre']} {$data['apellidos']}");
+                $this->command->info("   - DNI: {$data['dni']}");
+                $this->command->info("   - Username: {$username}");
+                $this->command->info("   - Contraseña: 1234");
+                
+                if ($insertados % 10 == 0) {
+                    $this->command->info("📊 {$insertados} nuevos registros insertados...");
+                }
+
+            } catch (\Exception $e) {
+                $errores++;
+                $this->command->error("❌ Error con {$data['dni']}: " . $e->getMessage());
             }
-            
-            // Pequeña pausa entre lotes
-            sleep(1);
         }
 
-        // Resumen final
-        Log::info("🎉 SEEDER COMPLETADO");
-        Log::info("=================================");
-        Log::info("📊 RESUMEN FINAL:");
-        Log::info("✅ Insertados: {$insertados}");
-        Log::info("⏭️ Saltados: {$saltados}");
-        Log::info("❌ Errores: {$errores}");
-        Log::info("📄 Total procesado: " . count($empleadosData));
-        Log::info("=================================");
+        // **VERIFICACIÓN FINAL**
+        $totalFinalEmpleados = DB::table('tabla_empleados')->count();
+        $totalFinalCredenciales = DB::table('tabla_credenciales')->count();
+
+        $this->command->info("\n🎉 PROCESO COMPLETADO");
+        $this->command->info("=================================");
+        $this->command->info("✅ Nuevos empleados insertados: {$insertados}");
+        $this->command->info("❌ Errores durante inserción: {$errores}");
+        $this->command->info("⏭️ Duplicados omitidos: {$duplicadosEncontrados}");
+        $this->command->info("📊 TOTAL FINAL:");
+        $this->command->info("   - Empleados en BD: {$totalFinalEmpleados}");
+        $this->command->info("   - Credenciales en BD: {$totalFinalCredenciales}");
+        $this->command->info("   - Incremento: +{$insertados} empleados");
+        $this->command->info("=================================");
+    }
+
+    /**
+     * Extrae solo los números del DNI (primeros 8 dígitos)
+     */
+    private function extraerNumerosDni($dni)
+    {
+        // Extraer solo los primeros 8 dígitos numéricos
+        preg_match('/^\d{8}/', $dni, $matches);
+        
+        if (isset($matches[0])) {
+            return $matches[0];
+        }
+        
+        // Si no encuentra 8 dígitos, intentar extraer todos los números
+        preg_match_all('/\d+/', $dni, $matches);
+        $numeros = implode('', $matches[0]);
+        
+        // Tomar solo los primeros 8 caracteres numéricos
+        return substr($numeros, 0, 8);
+    }
+
+    /**
+     * Convierte fecha de d/m/Y a Y-m-d
+     */
+    private function convertirFecha($fecha)
+    {
+        $fechaParts = explode('/', $fecha);
+        if (count($fechaParts) == 3) {
+            return $fechaParts[2] . '-' . $fechaParts[1] . '-' . $fechaParts[0];
+        }
+        return '1990-01-01'; // Fecha por defecto
     }
 }
