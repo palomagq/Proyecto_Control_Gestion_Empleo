@@ -9,8 +9,12 @@
         "php": "^8.2",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
+<<<<<<< HEAD
         "maatwebsite/excel": "^1.1",
         "simplesoftwareio/simple-qrcode": "^4.2"
+=======
+        "maatwebsite/excel": "^1.1"
+>>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

@@ -651,7 +651,11 @@ public function exportarExcelMes(Request $request)
         \Log::info('🔍 Parámetros procesados:', ['mes' => $mes, 'año' => $año]);
 
         // ✅ **DEBUG: Ver TODOS los empleados en el sistema**
+<<<<<<< HEAD
     /*    $todosEmpleados = Empleado::with('credencial')
+=======
+        $todosEmpleados = Empleado::with('credencial')
+>>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
             ->select('id', 'dni', 'nombre', 'apellidos', 'created_at')
             ->orderBy('created_at', 'desc')
             ->get()
@@ -670,7 +674,11 @@ public function exportarExcelMes(Request $request)
         \Log::info('📊 EMPLEADOS EN SISTEMA:', [
             'total_empleados' => $todosEmpleados->count(),
             'empleados' => $todosEmpleados->toArray()
+<<<<<<< HEAD
         ]);*/
+=======
+        ]);
+>>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
 
         // ✅ **BUSCAR empleados del mes/año específico**
         $empleadosFiltrados = Empleado::with('credencial')
@@ -779,6 +787,7 @@ public function verificarDatosMes(Request $request)
     }
 }
 
+<<<<<<< HEAD
 // Método para generar QR
 private function generarQR($dni, $nombreCompleto)
 {
@@ -908,4 +917,6 @@ private function generarQRPorDefecto($dni)
     }
 }
 
+=======
+>>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
 }
