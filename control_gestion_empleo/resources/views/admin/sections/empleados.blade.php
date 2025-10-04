@@ -83,8 +83,11 @@
                         <button type="button" class="btn btn-success btn-sm btn-lg-md w-50 w-md-auto" data-toggle="modal" data-target="#employeeModal">
                             <i class="fas fa-user-plus mr-1"></i> <span class="d-none d-md-inline">Crear Nuevo Empleado</span><span class="d-md-none">Nuevo</span>
                         </button>
-                        <button type="button" class="btn btn-outline-primary btn-sm btn-lg-md w-50 w-md-auto ml-1 ml-md-2" onclick="exportarExcel()">
-                            <i class="fas fa-file-excel mr-1"></i> <span class="d-none d-md-inline">Exportar Excel</span><span class="d-md-none">Excel</span>
+                        <button type="button" class="btn btn-outline-success btn-sm btn-lg-md w-100 w-md-auto ml-0 ml-md-2" 
+                                data-toggle="modal" data-target="#exportExcelModal">
+                            <i class="fas fa-file-excel mr-1"></i> 
+                            <span class="d-none d-md-inline">Exportar Excel</span>
+                            <span class="d-md-none">Excel</span>
                         </button>
                     </div>
                 </div>
@@ -184,6 +187,7 @@
                                     <th width="8%" class="min-desktop">Fecha Nac.</th> <!-- Ocultar en tablets pequeñas -->
                                     <th width="8%" class="all">Edad</th>
                                     <th width="18%" class="min-tablet">Domicilio</th>
+                                    <th width="8%" class="min-tablet">Telefono</th>
                                     <th width="8%" class="min-desktop">Username</th>
                                     <th width="15%" class="all">Acciones</th>
                                 </tr>
@@ -252,6 +256,17 @@
                         </div>
                     </div>
 
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="telefono" class="font-weight-bold">Teléfono *</label>
+                                <input type="tel" class="form-control" id="telefono" name="telefono" required 
+                                       placeholder="Ej: +34 612 345 678" pattern="[+]?[0-9\s\-]+">
+                                <small class="form-text text-muted">Formato internacional: +34 612 345 678</small>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-group">
                         <label for="domicilio" class="font-weight-bold">Domicilio *</label>
                         <div class="input-group">
@@ -301,7 +316,29 @@
                             </div>
                         </div>
                     </div>
-
+                 <!-- NUEVA SECCIÓN: Vista previa del QR -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-qrcode mr-2"></i> Código QR del Empleado
+                                    </h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div id="qr-preview" class="mb-3">
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle mr-2"></i>
+                                            El código QR se generará automáticamente al crear el empleado
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">
+                                        Este QR identificará al empleado en el sistema y podrá ser escaneado para acceder a su información
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="alert alert-info">
                         <small>
                             <i class="fas fa-info-circle"></i> Todos los campos marcados con * son obligatorios.
@@ -694,6 +731,55 @@
     </div>
 </div>
 
+
+
+<!-- Modal para Exportar Excel -->
+<div class="modal fade" id="exportExcelModal" tabindex="-1" role="dialog" aria-labelledby="exportExcelModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-success text-white">
+                <h5 class="modal-title" id="exportExcelModalLabel">
+                    <i class="fas fa-file-excel mr-2"></i> Exportar a Excel
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="exportExcelForm">
+                    @csrf
+                    <div class="form-group">
+                        <label for="export_mes" class="font-weight-bold">
+                            <i class="fas fa-calendar-alt mr-1"></i> Seleccionar Mes y Año *
+                        </label>
+                        <input type="text" class="form-control" id="export_mes" name="export_mes" 
+                               placeholder="Seleccione el mes a exportar" required>
+                        <small class="form-text text-muted">
+                            Seleccione el mes y año para exportar los empleados registrados en ese período
+                        </small>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <small>
+                            <i class="fas fa-info-circle"></i> 
+                            Se exportará un archivo Excel con todos los empleados registrados en el mes seleccionado, 
+                            incluyendo información completa de cada empleado.
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-success" onclick="confirmarExportacion()">
+                    <i class="fas fa-file-excel mr-1"></i> Generar Excel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
@@ -752,33 +838,23 @@ function initializeDataTable() {
     // Destruir instancia anterior si existe
     if ($.fn.DataTable.isDataTable('#empleadosTable')) {
         $('#empleadosTable').DataTable().destroy();
-        $('#empleadosTable').empty();
+        $('#empleadosTable tbody').empty();
     }
     
     table = $('#empleadosTable').DataTable({
         //processing: true,
+        serverSide: false, // ✅ IMPORTANTE: Cambiar a false
         responsive: true,
-        serverSide: true,
-         language: {
+        language: {
             "url": "{{ asset('js/datatables/Spanish.json') }}"
         },
         ajax: {
             url: '{{ route("admin.empleados.datatable") }}',
             type: 'GET',
-            data: function (d) {
-                return {
-                    filterDni: $('#filterDni').val(),
-                    filterNombre: $('#filterNombre').val(),
-                    filterMes: $('#filterMes').val(),
-                    draw: d.draw,
-                    start: d.start,
-                    length: d.length,
-                    search: d.search,
-                    order: d.order
-                };
-            },
+            dataSrc: 'data', // ✅ Especificar que los datos están en 'data'
             error: function(xhr, error, thrown) {
                 console.error('❌ Error cargando DataTable:', error);
+                console.error('Response:', xhr.responseText);
             }
         },
         columns: [
@@ -788,7 +864,8 @@ function initializeDataTable() {
             { data: 'apellidos', name: 'apellidos' },
             { data: 'fecha_nacimiento', name: 'fecha_nacimiento' },
             { data: 'edad', name: 'edad', orderable: false, searchable: false },
-            { data: 'domicilio', name: 'domicilio' },
+            { data: 'domicilio', name: 'domicilio' },            
+            { data: 'telefono', name: 'telefono' },
             { data: 'username', name: 'username' },
             { 
                 data: 'acciones', 
@@ -798,31 +875,17 @@ function initializeDataTable() {
                 className: 'text-center'
             }
         ],
-       
         order: [[0, 'asc']],
         pageLength: 10,
         drawCallback: function(settings) {
-            console.log('📊 DataTable actualizado - refrescando estadísticas');
-            updateStats(); // ✅ LLAMADA CORRECTA A updateStats
+            console.log('📊 DataTable actualizado');
+            // Actualizar estadísticas después de cargar datos
+            setTimeout(updateStats, 500);
         },
         initComplete: function(settings, json) {
             console.log('✅ DataTable inicializado correctamente');
+            console.log('Datos recibidos:', json);
         }
-    });
-
-    // Agregar event listeners para aplicar filtros automáticamente al escribir
-    $('#filterDni, #filterNombre').on('keyup', function(e) {
-        if (e.keyCode === 13) { // Enter key
-            aplicarFiltros();
-        } else {
-            // Opcional: Búsqueda en tiempo real con debounce
-            clearTimeout(window.filterTimeout);
-            window.filterTimeout = setTimeout(aplicarFiltros, 500);
-        }
-    });
-    
-    $('#filterMes').on('change', function() {
-        aplicarFiltros();
     });
 }
 
@@ -831,7 +894,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // Fecha de nacimiento con restricción de +16 años
     // ✅ CORREGIDO: Fecha de nacimiento con restricción exacta de +16 años
     flatpickr("#fecha_nacimiento", {
-        dateFormat: "Y-m-d",
+        dateFormat: "d-m-Y",
         maxDate: new Date(new Date().setFullYear(new Date().getFullYear() - 16)), // Exactamente 16 años atrás
         locale: "es",
         errorHandler: function(error) {
@@ -844,7 +907,7 @@ document.addEventListener("DOMContentLoaded", function() {
         plugins: [
             new monthSelectPlugin({
                 shorthand: true,
-                dateFormat: "Y-m",
+                dateFormat: "m-Y",
                 altFormat: "F Y",
                 theme: "material_blue"
             })
@@ -876,6 +939,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('dni').addEventListener('input', function() {
         validarDNI();
         generarUsername();
+        generarQRPreview(); // ✅ NUEVO: Generar preview del QR
     });
     
     // Validar coordenadas cuando cambien
@@ -892,6 +956,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+
+// Agregar event listener para validación en tiempo real
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('telefono').addEventListener('input', validarTelefono);
+    document.getElementById('telefono').addEventListener('blur', validarTelefono);
+});
 
 function generarUsername() {
     const dniInput = document.getElementById('dni');
@@ -919,6 +989,8 @@ function generarUsername() {
     }
     
     validarDNI();
+     // ✅ NUEVO: Generar preview del QR automáticamente
+    generarQRPreview()
 }
 
 // ✅ FUNCIÓN MEJORADA: Validación de edad exacta de 16 años
@@ -1146,6 +1218,16 @@ function submitEmployeeForm() {
         return;
     }
 
+    // Validar teléfono
+    if (!validarTelefono()) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Teléfono inválido',
+            text: 'Por favor, ingrese un número de teléfono válido'
+        });
+        return;
+    }
+
     // 4. Validar coordenadas
     const latitud = document.getElementById('latitud').value;
     const longitud = document.getElementById('longitud').value;
@@ -1171,7 +1253,7 @@ function submitEmployeeForm() {
     }
 
     // 6. Validar campos requeridos
-    const camposRequeridos = ['nombre', 'apellidos', 'dni', 'fecha_nacimiento', 'domicilio'];
+    const camposRequeridos = ['nombre', 'apellidos', 'dni', 'fecha_nacimiento', 'domicilio','telefono'];
     const camposFaltantes = [];
     
     camposRequeridos.forEach(campo => {
@@ -1206,6 +1288,15 @@ function submitEmployeeForm() {
         return;
     }
 
+    // 8. Obtener datos para el QR
+    const nombreCompleto = `${document.getElementById('nombre').value.trim()} ${document.getElementById('apellidos').value.trim()}`;
+    const qrData = {
+        empleado_dni: dni,
+        empleado_nombre: nombreCompleto,
+        tipo: 'empleado',
+        fecha_generacion: new Date().toISOString()
+    };
+
     // 8. Preparar datos para enviar
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     
@@ -1215,12 +1306,15 @@ function submitEmployeeForm() {
         apellidos: document.getElementById('apellidos').value.trim(),
         dni: dni,
         fecha_nacimiento: document.getElementById('fecha_nacimiento').value,
+        telefono: document.getElementById('telefono').value.trim(),
         domicilio: domicilio,
         latitud: parseFloat(latitud).toFixed(6),
         longitud: parseFloat(longitud).toFixed(6),
         username: usernameGenerado,
         password: passwordGenerado,
-        password_confirmation: passwordGenerado
+        password_confirmation: passwordGenerado,
+        qr_data: qrData // ✅ NUEVO: Enviar datos para el QR
+
     };
     
     console.log('📤 Datos validados para enviar:', empleadoData);
@@ -2008,37 +2102,379 @@ function loadStats() {
 // Funciones de filtros
 function aplicarFiltros() {
     console.log('🔍 Aplicando filtros...');
-    console.log('📋 Valores de filtros:', {
-        dni: $('#filterDni').val(),
-        nombre: $('#filterNombre').val(),
-        mes: $('#filterMes').val()
+    
+    // Obtener y normalizar datos
+    const filtros = prepararDatosFiltros();
+    
+    // Validar que los 3 campos estén completos
+    if (!filtros.filterDni || !filtros.filterNombre || !filtros.filterMes) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Filtros incompletos',
+            html: `
+                <div class="text-left">
+                    <p>Debe completar los 3 filtros para realizar la búsqueda:</p>
+                    <ul>
+                        <li><strong>DNI:</strong> ${filtros.filterDni ? '✅ Completado' : '❌ Faltante'}</li>
+                        <li><strong>Nombre:</strong> ${filtros.filterNombre ? '✅ Completado' : '❌ Faltante'}</li>
+                        <li><strong>Mes completo:</strong> ${filtros.filterMes ? '✅ Completado' : '❌ Faltante'}</li>
+                    </ul>
+                </div>
+            `,
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+    
+    // Validar formato del DNI
+    if (filtros.filterDni.length === 9) {
+        const numero = filtros.filterDni.substring(0, 8);
+        const letra = filtros.filterDni.substring(8, 9);
+        const letrasValidas = 'TRWAGMYFPDXBNJZSQVHLCKE';
+        const letraCalculada = letrasValidas[numero % 23];
+        
+        if (letra !== letraCalculada) {
+            Swal.fire({
+                icon: 'error',
+                title: 'DNI incorrecto',
+                html: `
+                    <div class="text-left">
+                        <p>La letra del DNI <strong>${filtros.filterDni}</strong> es incorrecta.</p>
+                        <p>La letra debería ser: <strong>${letraCalculada}</strong></p>
+                        <p class="text-muted">DNI correcto: <code>${numero}${letraCalculada}</code></p>
+                    </div>
+                `,
+                confirmButtonText: 'Corregir'
+            });
+            return;
+        }
+    }
+    
+    // Mostrar información del filtro aplicado
+    mostrarInfoFiltro($('#filterMes').val().trim());
+    
+    // Aplicar filtros - Los datos se enviarán a través del DataTable
+    table.ajax.reload();
+}
+
+function prepararDatosFiltros() {
+    const filterDni = $('#filterDni').val().trim();
+    const filterNombre = $('#filterNombre').val().trim();
+    const filterMes = $('#filterMes').val().trim();
+    
+    // Normalizar DNI (quitar espacios, poner mayúsculas)
+    const dniNormalizado = filterDni.toUpperCase().replace(/\s/g, '');
+    
+    // Normalizar mes (convertir MM-YYYY a YYYY-MM)
+    let mesNormalizado = filterMes;
+    if (filterMes.match(/^\d{2}-\d{4}$/)) {
+        const partes = filterMes.split('-');
+        mesNormalizado = `${partes[1]}-${partes[0]}`; // Convertir a YYYY-MM
+    }
+    
+    console.log('📤 Datos normalizados:', {
+        dni_original: filterDni,
+        dni_normalizado: dniNormalizado,
+        mes_original: filterMes,
+        mes_normalizado: mesNormalizado,
+        nombre: filterNombre
     });
     
-    table.ajax.reload();
+    return {
+        filterDni: dniNormalizado,
+        filterNombre: filterNombre,
+        filterMes: mesNormalizado
+    };
+}
+
+function mostrarInfoFiltro(mes) {
+    const filtroInfo = $('#filtroInfo');
+    const infoMes = $('#infoMes');
+    
+    console.log('🔍 Valor recibido en mostrarInfoFiltro:', mes);
+    
+    if (!mes || mes.trim() === '') {
+        filtroInfo.hide();
+        return;
+    }
+    
+    const mesLimpio = mes.trim();
+    
+    // ✅ ACEPTAR AMBOS FORMATOS
+    let año, mesNumero;
+    
+    // Formato YYYY-MM (2025-09)
+    if (mesLimpio.match(/^(\d{4})-(\d{2})$/)) {
+        const partes = mesLimpio.split('-');
+        año = partes[0];
+        mesNumero = partes[1];
+        console.log('✅ Formato YYYY-MM detectado');
+    }
+    // Formato MM-YYYY (09-2025) 
+    else if (mesLimpio.match(/^(\d{2})-(\d{4})$/)) {
+        const partes = mesLimpio.split('-');
+        año = partes[1];
+        mesNumero = partes[0];
+        console.log('✅ Formato MM-YYYY detectado');
+    }
+    else {
+        // Formato no reconocido
+        console.warn('⚠️ Formato no reconocido:', mesLimpio);
+        infoMes.text(`Filtrando por: ${mesLimpio}`);
+        filtroInfo.show();
+        return;
+    }
+    
+    // Mapeo de meses en español
+    const meses = {
+        '01': 'enero', '02': 'febrero', '03': 'marzo', '04': 'abril',
+        '05': 'mayo', '06': 'junio', '07': 'julio', '08': 'agosto',
+        '09': 'septiembre', '10': 'octubre', '11': 'noviembre', '12': 'diciembre'
+    };
+    
+    if (año && mesNumero && meses[mesNumero]) {
+        const mesFormateado = `${meses[mesNumero]} de ${año}`;
+        infoMes.text(mesFormateado);
+        filtroInfo.show();
+        console.log('✅ Mes formateado:', mesFormateado);
+    } else {
+        // Fallback
+        infoMes.text(`Filtrando por: ${mesLimpio}`);
+        filtroInfo.show();
+    }
+}
+
+function normalizarFormatoMes(mes) {
+    if (!mes) return '';
+    
+    const mesLimpio = mes.trim();
+    
+    // Si ya está en formato YYYY-MM, dejarlo así
+    if (mesLimpio.match(/^\d{4}-\d{1,2}$/)) {
+        const partes = mesLimpio.split('-');
+        return `${partes[0]}-${partes[1].padStart(2, '0')}`;
+    }
+    
+    // Convertir de MM-YYYY a YYYY-MM
+    if (mesLimpio.match(/^(\d{1,2})-(\d{4})$/)) {
+        const partes = mesLimpio.split('-');
+        return `${partes[1]}-${partes[0].padStart(2, '0')}`;
+    }
+    
+    // Convertir de MM/YYYY a YYYY-MM
+    if (mesLimpio.match(/^(\d{1,2})\/(\d{4})$/)) {
+        const partes = mesLimpio.split('/');
+        return `${partes[1]}-${partes[0].padStart(2, '0')}`;
+    }
+    
+    // Si no coincide con ningún formato conocido, devolver original
+    return mesLimpio;
 }
 
 function limpiarFiltros() {
     console.log('🧹 Limpiando filtros...');
-    $('#filterDni').val('');
-    $('#filterNombre').val('');
-    $('#filterMes').val('');
-    table.ajax.reload();
+    
+    Swal.fire({
+        title: '¿Limpiar filtros?',
+        text: 'Se eliminarán todos los filtros aplicados',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, limpiar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $('#filterDni').val('');
+            $('#filterNombre').val('');
+            $('#filterMes').val('');
+            $('#filtroInfo').hide();
+            
+            // Recargar tabla sin filtros
+            table.ajax.reload();
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Filtros limpiados',
+                text: 'Todos los filtros han sido eliminados',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+    });
 }
 
 function limpiarFiltroMes() {
     $('#filterMes').val('');
-    table.ajax.reload();
+    $('#filtroInfo').hide();
+    // No recargar la tabla automáticamente, esperar a que se apliquen los filtros
 }
 
-// Función para exportar Excel
+// Función para validar teléfono
+function validarTelefono() {
+    const telefonoInput = document.getElementById('telefono');
+    const telefono = telefonoInput.value.trim();
+    
+    // Expresión regular para teléfono internacional
+    const telefonoRegex = /^[+]?[0-9\s\-]+$/;
+    
+    if (telefono && telefonoRegex.test(telefono) && telefono.length >= 9) {
+        telefonoInput.classList.remove('is-invalid');
+        telefonoInput.classList.add('is-valid');
+        return true;
+    } else if (telefono.length > 0) {
+        telefonoInput.classList.remove('is-valid');
+        telefonoInput.classList.add('is-invalid');
+        return false;
+    } else {
+        telefonoInput.classList.remove('is-valid', 'is-invalid');
+        return false;
+    }
+}
+
 function exportarExcel() {
-    // Implementar exportación a Excel
+    const filterMes = $('#filterMes').val().trim();
+    
+    if (!filterMes) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Mes requerido',
+            text: 'Por favor, seleccione un mes para exportar',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
+    // Convertir formato MM-YYYY o YYYY-MM a mes y año separados
+    let mes, año;
+    
+    if (filterMes.match(/^(\d{2})-(\d{4})$/)) {
+        // Formato MM-YYYY
+        const partes = filterMes.split('-');
+        mes = parseInt(partes[0]);
+        año = parseInt(partes[1]);
+    } else if (filterMes.match(/^(\d{4})-(\d{2})$/)) {
+        // Formato YYYY-MM
+        const partes = filterMes.split('-');
+        mes = parseInt(partes[1]);
+        año = parseInt(partes[0]);
+    } else {
+        Swal.fire({
+            icon: 'error',
+            title: 'Formato inválido',
+            text: 'El formato del mes debe ser MM-AAAA o AAAA-MM',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
+    console.log('📤 Exportando Excel para:', { mes, año, filterMes });
+
+    // Mostrar confirmación
     Swal.fire({
-        icon: 'info',
-        title: 'Exportar Excel',
-        text: 'Función de exportación en desarrollo',
-        confirmButtonText: 'Aceptar'
+        title: 'Exportar a Excel',
+        html: `
+            <div class="text-left">
+                <p>¿Exportar empleados registrados en <strong>${getNombreMes(mes)} de ${año}</strong>?</p>
+                <p class="text-muted small">Se generará un archivo Excel con todos los empleados del mes seleccionado.</p>
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, Exportar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#28a745'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            exportarExcelConfirmado(mes, año);
+        }
     });
+}
+
+function exportarExcelConfirmado(mes, año) {
+    // Mostrar loading
+    Swal.fire({
+        title: 'Generando Excel...',
+        text: 'Por favor espere mientras se genera el archivo',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    // Hacer la petición para exportar
+    fetch(`/admin/empleados/exportar-excel-mes?mes=${mes}&año=${año}`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || 'Error en la respuesta del servidor');
+            });
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        Swal.close();
+        
+        // Crear URL para descargar el archivo
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        
+        // Nombre del archivo
+        const meses = {
+            1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril',
+            5: 'mayo', 6: 'junio', 7: 'julio', 8: 'agosto',
+            9: 'septiembre', 10: 'octubre', 11: 'noviembre', 12: 'diciembre'
+        };
+        
+        a.download = `empleados_${meses[mes]}_${año}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        // Mostrar mensaje de éxito
+        Swal.fire({
+            icon: 'success',
+            title: '¡Excel Exportado!',
+            html: `
+                <div class="text-left">
+                    <p>El archivo <strong>${a.download}</strong> se ha descargado correctamente.</p>
+                    <p class="text-muted small">Empleados registrados en ${getNombreMes(mes)} de ${año}</p>
+                </div>
+            `,
+            confirmButtonText: 'Aceptar'
+        });
+        
+    })
+    .catch(error => {
+        console.error('❌ Error exportando Excel:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error al Exportar',
+            html: `
+                <div class="text-left">
+                    <p><strong>No se pudo generar el archivo Excel</strong></p>
+                    <p>${error.message}</p>
+                    <p class="text-muted small">Verifique que haya empleados registrados en el mes seleccionado.</p>
+                </div>
+            `,
+            confirmButtonText: 'Entendido'
+        });
+    });
+}
+
+// Función auxiliar para obtener nombre del mes
+function getNombreMes(mes) {
+    const meses = {
+        1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril',
+        5: 'mayo', 6: 'junio', 7: 'julio', 8: 'agosto',
+        9: 'septiembre', 10: 'octubre', 11: 'noviembre', 12: 'diciembre'
+    };
+    return meses[mes] || 'mes';
 }
 
 // Funciones para las acciones de la tabla
@@ -2922,6 +3358,515 @@ $('#viewEmployeeModal').on('shown.bs.modal', function() {
     }
 });
 
+
+// Inicializar Flatpickr para el modal de exportación
+function initializeExportDatepicker() {
+    flatpickr("#export_mes", {
+        plugins: [
+            new monthSelectPlugin({
+                shorthand: true,
+                dateFormat: "m-Y",  // Formato YYYY-MM
+                altFormat: "F Y",   // Formato visual: Mes Año
+                theme: "material_blue"
+            })
+        ],
+        locale: "es",
+        onChange: function(selectedDates, dateStr, instance) {
+            console.log('📅 Mes seleccionado para exportar:', dateStr);
+        }
+    });
+}
+
+// Función para abrir el modal de exportación
+function abrirModalExportar() {
+    // Limpiar el campo al abrir el modal
+    $('#export_mes').val('');
+    $('#exportExcelModal').modal('show');
+}
+
+// Función para confirmar la exportación
+function confirmarExportacion() {
+    const mesSeleccionado = $('#export_mes').val().trim();
+    
+    if (!mesSeleccionado) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Mes requerido',
+            text: 'Por favor, seleccione un mes y año para exportar',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
+    // Convertir formato YYYY-MM a mes y año separados
+    let mes, año;
+    
+    if (mesSeleccionado.match(/^(\d{1,2})-(\d{4})$/)) {
+        // Formato MM-YYYY (ej: "10-2025")
+        const partes = mesSeleccionado.split('-');
+        mes = parseInt(partes[0]);
+        año = parseInt(partes[1]);
+    } else {
+        Swal.fire({
+            icon: 'error',
+            title: 'Formato inválido',
+            text: 'El formato del mes debe ser MM-AAAA (ej: 10-2025)',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
+    // Validar que no sea un mes futuro
+    const fechaSeleccionada = new Date(año, mes - 1);
+    const hoy = new Date();
+    const mesActual = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    
+    if (fechaSeleccionada > mesActual) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Mes inválido',
+            text: 'No se puede exportar meses futuros',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
+    console.log('📤 Confirmando exportación para:', { 
+        mes, 
+        año, 
+        mesSeleccionado,
+        formato: 'MM-YYYY'
+    });
+    // Mostrar confirmación final
+    mostrarConfirmacionExportacion(mes, año, mesSeleccionado);
+}
+
+// Función para mostrar confirmación final
+function mostrarConfirmacionExportacion(mes, año, mesSeleccionado) {
+    const nombreMes = getNombreMesCompleto(mes);
+    
+    Swal.fire({
+        title: 'Confirmar Exportación',
+        html: `
+            <div class="text-left">
+                <p>¿Está seguro que desea exportar los empleados registrados en:</p>
+                <div class="alert alert-info">
+                    <h5 class="text-center mb-0"><strong>${nombreMes} de ${año}</strong></h5>
+                </div>
+                <p class="text-muted small mt-3">
+                    <i class="fas fa-info-circle"></i>
+                    Se generará un archivo Excel con todos los empleados registrados durante este mes.
+                </p>
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, Exportar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#28a745',
+        width: '500px'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $('#exportExcelModal').modal('hide');
+            ejecutarExportacion(mes, año, nombreMes);
+        }
+    });
+}
+
+// Función para ejecutar la exportación
+function ejecutarExportacion(mes, año, nombreMes) {
+    // Mostrar loading
+    Swal.fire({
+        title: 'Generando Excel...',
+        html: `
+            <div class="text-center">
+                <div class="spinner-border text-success mb-3" role="status">
+                    <span class="sr-only">Generando...</span>
+                </div>
+                <p>Exportando empleados de <strong>${nombreMes} de ${año}</strong></p>
+                <p class="text-muted small">Formato: MM-AAAA (${mes}-${año})</p>
+            </div>
+        `,
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        width: '450px'
+    });
+
+    // ✅ **CORREGIDO: Usar parámetros en la URL correctamente**
+    const url = `/admin/empleados/exportar-excel-mes?mes=${mes}&año=${año}`;
+    
+    console.log('🔍 URL de exportación:', url);
+
+    // Hacer la petición para exportar
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json, application/vnd.ms-excel',
+        }
+    })
+    .then(response => {
+        console.log('📋 Respuesta del servidor:', {
+            status: response.status,
+            ok: response.ok,
+            contentType: response.headers.get('content-type')
+        });
+
+        // Si la respuesta no es OK, intentar obtener el mensaje de error
+        if (!response.ok) {
+            // Si es error 404 (no hay datos), manejarlo específicamente
+            if (response.status === 404) {
+                return response.json().then(errorData => {
+                    throw new Error(errorData.message || 'No hay empleados en el período seleccionado');
+                });
+            }
+            
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+            }).catch(() => {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            });
+        }
+
+        // Verificar si es un JSON (error) o un blob (archivo)
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return response.json().then(data => {
+                if (!data.success) {
+                    throw new Error(data.message || 'Error en la generación del archivo');
+                }
+                throw new Error('Respuesta inesperada del servidor');
+            });
+        }
+
+        // Si es un archivo Excel, devolver el blob
+        return response.blob();
+    })
+    .then(blob => {
+        // Verificar si el blob es un JSON de error disfrazado
+        if (blob.type && blob.type.includes('application/json')) {
+            return new Response(blob).json().then(errorData => {
+                throw new Error(errorData.message || 'Error en la generación del archivo');
+            });
+        }
+
+        // Verificar que el blob no esté vacío
+        if (blob.size === 0) {
+            throw new Error('El archivo generado está vacío. No hay datos para exportar.');
+        }
+
+        Swal.close();
+        
+        // Crear URL para descargar el archivo
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        
+        // Nombre del archivo
+        const nombreArchivo = `empleados_${getNombreMesCorto(mes)}_${año}.xlsx`;
+        a.download = nombreArchivo;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        // Mostrar mensaje de éxito
+        Swal.fire({
+            icon: 'success',
+            title: '¡Excel Exportado!',
+            html: `
+                <div class="text-left">
+                    <div class="alert alert-success">
+                        <h6 class="mb-2"><i class="fas fa-check-circle"></i> Exportación completada</h6>
+                        <p class="mb-1"><strong>Archivo:</strong> ${nombreArchivo}</p>
+                        <p class="mb-1"><strong>Período:</strong> ${nombreMes} de ${año}</p>
+                        <p class="mb-0"><strong>Tamaño del archivo:</strong> ${(blob.size / 1024).toFixed(2)} KB</p>
+                    </div>
+                    <p class="text-muted small">
+                        <i class="fas fa-download"></i>
+                        El archivo se ha descargado automáticamente. 
+                        Verifique su carpeta de descargas.
+                    </p>
+                </div>
+            `,
+            confirmButtonText: 'Aceptar',
+            width: '500px'
+        });
+        
+    })
+    .catch(error => {
+        console.error('❌ Error exportando Excel:', error);
+        
+        Swal.close();
+        
+        // Mensajes específicos según el tipo de error
+        let mensajeError = error.message;
+        let tituloError = 'Error al Exportar';
+        
+        if (error.message.includes('No hay empleados') || error.message.includes('no hay empleados')) {
+            tituloError = 'Sin datos para exportar';
+            mensajeError = `No se encontraron empleados registrados en <strong>${nombreMes} de ${año}</strong>`;
+        } else if (error.message.includes('404') || error.message.includes('No query results')) {
+            tituloError = 'Sin datos encontrados';
+            mensajeError = `No hay empleados registrados en el período seleccionado: <strong>${nombreMes} de ${año}</strong>`;
+        } else if (error.message.includes('500') || error.message.includes('Error interno')) {
+            tituloError = 'Error del servidor';
+            mensajeError = 'Ocurrió un error interno al generar el archivo. Por favor, intente más tarde.';
+        } else if (error.message.includes('vacío')) {
+            tituloError = 'Archivo vacío';
+            mensajeError = 'No hay datos para exportar en el período seleccionado.';
+        }
+
+        Swal.fire({
+            icon: 'error',
+            title: tituloError,
+            html: `
+                <div class="text-left">
+                    <div class="alert alert-warning">
+                        <p class="mb-2">${mensajeError}</p>
+                    </div>
+                    <div class="text-muted small">
+                        <p><strong>Sugerencias:</strong></p>
+                        <ul class="pl-3">
+                            <li>Verifique que el mes y año sean correctos</li>
+                            <li>Intente con otro período diferente</li>
+                            <li>Confirme que hay empleados registrados en el sistema</li>
+                            <li>Verifique las fechas de registro de los empleados</li>
+                        </ul>
+                    </div>
+                </div>
+            `,
+            confirmButtonText: 'Entendido',
+            width: '550px'
+        });
+    });
+}
+
+// Función auxiliar para nombre de mes corto
+function getNombreMesCorto(mes) {
+    const meses = {
+        1: 'ene', 2: 'feb', 3: 'mar', 4: 'abr',
+        5: 'may', 6: 'jun', 7: 'jul', 8: 'ago',
+        9: 'sep', 10: 'oct', 11: 'nov', 12: 'dic'
+    };
+    return meses[mes] || 'mes';
+}
+// Funciones auxiliares para nombres de meses
+function getNombreMesCompleto(mes) {
+    const meses = {
+        1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+        5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+        9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+    };
+    return meses[mes] || 'Mes';
+}
+
+function getNombreMesCorto(mes) {
+    const meses = {
+        1: 'ene', 2: 'feb', 3: 'mar', 4: 'abr',
+        5: 'may', 6: 'jun', 7: 'jul', 8: 'ago',
+        9: 'sep', 10: 'oct', 11: 'nov', 12: 'dic'
+    };
+    return meses[mes] || 'mes';
+}
+
+// Inicializar cuando el documento esté listo
+$(document).ready(function() {
+    initializeExportDatepicker();
+    
+    // Limpiar el modal cuando se cierre
+    $('#exportExcelModal').on('hidden.bs.modal', function () {
+        $('#export_mes').val('');
+    });
+    
+    // Permitir Enter en el campo de mes
+    $('#export_mes').on('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            confirmarExportacion();
+        }
+    });
+});
+
+// Función para verificar si hay datos antes de exportar
+function verificarDatosAntesDeExportar(mes, año) {
+    return fetch(`/admin/empleados/verificar-datos-mes?mes=${mes}&año=${año}`)
+        .then(response => response.json())
+        .then(data => {
+            return data.existenDatos;
+        })
+        .catch(error => {
+            console.error('Error verificando datos:', error);
+            return false;
+        });
+}
+
+// ✅ NUEVA FUNCIÓN: Generar preview del QR automáticamente
+function generarQRPreview() {
+    const dni = document.getElementById('dni').value.trim().toUpperCase();
+    const nombre = document.getElementById('nombre').value.trim();
+    const apellidos = document.getElementById('apellidos').value.trim();
+    
+    // Solo generar QR si el DNI es válido y hay nombre/apellidos
+    if (dni.length === 9 && validarDNI() && nombre && apellidos) {
+        const nombreCompleto = `${nombre} ${apellidos}`;
+        
+        // Mostrar loading en el preview
+        document.getElementById('qr-preview').innerHTML = `
+            <div class="text-center">
+                <div class="spinner-border text-primary mb-2" role="status">
+                    <span class="sr-only">Generando QR...</span>
+                </div>
+                <p class="small text-muted">Generando código QR...</p>
+            </div>
+        `;
+        
+        // Generar QR usando una API online o librería cliente
+        generarQRCliente(dni, nombreCompleto);
+    } else if (dni.length > 0) {
+        // Mostrar mensaje de que se necesita DNI válido
+        document.getElementById('qr-preview').innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-info-circle mr-2"></i>
+                Complete el DNI correctamente para generar el QR
+            </div>
+        `;
+    } else {
+        // Estado inicial
+        document.getElementById('qr-preview').innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle mr-2"></i>
+                El código QR se generará automáticamente al completar el DNI
+            </div>
+        `;
+    }
+}
+
+// ✅ NUEVA FUNCIÓN: Generar QR del lado del cliente
+function generarQRCliente(dni, nombreCompleto) {
+    try {
+        // Datos para el QR
+        const qrData = {
+            empleado_dni: dni,
+            empleado_nombre: nombreCompleto,
+            tipo: 'empleado',
+            fecha_generacion: new Date().toISOString()
+        };
+        
+        const qrContent = JSON.stringify(qrData);
+        
+        // Opción 1: Usar API de Google Charts (gratuita y sin librerías)
+        generarQRConGoogleCharts(qrContent, dni);
+        
+    } catch (error) {
+        console.error('Error generando QR cliente:', error);
+        mostrarQRError();
+    }
+}
+
+// ✅ FUNCIÓN: Generar QR usando Google Charts API
+function generarQRConGoogleCharts(qrContent, dni) {
+    const qrSize = 200;
+    const encodedContent = encodeURIComponent(qrContent);
+    
+    // URL de la API de Google Charts para QR
+    const qrUrl = `https://chart.googleapis.com/chart?cht=qr&chs=${qrSize}x${qrSize}&chl=${encodedContent}&choe=UTF-8`;
+    
+    // Crear elemento de imagen
+    const img = new Image();
+    img.src = qrUrl;
+    img.alt = `QR Code para DNI: ${dni}`;
+    img.className = 'qr-image';
+    img.style.maxWidth = '100%';
+    img.style.height = 'auto';
+    
+    img.onload = function() {
+        document.getElementById('qr-preview').innerHTML = `
+            <div class="text-center">
+                <img src="${qrUrl}" alt="QR Code para DNI: ${dni}" class="qr-image" style="max-width: 100%; height: auto;">
+                <p class="small text-muted mt-2">Código QR generado automáticamente</p>
+            </div>
+        `;
+    };
+    
+    img.onerror = function() {
+        // Fallback: generar QR con texto
+        generarQRFallback(dni);
+    };
+}
+
+// ✅ FUNCIÓN: Fallback para generar QR simple con texto
+function generarQRFallback(dni) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const size = 200;
+    
+    canvas.width = size;
+    canvas.height = size;
+    
+    // Fondo blanco
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, size, size);
+    
+    // Bordes
+    ctx.strokeStyle = '#007bff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(5, 5, size - 10, size - 10);
+    
+    // Texto
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    
+    const texto1 = 'EMPLEADO';
+    const texto2 = `DNI: ${dni}`;
+    
+    ctx.fillText(texto1, size / 2, size / 2 - 10);
+    ctx.fillText(texto2, size / 2, size / 2 + 15);
+    
+    // Convertir a data URL
+    const dataUrl = canvas.toDataURL('image/png');
+    
+    document.getElementById('qr-preview').innerHTML = `
+        <div class="text-center">
+            <img src="${dataUrl}" alt="QR Code para DNI: ${dni}" class="qr-image" style="max-width: 100%; height: auto;">
+            <p class="small text-muted mt-2">QR generado localmente</p>
+            <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="descargarQRPreview('${dni}')">
+                <i class="fas fa-download mr-1"></i> Descargar QR
+            </button>
+        </div>
+    `;
+}
+
+// ✅ FUNCIÓN: Descargar el QR generado
+function descargarQRPreview(dni) {
+    const qrImage = document.querySelector('#qr-preview img');
+    if (qrImage) {
+        const link = document.createElement('a');
+        link.download = `qr_empleado_${dni}.png`;
+        link.href = qrImage.src;
+        link.click();
+        
+        Swal.fire({
+            icon: 'success',
+            title: 'QR Descargado',
+            text: `El código QR para DNI ${dni} se ha descargado correctamente`,
+            timer: 2000,
+            showConfirmButton: false
+        });
+    }
+}
+
+// ✅ FUNCIÓN: Mostrar error en generación de QR
+function mostrarQRError() {
+    document.getElementById('qr-preview').innerHTML = `
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            Error al generar el código QR. Se generará en el servidor.
+        </div>
+    `;
+}
+
 </script>
 
 <!-- ******************************************** CSS ****************************************************  -->
@@ -3324,6 +4269,123 @@ code {
     .btn-action-group .btn {
         margin-bottom: 0.25rem;
     }
+}
+
+/* Estilos para filtros */
+.filter-status {
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+
+.filter-status.complete {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.filter-status.incomplete {
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+}
+
+.form-control:valid {
+    border-color: #28a745;
+}
+
+.form-control:invalid:not(:focus) {
+    border-color: #dc3545;
+}
+
+
+/* Estilos para el modal de exportación */
+#exportExcelModal .modal-header {
+    background: linear-gradient(45deg, #28a745, #20c997) !important;
+}
+
+#exportExcelModal .modal-content {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+#exportExcelModal .form-control:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+#exportExcelModal .alert-info {
+    background-color: #f8f9fa;
+    border-color: #e9ecef;
+    color: #495057;
+}
+
+/* Estilos para el campo de teléfono */
+#telefono.is-valid {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+#telefono.is-invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+/* Estilos para la sección del QR */
+#qr-preview {
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.qr-image {
+    max-width: 200px;
+    max-height: 200px;
+    border: 2px solid #dee2e6;
+    border-radius: 5px;
+    padding: 10px;
+    background: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+
+.qr-image:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+/* Animación para la generación del QR */
+@keyframes qr-generate {
+    0% { opacity: 0; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+.qr-generated {
+    animation: qr-generate 0.5s ease-out;
+}
+
+/* Botón de descarga QR */
+.btn-download-qr {
+    margin-top: 10px;
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Estados del preview del QR */
+.qr-loading {
+    color: #6c757d;
+}
+
+.qr-success {
+    color: #28a745;
+}
+
+.qr-error {
+    color: #dc3545;
 }
 
 </style>

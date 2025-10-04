@@ -18,9 +18,11 @@ class Empleado extends Model
         'fecha_nacimiento',
         'dni',
         'domicilio',
+        'telefono', // Nuevo campo
         'latitud',
         'longitud',
         'credencial_id',
+        'qr_id', // Nuevo campo
         'rol_id',
     ];
 
@@ -160,6 +162,7 @@ public static function crearConCredenciales($datosEmpleado)
         'fecha_nacimiento' => $datosEmpleado['fecha_nacimiento'],
         'dni' => $datosEmpleado['dni'],
         'domicilio' => $datosEmpleado['domicilio'],
+        'telefono' => $datosEmpleado['telefono'],
         'latitud' => $datosEmpleado['latitud'] ?? null,
         'longitud' => $datosEmpleado['longitud'] ?? null,
         'credencial_id' => $credencial->id,
@@ -172,5 +175,11 @@ public static function crearConCredenciales($datosEmpleado)
         'password_generado' => $password // Renombrar para mayor claridad
     ];
 }
+
+   // Relación con QR
+    public function qr()
+    {
+        return $this->belongsTo(Qr::class, 'qr_id');
+    }
 
 }

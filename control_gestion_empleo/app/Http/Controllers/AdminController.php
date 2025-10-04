@@ -15,7 +15,8 @@ use Yajra\DataTables\Facades\DataTables;
 use Datetime;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-
+use Carbon\Carbon;
+use App\Exports\EmpleadosMesExport;
 
 class AdminController extends Controller
 {
@@ -44,6 +45,7 @@ public function storeEmployee(Request $request)
             'dni' => 'required|unique:tabla_empleados,dni|regex:/^[0-9]{8}[A-Za-z]$/',
             'fecha_nacimiento' => 'required|date|before_or_equal:' . $fechaMinima,
             'domicilio' => 'required|string|max:500',
+            'telefono' => 'required|string|max:9|regex:/^[+]?[0-9\s\-]+$/',
             'username' => 'required|unique:tabla_credenciales,username',
             'password' => 'required|string|min:4|max:4|confirmed',
             'latitud' => 'nullable|numeric',
@@ -57,6 +59,8 @@ public function storeEmployee(Request $request)
             'username.unique' => 'El nombre de usuario ya está en uso.',
             'password.confirmed' => 'La confirmación de la contraseña no coincide.',
             'nombre.required' => 'El campo nombre es obligatorio.',
+            'telefono.required' => 'El campo teléfono es obligatorio.',
+            'telefono.regex' => 'El formato del teléfono es inválido. Use formato internacional: +34 612 345 678',
         ]);
 
         Log::info('✅ Validación pasada:', $validated);
@@ -142,7 +146,16 @@ public function storeEmployee(Request $request)
         try {
             Log::info('🔄 Iniciando creación de empleado en transacción...');
 
-            // **PRIMERO crear la credencial CON rol_id**
+            // **PRIMERO: Generar y guardar el QR**
+            $qrData = $this->generarQR($dni, $validated['nombre'] . ' ' . $validated['apellidos']);
+            $qr = \App\Models\Qr::create([
+                'imagen_qr' => $qrData['imagen'],
+                'codigo_unico' => $qrData['codigo_unico']
+            ]);
+
+            Log::info('✅ QR generado y guardado:', ['qr_id' => $qr->id]);
+
+            // **SEGUNDO: Crear la credencial CON rol_id**
             $credencial = Credencial::create([
                 'username' => $validated['username'],
                 'password' => bcrypt($validated['password']),
@@ -156,23 +169,27 @@ public function storeEmployee(Request $request)
                 'username' => $validated['username']
             ]);
 
-            // **LUEGO crear el empleado con el credencial_id Y rol_id**
+            // **TERCERO: Crear el empleado con el credencial_id, rol_id Y qr_id**
             $empleado = Empleado::create([
                 'nombre' => $validated['nombre'],
                 'apellidos' => $validated['apellidos'],
                 'dni' => $dni,
                 'fecha_nacimiento' => $validated['fecha_nacimiento'],
+                'telefono' => $validated['telefono'], // NUEVO CAMPO
                 'domicilio' => $validated['domicilio'],
                 'latitud' => $validated['latitud'] ?? '40.4168',
                 'longitud' => $validated['longitud'] ?? '-3.7038',
                 'credencial_id' => $credencial->id,
-                'rol_id' => $rolId, // ✅ AÑADIR rol_id A LA TABLA EMPLEADOS TAMBIÉN
+                'qr_id' => $qr->id, // NUEVO CAMPO
+                'rol_id' => $rolId,
             ]);
 
             Log::info('✅ Empleado creado:', [
                 'empleado_id' => $empleado->id,
                 'nombre' => $empleado->nombre,
                 'dni' => $empleado->dni,
+                'telefono' => $empleado->telefono,
+                'qr_id' => $empleado->qr_id,
                 'rol_id' => $rolId
             ]);
 
@@ -189,11 +206,12 @@ public function storeEmployee(Request $request)
             // Confirmar transacción
             DB::commit();
 
-            Log::info('🎉 Empleado creado exitosamente', [
+            Log::info('🎉 Empleado creado exitosamente con QR', [
                 'empleado_id' => $empleado->id,
                 'username' => $validated['username'],
                 'rol_id' => $rolId,
-                'edad' => $edad
+                'edad' => $edad,
+                'qr_id' => $qr->id
             ]);
 
             return response()->json([
@@ -204,7 +222,9 @@ public function storeEmployee(Request $request)
                     'username' => $validated['username'],
                     'password' => $validated['password'],
                     'edad' => $edad,
-                    'rol_id' => $rolId
+                    'rol_id' => $rolId,
+                    'qr_id' => $qr->id,
+                    'qr_image' => base64_encode($qrData['imagen']) // Para mostrar en frontend
                 ]
             ]);
 
@@ -222,7 +242,7 @@ public function storeEmployee(Request $request)
             ], 500);
         }
 
-    } catch (ValidationException $e) {
+    } catch (\Illuminate\Validation\ValidationException $e) {
         Log::error('❌ Error de validación:', $e->errors());
         return response()->json([
             'success' => false,
@@ -250,123 +270,78 @@ public function getEmpleadosDataTable(Request $request)
     \Log::info('📊 Datatable request recibida:', $request->all());
     
     try {
-        $query = Empleado::with('credencial');
+        // Consulta base con todos los empleados
+        $query = Empleado::with('credencial')->select('*');
 
         \Log::info('🔍 Consulta base creada');
 
-        // **DEBUG: Log de todos los filtros recibidos**
+        // **OBTENER FILTROS**
+        $filterDni = $request->get('filterDni', '');
+        $filterNombre = $request->get('filterNombre', '');
+        $filterMes = $request->get('filterMes', '');
+
         \Log::info('🎯 Filtros recibidos:', [
-            'filterDni' => $request->filterDni,
-            'filterNombre' => $request->filterNombre,
-            'filterMes' => $request->filterMes,
-            'search' => $request->search
+            'dni' => $filterDni,
+            'nombre' => $filterNombre,
+            'mes' => $filterMes
         ]);
 
-        // Aplicar filtros - CORREGIDO: Usar los mismos nombres que en JavaScript
-        if ($request->has('filterDni') && !empty($request->filterDni)) {
-            $dniFilter = $request->filterDni;
-            $query->where('dni', 'like', '%' . $dniFilter . '%');
-            \Log::info('✅ Filtro DNI aplicado:', [
-                'dni_buscado' => $dniFilter,
-                'query' => '%' . $dniFilter . '%'
-            ]);
+        // ✅ APLICAR FILTROS SI ESTÁN PRESENTES
+        if (!empty($filterDni)) {
+            $query->where('dni', 'like', '%' . $filterDni . '%');
+            \Log::info('🔍 Filtro DNI aplicado:', ['dni' => $filterDni]);
         }
 
-        if ($request->has('filterNombre') && !empty($request->filterNombre)) {
-            $nombreFilter = $request->filterNombre;
-            $query->where(function($q) use ($nombreFilter) {
-                $q->where('nombre', 'like', '%' . $nombreFilter . '%')
-                  ->orWhere('apellidos', 'like', '%' . $nombreFilter . '%');
+        if (!empty($filterNombre)) {
+            $query->where(function($q) use ($filterNombre) {
+                $q->where('nombre', 'like', '%' . $filterNombre . '%')
+                  ->orWhere('apellidos', 'like', '%' . $filterNombre . '%');
             });
-            \Log::info('✅ Filtro Nombre aplicado:', [
-                'nombre_buscado' => $nombreFilter,
-                'query' => '%' . $nombreFilter . '%'
-            ]);
+            \Log::info('🔍 Filtro Nombre aplicado:', ['nombre' => $filterNombre]);
         }
 
-        // Filtro por mes - MEJORADO
-        if ($request->has('filterMes') && !empty($request->filterMes)) {
+        if (!empty($filterMes)) {
             try {
-                $fecha = \Carbon\Carbon::createFromFormat('Y-m', $request->filterMes);
-                $startDate = $fecha->startOfMonth()->format('Y-m-d');
-                $endDate = $fecha->endOfMonth()->format('Y-m-d');
-                $query->whereBetween('fecha_nacimiento', [$startDate, $endDate]);
-                \Log::info('✅ Filtro mes aplicado:', [
-                    'mes' => $request->filterMes,
-                    'desde' => $startDate,
-                    'hasta' => $endDate
-                ]);
+                // Validar y convertir el formato del mes
+                if (preg_match('/^\d{4}-\d{2}$/', $filterMes)) {
+                    $fechaInicio = Carbon::createFromFormat('Y-m', $filterMes)->startOfMonth();
+                    $fechaFin = Carbon::createFromFormat('Y-m', $filterMes)->endOfMonth();
+                    
+                    $query->whereBetween('created_at', [$fechaInicio, $fechaFin]);
+                    
+                    \Log::info('📅 Filtro Mes aplicado:', [
+                        'mes' => $filterMes,
+                        'fecha_inicio' => $fechaInicio->format('Y-m-d H:i:s'),
+                        'fecha_fin' => $fechaFin->format('Y-m-d H:i:s')
+                    ]);
+                } else {
+                    \Log::warning('⚠️ Formato de mes inválido:', ['mes' => $filterMes]);
+                }
             } catch (\Exception $e) {
-                \Log::error('❌ Error en filtro de mes:', [
-                    'mes' => $request->filterMes,
+                \Log::error('❌ Error procesando filtro de mes:', [
+                    'mes' => $filterMes,
                     'error' => $e->getMessage()
                 ]);
             }
         }
 
-        // Búsqueda global de DataTables
-        if ($request->has('search') && !empty($request->search['value'])) {
-            $search = $request->search['value'];
-            $query->where(function($q) use ($search) {
-                $q->where('dni', 'like', "%{$search}%")
-                  ->orWhere('nombre', 'like', "%{$search}%")
-                  ->orWhere('apellidos', 'like', "%{$search}%")
-                  ->orWhere('domicilio', 'like', "%{$search}%")
-                  ->orWhereHas('credencial', function($q) use ($search) {
-                      $q->where('username', 'like', "%{$search}%");
-                  });
-            });
-            \Log::info('✅ Búsqueda global aplicada:', ['search' => $search]);
-        }
+        // Obtener TODOS los registros (sin paginación para client-side)
+        $empleados = $query->orderBy('id', 'asc')->get();
 
-        // **DEBUG: Contar antes de ordenar**
-        $countBeforeOrder = $query->count();
-        \Log::info('📊 Registros antes de ordenar:', ['count' => $countBeforeOrder]);
-
-        // Ordenamiento
-        $orderColumn = $request->order[0]['column'] ?? 0;
-        $orderDirection = $request->order[0]['dir'] ?? 'asc';
-        
-        $columns = ['id', 'dni', 'nombre', 'apellidos', 'fecha_nacimiento', 'domicilio', 'username'];
-        
-        if (isset($columns[$orderColumn])) {
-            $query->orderBy($columns[$orderColumn], $orderDirection);
-            \Log::info('✅ Orden aplicado:', [
-                'columna' => $columns[$orderColumn], 
-                'direccion' => $orderDirection
-            ]);
-        } else {
-            $query->orderBy('id', 'asc');
-            \Log::info('✅ Orden por defecto aplicado: id ASC');
-        }
-
-        $totalRecords = $query->count();
-        \Log::info('📈 Total de registros filtrados:', ['total' => $totalRecords]);
-        
-        // Paginación
-        $start = $request->start ?? 0;
-        $length = $request->length ?? 10;
-        
-        $empleados = $query->skip($start)->take($length)->get();
-        
-        // **DEBUG: Log de los empleados encontrados**
-        \Log::info('👥 Empleados encontrados:', [
-            'count' => $empleados->count(),
-            'ids' => $empleados->pluck('id')->toArray(),
-            'nombres' => $empleados->pluck('nombre')->toArray()
-        ]);
+        \Log::info('📋 Total de empleados encontrados:', ['count' => $empleados->count()]);
 
         $data = $empleados->map(function($empleado) {
-            $edad = \Carbon\Carbon::parse($empleado->fecha_nacimiento)->age;
+            $edad = Carbon::parse($empleado->fecha_nacimiento)->age;
 
             return [
                 'id' => $empleado->id,
                 'dni' => $empleado->dni,
                 'nombre' => $empleado->nombre,
                 'apellidos' => $empleado->apellidos,
-                'fecha_nacimiento' => \Carbon\Carbon::parse($empleado->fecha_nacimiento)->format('d/m/Y'),
+                'fecha_nacimiento' => Carbon::parse($empleado->fecha_nacimiento)->format('d/m/Y'),
                 'edad' => $edad . ' años',
                 'domicilio' => $empleado->domicilio,
+                'telefono' => $empleado->telefono,
                 'username' => $empleado->credencial->username ?? 'N/A',
                 'acciones' => '
                     <div class="btn-group btn-group-sm">
@@ -385,13 +360,18 @@ public function getEmpleadosDataTable(Request $request)
         });
 
         $response = [
-            'draw' => $request->draw ?? 1,
-            'recordsTotal' => Empleado::count(),
-            'recordsFiltered' => $totalRecords,
+            'draw' => $request->get('draw', 1),
+            'recordsTotal' => $empleados->count(),
+            'recordsFiltered' => $empleados->count(),
             'data' => $data
         ];
 
-        \Log::info('✅ Respuesta datatable preparada');
+        \Log::info('✅ Respuesta DataTable generada', [
+            'draw' => $response['draw'],
+            'recordsTotal' => $response['recordsTotal'],
+            'recordsFiltered' => $response['recordsFiltered'],
+            'data_count' => count($response['data'])
+        ]);
 
         return response()->json($response);
 
@@ -400,15 +380,18 @@ public function getEmpleadosDataTable(Request $request)
             'error' => $e->getMessage(), 
             'trace' => $e->getTraceAsString()
         ]);
+        
         return response()->json([
-            'draw' => $request->draw ?? 1,
+            'draw' => $request->get('draw', 1),
             'recordsTotal' => 0,
             'recordsFiltered' => 0,
             'data' => [],
-            'error' => $e->getMessage()
+            'error' => 'Error interno del servidor: ' . $e->getMessage()
         ], 500);
     }
 }
+
+
 
     // Método para buscar empleado por DNI
     public function buscarPorDni($dni)
@@ -639,4 +622,290 @@ public function destroyEmployee($id)
     }
 }
     
+public function exportarExcelMes(Request $request)
+{
+    try {
+        \Log::info('📤 INICIANDO EXPORTACIÓN EXCEL', [
+            'mes' => $request->mes,
+            'año' => $request->año,
+            'todos_los_parametros' => $request->all()
+        ]);
+
+        // Validación más flexible
+        $validator = \Validator::make($request->all(), [
+            'mes' => 'required|integer|between:1,12',
+            'año' => 'required|integer|min:2020|max:' . (date('Y') + 1)
+        ]);
+
+        if ($validator->fails()) {
+            \Log::error('❌ Validación fallida:', $validator->errors()->toArray());
+            return response()->json([
+                'success' => false,
+                'message' => 'Datos inválidos: ' . implode(', ', $validator->errors()->all())
+            ], 422);
+        }
+
+        $mes = (int) $request->mes;
+        $año = (int) $request->año;
+
+        \Log::info('🔍 Parámetros procesados:', ['mes' => $mes, 'año' => $año]);
+
+        // ✅ **DEBUG: Ver TODOS los empleados en el sistema**
+    /*    $todosEmpleados = Empleado::with('credencial')
+            ->select('id', 'dni', 'nombre', 'apellidos', 'created_at')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function($emp) {
+                return [
+                    'id' => $emp->id,
+                    'dni' => $emp->dni,
+                    'nombre_completo' => $emp->nombre . ' ' . $emp->apellidos,
+                    'fecha_registro' => $emp->created_at->format('Y-m-d H:i:s'),
+                    'mes_registro' => $emp->created_at->month,
+                    'año_registro' => $emp->created_at->year,
+                    'username' => $emp->credencial->username ?? 'N/A'
+                ];
+            });
+
+        \Log::info('📊 EMPLEADOS EN SISTEMA:', [
+            'total_empleados' => $todosEmpleados->count(),
+            'empleados' => $todosEmpleados->toArray()
+        ]);*/
+
+        // ✅ **BUSCAR empleados del mes/año específico**
+        $empleadosFiltrados = Empleado::with('credencial')
+            ->whereYear('created_at', $año)
+            ->whereMonth('created_at', $mes)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        \Log::info('🎯 RESULTADO BÚSQUEDA FILTRADA:', [
+            'mes_buscado' => $mes,
+            'año_buscado' => $año,
+            'total_encontrados' => $empleadosFiltrados->count(),
+            'empleados_encontrados' => $empleadosFiltrados->map(function($emp) {
+                return [
+                    'id' => $emp->id,
+                    'dni' => $emp->dni,
+                    'nombre' => $emp->nombre,
+                    'fecha_registro' => $emp->created_at->format('Y-m-d H:i:s')
+                ];
+            })->toArray()
+        ]);
+
+        if ($empleadosFiltrados->count() === 0) {
+            \Log::warning('⚠️ NO HAY EMPLEADOS PARA EXPORTAR', [
+                'mes' => $mes,
+                'año' => $año,
+                'sugerencia' => 'Verificar que las fechas de created_at coincidan con el mes y año'
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No hay empleados registrados en ' . $this->getNombreMes($mes) . ' de ' . $año . 
+                            '. Total de empleados en sistema: ' . $todosEmpleados->count() .
+                            '. Pruebe con otro mes o año.'
+            ], 404);
+        }
+
+        $nombreArchivo = 'empleados_' . $this->getNombreMesCorto($mes) . '_' . $año . '.xlsx';
+
+        \Log::info('✅ GENERANDO ARCHIVO EXCEL', [
+            'nombre_archivo' => $nombreArchivo,
+            'total_empleados' => $empleadosFiltrados->count(),
+            'primeros_5' => $empleadosFiltrados->take(5)->pluck('dni', 'nombre')->toArray()
+        ]);
+
+        return Excel::download(new EmpleadosMesExport($mes, $año), $nombreArchivo);
+
+    } catch (\Exception $e) {
+        \Log::error('💥 ERROR CRÍTICO EN EXPORTACIÓN:', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+            'request' => $request->all()
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Error crítico al generar el archivo: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+// Método auxiliar para nombre de mes corto
+private function getNombreMesCorto($mes)
+{
+    $meses = [
+        1 => 'ene', 2 => 'feb', 3 => 'mar', 4 => 'abr',
+        5 => 'may', 6 => 'jun', 7 => 'jul', 8 => 'ago',
+        9 => 'sep', 10 => 'oct', 11 => 'nov', 12 => 'dic'
+    ];
+    return $meses[$mes] ?? 'mes';
+}
+
+// Método auxiliar para obtener nombre del mes
+private function getNombreMes($mes)
+{
+    $meses = [
+        1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
+        5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
+        9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
+    ];
+    return $meses[$mes] ?? 'Mes';
+}
+
+public function verificarDatosMes(Request $request)
+{
+    try {
+        $mes = $request->mes;
+        $año = $request->año;
+        
+        $fechaInicio = Carbon::create($año, $mes, 1)->startOfMonth();
+        $fechaFin = Carbon::create($año, $mes, 1)->endOfMonth();
+        
+        $existenDatos = Empleado::whereBetween('created_at', [$fechaInicio, $fechaFin])->exists();
+        
+        return response()->json([
+            'existenDatos' => $existenDatos,
+            'mes' => $mes,
+            'año' => $año
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'existenDatos' => false,
+            'error' => $e->getMessage()
+        ]);
+    }
+}
+
+// Método para generar QR
+private function generarQR($dni, $nombreCompleto)
+{
+    try {
+        // Generar código único para el QR
+        $codigoUnico = 'EMP_' . $dni . '_' . time();
+        
+        // Datos que se incluirán en el QR
+        $qrData = [
+            'empleado_dni' => $dni,
+            'empleado_nombre' => $nombreCompleto,
+            'codigo_unico' => $codigoUnico,
+            'fecha_generacion' => now()->toISOString()
+        ];
+        
+        $qrContent = json_encode($qrData);
+        
+        // Verificar si la librería Simple QrCode está disponible
+        if (class_exists('SimpleSoftwareIO\QrCode\Facades\QrCode')) {
+            // Generar QR usando la librería
+            $qrImage = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('png')
+                ->size(300)
+                ->generate($qrContent);
+        } else {
+            // Fallback: generar QR simple usando GD
+            Log::warning('⚠️ Librería QR no disponible, usando fallback GD');
+            $qrImage = $this->generarQRFallback($qrContent, $dni);
+        }
+        
+        return [
+            'imagen' => $qrImage,
+            'codigo_unico' => $codigoUnico
+        ];
+        
+    } catch (\Exception $e) {
+        Log::error('❌ Error generando QR:', ['error' => $e->getMessage()]);
+        
+        // QR por defecto en caso de error
+        return [
+            'imagen' => $this->generarQRPorDefecto($dni),
+            'codigo_unico' => 'EMP_' . $dni . '_' . time()
+        ];
+    }
+}
+
+// Método fallback para generar QR con GD
+private function generarQRFallback($content, $dni)
+{
+    try {
+        // Crear una imagen simple como fallback
+        $width = 300;
+        $height = 300;
+        
+        $image = imagecreate($width, $height);
+        
+        // Colores
+        $white = imagecolorallocate($image, 255, 255, 255);
+        $black = imagecolorallocate($image, 0, 0, 0);
+        
+        // Fondo blanco
+        imagefill($image, 0, 0, $white);
+        
+        // Texto simple
+        $text = "EMP: " . substr($dni, 0, 8);
+        $font = 5; // Fuente built-in
+        $textWidth = imagefontwidth($font) * strlen($text);
+        $textHeight = imagefontheight($font);
+        
+        $x = ($width - $textWidth) / 2;
+        $y = ($height - $textHeight) / 2;
+        
+        imagestring($image, $font, $x, $y, $text, $black);
+        
+        // Capturar la imagen como string
+        ob_start();
+        imagepng($image);
+        $imageData = ob_get_clean();
+        imagedestroy($image);
+        
+        return $imageData;
+        
+    } catch (\Exception $e) {
+        Log::error('❌ Error en fallback QR:', ['error' => $e->getMessage()]);
+        return ''; // QR vacío
+    }
+}
+
+// Método para generar QR por defecto
+private function generarQRPorDefecto($dni)
+{
+    try {
+        $width = 300;
+        $height = 300;
+        
+        $image = imagecreate($width, $height);
+        
+        // Colores
+        $white = imagecolorallocate($image, 255, 255, 255);
+        $blue = imagecolorallocate($image, 0, 0, 255);
+        
+        // Fondo blanco
+        imagefill($image, 0, 0, $white);
+        
+        // Texto por defecto
+        $text = "EMPLEADO: " . $dni;
+        $font = 5;
+        
+        $textWidth = imagefontwidth($font) * strlen($text);
+        $textHeight = imagefontheight($font);
+        
+        $x = ($width - $textWidth) / 2;
+        $y = ($height - $textHeight) / 2;
+        
+        imagestring($image, $font, $x, $y, $text, $blue);
+        
+        // Capturar la imagen
+        ob_start();
+        imagepng($image);
+        $imageData = ob_get_clean();
+        imagedestroy($image);
+        
+        return $imageData;
+        
+    } catch (\Exception $e) {
+        Log::error('❌ Error generando QR por defecto:', ['error' => $e->getMessage()]);
+        return '';
+    }
+}
+
 }

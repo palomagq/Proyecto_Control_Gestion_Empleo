@@ -29,4 +29,6 @@ Route::prefix('admin')->group(function () {
     Route::get('/empleados/{id}', [AdminController::class, 'show'])->name('admin.empleados.show');
     Route::delete('/empleados/{id}', [AdminController::class, 'destroyEmployee'])->name('admin.empleados.destroy');
 
+    Route::get('/admin/empleados/exportar-excel-mes', [AdminController::class, 'exportarExcelMes'])->name('admin.empleados.exportar-excel-mes');
+
 });
