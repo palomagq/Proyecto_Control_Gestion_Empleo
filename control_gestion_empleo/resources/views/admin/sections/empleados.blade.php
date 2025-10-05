@@ -2306,7 +2306,6 @@ function limpiarFiltroMes() {
     $('#filterMes').val('');
     $('#filtroInfo').hide();
     // No recargar la tabla automáticamente, esperar a que se apliquen los filtros
-<<<<<<< HEAD
 }
 
 // Función para validar teléfono
@@ -2329,8 +2328,7 @@ function validarTelefono() {
         telefonoInput.classList.remove('is-valid', 'is-invalid');
         return false;
     }
-=======
->>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
+
 }
 
 function exportarExcel() {
@@ -3368,11 +3366,8 @@ function initializeExportDatepicker() {
         plugins: [
             new monthSelectPlugin({
                 shorthand: true,
-<<<<<<< HEAD
                 dateFormat: "m-Y",  // Formato YYYY-MM
-=======
                 dateFormat: "Y-m",  // Formato YYYY-MM
->>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
                 altFormat: "F Y",   // Formato visual: Mes Año
                 theme: "material_blue"
             })
@@ -3408,27 +3403,22 @@ function confirmarExportacion() {
     // Convertir formato YYYY-MM a mes y año separados
     let mes, año;
     
-<<<<<<< HEAD
     if (mesSeleccionado.match(/^(\d{1,2})-(\d{4})$/)) {
         // Formato MM-YYYY (ej: "10-2025")
         const partes = mesSeleccionado.split('-');
         mes = parseInt(partes[0]);
         año = parseInt(partes[1]);
-=======
+
     if (mesSeleccionado.match(/^(\d{4})-(\d{2})$/)) {
         const partes = mesSeleccionado.split('-');
         año = parseInt(partes[0]);
         mes = parseInt(partes[1]);
->>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
     } else {
         Swal.fire({
             icon: 'error',
             title: 'Formato inválido',
-<<<<<<< HEAD
             text: 'El formato del mes debe ser MM-AAAA (ej: 10-2025)',
-=======
             text: 'El formato del mes debe ser AAAA-MM',
->>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
             confirmButtonText: 'Entendido'
         });
         return;
@@ -3449,17 +3439,14 @@ function confirmarExportacion() {
         return;
     }
 
-<<<<<<< HEAD
     console.log('📤 Confirmando exportación para:', { 
         mes, 
         año, 
         mesSeleccionado,
         formato: 'MM-YYYY'
     });
-=======
     console.log('📤 Confirmando exportación para:', { mes, año, mesSeleccionado });
 
->>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
     // Mostrar confirmación final
     mostrarConfirmacionExportacion(mes, año, mesSeleccionado);
 }
@@ -3507,11 +3494,8 @@ function ejecutarExportacion(mes, año, nombreMes) {
                     <span class="sr-only">Generando...</span>
                 </div>
                 <p>Exportando empleados de <strong>${nombreMes} de ${año}</strong></p>
-<<<<<<< HEAD
                 <p class="text-muted small">Formato: MM-AAAA (${mes}-${año})</p>
-=======
                 <p class="text-muted small">Buscando empleados registrados en este período...</p>
->>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
             </div>
         `,
         allowOutsideClick: false,
@@ -3728,7 +3712,7 @@ function verificarDatosAntesDeExportar(mes, año) {
         });
 }
 
-<<<<<<< HEAD
+
 // ✅ NUEVA FUNCIÓN: Generar preview del QR automáticamente
 function generarQRPreview() {
     const dni = document.getElementById('dni').value.trim().toUpperCase();
@@ -3895,8 +3879,7 @@ function mostrarQRError() {
     `;
 }
 
-=======
->>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
+
 </script>
 
 <!-- ******************************************** CSS ****************************************************  -->
@@ -4352,7 +4335,7 @@ code {
     color: #495057;
 }
 
-<<<<<<< HEAD
+
 /* Estilos para el campo de teléfono */
 #telefono.is-valid {
     border-color: #28a745;
@@ -4419,7 +4402,5 @@ code {
     color: #dc3545;
 }
 
-=======
->>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
 </style>
 @endsection
