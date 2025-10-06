@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 [{"id":1,"nombre":"Lawton","apellidos":"MacDermott","fecha_nacimiento":"26/11/1991","dni":"96491837Z","domicilio":"6 Roxbury Center","telefono":"719003515","latitud":46.6199321,"longitud":32.7072675},
 {"id":2,"nombre":"Bertram","apellidos":"Roels","fecha_nacimiento":"22/01/1997","dni":"68613059Z","domicilio":"12514 Schiller Pass","telefono":"737001181","latitud":31.18458,"longitud":115.026045},
 {"id":3,"nombre":"Ad","apellidos":"Challenor","fecha_nacimiento":"23/12/1997","dni":"69724160M","domicilio":"5493 Mandrake Way","telefono":"643920174","latitud":41.124339,"longitud":-8.1927645},
@@ -199,8 +198,7 @@
 {"id":198,"nombre":"Ola","apellidos":"Ansill","fecha_nacimiento":"06/08/1985","dni":"65498732B","domicilio":"02 7th Circle","telefono":"601196106","latitud":-20.7430332,"longitud":-46.6096926},
 {"id":199,"nombre":"Abey","apellidos":"Vannuccini","fecha_nacimiento":"08/10/1969","dni":"27502948N","domicilio":"1220 Park Meadow Center","telefono":"653337734","latitud":-20.9306687,"longitud":-54.9697212},
 {"id":200,"nombre":"Kevyn","apellidos":"Pountain","fecha_nacimiento":"06/04/1979","dni":"90835271M","domicilio":"53 Sullivan Lane","telefono":"691017546","latitud":-6.6045148,"longitud":-35.2368246}]
-=======
-[{"id":1,"dni":"77180936L","nombre":"Hetty","apellidos":"Enrrico","fecha_nacimiento":"02/01/1979","domicilio":"80 Portage Terrace","username":"77180936","latitud":23.0365513,"longitud":-81.2133262},
+/*[{"id":1,"dni":"77180936L","nombre":"Hetty","apellidos":"Enrrico","fecha_nacimiento":"02/01/1979","domicilio":"80 Portage Terrace","username":"77180936","latitud":23.0365513,"longitud":-81.2133262},
 {"id":2,"dni":"79179179W","nombre":"Walker","apellidos":"Raison","fecha_nacimiento":"24/07/1987","domicilio":"509 John Wall Circle","username":"79179179","latitud":46.64635,"longitud":131.158416},
 {"id":3,"dni":"66079825K","nombre":"Gauthier","apellidos":"Brandrick","fecha_nacimiento":"23/06/1983","domicilio":"478 Fulton Terrace","username":"66079825","latitud":57.6975855,"longitud":12.0551193},
 {"id":4,"dni":"89012345J","nombre":"Ruddie","apellidos":"Dickie","fecha_nacimiento":"30/10/1998","domicilio":"31 Ridgeway Road","username":"89012345","latitud":40.13652,"longitud":124.395757},
@@ -399,5 +397,5 @@
 {"id":197,"dni":"70413269G","nombre":"Fowler","apellidos":"Western","fecha_nacimiento":"17/11/2007","domicilio":"48754 Chinook Park","username":"70413269","latitud":-7.4099178,"longitud":112.7539449},
 {"id":198,"dni":"56079825Z","nombre":"Ronny","apellidos":"Cescot","fecha_nacimiento":"12/12/1991","domicilio":"48907 Susan Hill","username":"56079825","latitud":-13.4605423,"longitud":24.9932143},
 {"id":199,"dni":"46846846S","nombre":"Silvio","apellidos":"Vedntyev","fecha_nacimiento":"15/02/2003","domicilio":"310 Springs Trail","username":"46846846","latitud":-2.2268901,"longitud":-80.8593845},
-{"id":200,"dni":"32635481R","nombre":"Lorraine","apellidos":"Aslam","fecha_nacimiento":"10/02/1991","domicilio":"13 Atwood Street","username":"32635481","latitud":24.1092009,"longitud":117.1199596}]
->>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
+{"id":200,"dni":"32635481R","nombre":"Lorraine","apellidos":"Aslam","fecha_nacimiento":"10/02/1991","domicilio":"13 Atwood Street","username":"32635481","latitud":24.1092009,"longitud":117.1199596}]*/
+ 

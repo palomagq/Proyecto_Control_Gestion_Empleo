@@ -5,32 +5,23 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-<<<<<<< HEAD
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
-=======
->>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
 
 class EmpleadosSeeder extends Seeder
 {
     public function run()
     {
-<<<<<<< HEAD
         echo "🚀 INICIANDO SEEDER EMPLEADOS...\n";
         
         // Ruta al archivo JSON
-=======
->>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
         $jsonFile = database_path('seeders/data/empleados_data.json');
         
         echo "📁 Buscando archivo: " . $jsonFile . "\n";
         
         if (!File::exists($jsonFile)) {
-<<<<<<< HEAD
             echo "❌ ERROR: Archivo JSON no encontrado\n";
-=======
             $this->command->error('❌ Archivo JSON no encontrado: ' . $jsonFile);
->>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
             return;
         }
         echo "✅ Archivo JSON encontrado\n";
@@ -38,7 +29,6 @@ class EmpleadosSeeder extends Seeder
         $jsonData = File::get($jsonFile);
         $empleadosData = json_decode($jsonData, true);
 
-<<<<<<< HEAD
         if (json_last_error() !== JSON_ERROR_NONE) {
             echo "❌ ERROR decodificando JSON: " . json_last_error_msg() . "\n";
             return;
@@ -57,7 +47,6 @@ class EmpleadosSeeder extends Seeder
         $rolId = $rolEmpleado->id;
         echo "🎯 Rol ID para empleados: " . $rolId . "\n";
 
-=======
         $this->command->info('🔄 Total registros en JSON: ' . count($empleadosData));
 
         // **VERIFICAR EMPLEADOS EXISTENTES (SOLO PARA INFO)**
@@ -111,11 +100,9 @@ class EmpleadosSeeder extends Seeder
             return;
         }
 
->>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
         $insertados = 0;
         $errores = 0;
 
-<<<<<<< HEAD
         echo "🔄 Procesando registros...\n";
 
         foreach ($empleadosData as $index => $data) {
@@ -195,7 +182,7 @@ class EmpleadosSeeder extends Seeder
         echo "❌ Errores: {$errores}\n";
         echo "📄 Total procesado: " . count($empleadosData) . "\n";
         echo "=================================\n";
-=======
+
         $rol = DB::table('tabla_roles')->where('nombre', 'empleado')->first();
         $rolId = $rol ? $rol->id : 2;
 
@@ -305,6 +292,5 @@ class EmpleadosSeeder extends Seeder
             return $fechaParts[2] . '-' . $fechaParts[1] . '-' . $fechaParts[0];
         }
         return '1990-01-01'; // Fecha por defecto
->>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
     }
 }

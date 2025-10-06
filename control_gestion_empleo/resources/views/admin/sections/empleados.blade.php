@@ -359,8 +359,6 @@
     </div>
 </div>
 
-
-
 <!-- Modal para Editar Empleado -->
 <div class="modal fade" id="editEmployeeModal" tabindex="-1" role="dialog" aria-labelledby="editEmployeeModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
@@ -378,7 +376,7 @@
                     @csrf
                     @method('PUT')
                     
-                    <!-- Información del empleado (solo lectura) -->
+                    <!-- Información del empleado -->
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -424,7 +422,18 @@
                         </div>
                     </div>
 
-                    <!-- Campo editable: Domicilio -->
+                    <!-- Campos editables: Domicilio y Teléfono -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_telefono" class="font-weight-bold">Teléfono *</label>
+                                <input type="tel" class="form-control" id="edit_telefono" name="telefono" required 
+                                       placeholder="Ej: +34 612 345 678" pattern="[+]?[0-9\s\-]+">
+                                <small class="form-text text-muted">Formato internacional: +34 612 345 678</small>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-group">
                         <label for="edit_domicilio" class="font-weight-bold">Domicilio *</label>
                         <div class="input-group">
@@ -437,7 +446,7 @@
                             </div>
                         </div>
                         <small class="form-text text-muted">
-                            Este es el único campo editable. Comience a escribir la dirección y seleccione una de las opciones sugeridas.
+                            Comience a escribir la dirección y seleccione una de las opciones sugeridas.
                         </small>
                     </div>
 
@@ -457,7 +466,7 @@
 
                     <div class="alert alert-info">
                         <small>
-                            <i class="fas fa-info-circle"></i> Solo el campo de domicilio puede ser editado. 
+                            <i class="fas fa-info-circle"></i> Solo los campos de teléfono y domicilio pueden ser editados. 
                             Los demás campos son informativos y no pueden modificarse.
                         </small>
                     </div>
@@ -577,10 +586,20 @@
                                     <div class="col-4 font-weight-bold text-muted">Fecha Nac.:</div>
                                     <div class="col-8" id="view_fecha_nacimiento">-</div>
                                 </div>
-                                <div class="row">
+                                <div class="row mb-2">
                                     <div class="col-4 font-weight-bold text-muted">Edad:</div>
                                     <div class="col-8">
                                         <span class="badge badge-info" id="view_edad">-</span>
+                                    </div>
+                                </div>
+                                <!-- ✅ NUEVO CAMPO: Teléfono -->
+                                <div class="row mb-2">
+                                    <div class="col-4 font-weight-bold text-muted">Teléfono:</div>
+                                    <div class="col-8">
+                                        <span id="view_telefono">-</span>
+                                        <button type="button" class="btn btn-sm btn-outline-success ml-2" onclick="llamarTelefono()" id="btn-llamar" style="display: none;">
+                                            <i class="fas fa-phone mr-1"></i> Llamar
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -682,31 +701,38 @@
                             </div>
                             <div class="card-body">
                                 <div class="row text-center">
-                                    <div class="col-md-3 mb-3">
-                                        <div class="border rounded p-3">
+                                    <div class="col mb-3">
+                                        <div class="border rounded p-3 h-100 d-flex flex-column justify-content-center">
                                             <i class="fas fa-calendar-day fa-2x text-primary mb-2"></i>
-                                            <h5 id="view_dias_registro">0</h5>
+                                            <h5 class="mb-1" id="view_dias_registro">0</h5>
                                             <small class="text-muted">Días registrado</small>
                                         </div>
                                     </div>
-                                    <div class="col-md-3 mb-3">
-                                        <div class="border rounded p-3">
+                                    <div class="col mb-3">
+                                        <div class="border rounded p-3 h-100 d-flex flex-column justify-content-center">
                                             <i class="fas fa-birthday-cake fa-2x text-warning mb-2"></i>
-                                            <h5 id="view_proximo_cumple">-</h5>
+                                            <h5 class="mb-1" id="view_proximo_cumple">-</h5>
                                             <small class="text-muted">Próximo cumpleaños</small>
                                         </div>
                                     </div>
-                                    <div class="col-md-3 mb-3">
-                                        <div class="border rounded p-3">
-                                            <i class="fas fa-map-marked-alt fa-2x text-info mb-2"></i>
-                                            <h5 id="view_region">-</h5>
+                                    <div class="col mb-3">
+                                        <div class="border rounded p-3 h-100 d-flex flex-column justify-content-center">
+                                            <i class="fas fa-phone fa-2x text-info mb-2"></i>
+                                            <h5 class="mb-1" id="view_formato_telefono">-</h5>
+                                            <small class="text-muted">Formato teléfono</small>
+                                        </div>
+                                    </div>
+                                    <div class="col mb-3">
+                                        <div class="border rounded p-3 h-100 d-flex flex-column justify-content-center">
+                                            <i class="fas fa-map-marked-alt fa-2x text-success mb-2"></i>
+                                            <h5 class="mb-1" id="view_region">-</h5>
                                             <small class="text-muted">Región</small>
                                         </div>
                                     </div>
-                                    <div class="col-md-3 mb-3">
-                                        <div class="border rounded p-3">
+                                    <div class="col mb-3">
+                                        <div class="border rounded p-3 h-100 d-flex flex-column justify-content-center">
                                             <i class="fas fa-clock fa-2x text-secondary mb-2"></i>
-                                            <h5 id="view_ultima_actualizacion">-</h5>
+                                            <h5 class="mb-1" id="view_ultima_actualizacion">-</h5>
                                             <small class="text-muted">Última actualización</small>
                                         </div>
                                     </div>
@@ -2355,8 +2381,8 @@ function exportarExcel() {
     } else if (filterMes.match(/^(\d{4})-(\d{2})$/)) {
         // Formato YYYY-MM
         const partes = filterMes.split('-');
-        mes = parseInt(partes[1]);
         año = parseInt(partes[0]);
+        mes = parseInt(partes[1]);
     } else {
         Swal.fire({
             icon: 'error',
@@ -2616,6 +2642,7 @@ function populateEditForm(empleado) {
     document.getElementById('edit_edad').value = empleado.edad ? empleado.edad + ' años' : '';
     
     // Llenar campo editable
+    document.getElementById('edit_telefono').value = empleado.telefono || '';
     document.getElementById('edit_domicilio').value = empleado.domicilio || '';
     document.getElementById('edit_latitud').value = empleado.latitud || '40.4168';
     document.getElementById('edit_longitud').value = empleado.longitud || '-3.7038';
@@ -2626,6 +2653,28 @@ function populateEditForm(empleado) {
     
     // Inicializar mapa de edición
     initializeEditMap();
+}
+
+// Función para validar teléfono en edición
+function validarTelefonoEdit() {
+    const telefonoInput = document.getElementById('edit_telefono');
+    const telefono = telefonoInput.value.trim();
+    
+    // Expresión regular para teléfono internacional
+    const telefonoRegex = /^[+]?[0-9\s\-]+$/;
+    
+    if (telefono && telefonoRegex.test(telefono) && telefono.length >= 9) {
+        telefonoInput.classList.remove('is-invalid');
+        telefonoInput.classList.add('is-valid');
+        return true;
+    } else if (telefono.length > 0) {
+        telefonoInput.classList.remove('is-valid');
+        telefonoInput.classList.add('is-invalid');
+        return false;
+    } else {
+        telefonoInput.classList.remove('is-valid', 'is-invalid');
+        return false;
+    }
 }
 
 // Función para inicializar el mapa de edición
@@ -2811,13 +2860,29 @@ function showEditGeocodingLoading(show) {
     }
 }
 
+// Event listener para validación en tiempo real en edición
+document.addEventListener('DOMContentLoaded', function() {
+    const telefonoEditInput = document.getElementById('edit_telefono');
+    if (telefonoEditInput) {
+        telefonoEditInput.addEventListener('input', validarTelefonoEdit);
+        telefonoEditInput.addEventListener('blur', validarTelefonoEdit);
+    }
+});
+
 // Función para actualizar el empleado
 function updateEmployee() {
     const empleadoId = document.getElementById('edit_empleado_id').value;
+    const telefono = document.getElementById('edit_telefono').value.trim();
     const domicilio = document.getElementById('edit_domicilio').value.trim();
     const latitud = document.getElementById('edit_latitud').value;
     const longitud = document.getElementById('edit_longitud').value;
     
+    if (!telefono) {
+        showAlert('Por favor, ingrese el teléfono.', 'warning');
+        document.getElementById('edit_telefono').focus();
+        return;
+    }
+
     if (!domicilio) {
         showAlert('Por favor, ingrese el domicilio.', 'warning');
         return;
@@ -2836,6 +2901,7 @@ function updateEmployee() {
     const data = {
         _token: '{{ csrf_token() }}',
         _method: 'PUT',
+        telefono: telefono,
         domicilio: domicilio,
         latitud: latitud,
         longitud: longitud
@@ -3094,6 +3160,19 @@ function populateViewModal(empleado) {
     document.getElementById('view_created_at').textContent = formatDateTime(empleado.created_at);
     document.getElementById('view_updated_at').textContent = formatDateTime(empleado.updated_at);
 
+    // ✅ NUEVO CAMPO: Teléfono
+    const telefono = empleado.telefono || 'N/A';
+    document.getElementById('view_telefono').textContent = telefono;
+    
+    // Mostrar botón de llamar solo si hay teléfono válido
+    const btnLlamar = document.getElementById('btn-llamar');
+    if (telefono !== 'N/A' && telefono.trim() !== '') {
+        btnLlamar.style.display = 'inline-block';
+        btnLlamar.setAttribute('data-telefono', telefono);
+    } else {
+        btnLlamar.style.display = 'none';
+    }
+
     // Domicilio y Ubicación
     document.getElementById('view_domicilio').textContent = empleado.domicilio || 'N/A';
     
@@ -3192,16 +3271,18 @@ function initializeViewMap(empleado) {
 // Función para calcular información adicional
 function calcularInformacionAdicional(empleado) {
     // Días registrado
-    if (empleado.created_at) {
+    const diasRegistroElement = document.getElementById('view_dias_registro');
+    if (diasRegistroElement && empleado.created_at) {
         const created = new Date(empleado.created_at);
         const hoy = new Date();
         const diffTime = Math.abs(hoy - created);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        document.getElementById('view_dias_registro').textContent = diffDays;
+        diasRegistroElement.textContent = diffDays;
     }
 
     // Próximo cumpleaños
-    if (empleado.fecha_nacimiento) {
+    const proximoCumpleElement = document.getElementById('view_proximo_cumple');
+    if (proximoCumpleElement && empleado.fecha_nacimiento) {
         const fechaNac = new Date(empleado.fecha_nacimiento);
         const hoy = new Date();
         const proximoCumple = new Date(hoy.getFullYear(), fechaNac.getMonth(), fechaNac.getDate());
@@ -3212,21 +3293,47 @@ function calcularInformacionAdicional(empleado) {
         
         const diffTime = Math.abs(proximoCumple - hoy);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        document.getElementById('view_proximo_cumple').textContent = `En ${diffDays} días`;
+        proximoCumpleElement.textContent = `En ${diffDays} días`;
+    }
+
+    // Formato del teléfono
+    const formatoTelefonoElement = document.getElementById('view_formato_telefono');
+    if (formatoTelefonoElement) {
+        const telefono = empleado.telefono || '';
+        let formatoTelefono = 'No disponible';
+        
+        if (telefono) {
+            // Detectar formato del teléfono
+            if (telefono.includes('+')) {
+                formatoTelefono = 'Internacional';
+            } else if (telefono.startsWith('6') || telefono.startsWith('7')) {
+                formatoTelefono = 'Móvil ES';
+            } else if (telefono.startsWith('9') || telefono.startsWith('8')) {
+                formatoTelefono = 'Fijo ES';
+            } else {
+                formatoTelefono = 'Otro formato';
+            }
+        }
+        formatoTelefonoElement.textContent = formatoTelefono;
     }
 
     // Región (inferida desde coordenadas)
-    const lat = parseFloat(empleado.latitud);
-    if (lat) {
-        let region = 'España';
-        if (lat >= 43.5) region = 'Norte';
-        else if (lat >= 40.0) region = 'Centro';
-        else region = 'Sur';
-        document.getElementById('view_region').textContent = region;
+    const regionElement = document.getElementById('view_region');
+    if (regionElement) {
+        const lat = parseFloat(empleado.latitud);
+        let region = 'No especificada';
+        
+        if (lat) {
+            if (lat >= 43.5) region = 'Norte';
+            else if (lat >= 40.0) region = 'Centro';
+            else region = 'Sur';
+        }
+        regionElement.textContent = region;
     }
 
     // Última actualización
-    if (empleado.updated_at) {
+    const ultimaActualizacionElement = document.getElementById('view_ultima_actualizacion');
+    if (ultimaActualizacionElement && empleado.updated_at) {
         const updated = new Date(empleado.updated_at);
         const hoy = new Date();
         const diffTime = Math.abs(hoy - updated);
@@ -3239,10 +3346,9 @@ function calcularInformacionAdicional(empleado) {
             const diffDays = Math.floor(diffHours / 24);
             texto = `Hace ${diffDays} días`;
         }
-        document.getElementById('view_ultima_actualizacion').textContent = texto;
+        ultimaActualizacionElement.textContent = texto;
     }
 }
-
 // Función para formatear fecha y hora
 function formatDateTime(dateTimeString) {
     if (!dateTimeString) return 'N/A';
@@ -3254,6 +3360,107 @@ function formatDateTime(dateTimeString) {
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
+    });
+}
+
+
+// ✅ NUEVA FUNCIÓN: Llamar al teléfono
+function llamarTelefono() {
+    const btnLlamar = document.getElementById('btn-llamar');
+    const telefono = btnLlamar.getAttribute('data-telefono');
+    
+    if (!telefono) {
+        showAlert('No hay número de teléfono disponible', 'warning');
+        return;
+    }
+    
+    // Limpiar el número (quitar espacios, guiones, etc.)
+    const telefonoLimpio = telefono.replace(/[\s\-\(\)]/g, '');
+    
+    Swal.fire({
+        title: '¿Llamar al empleado?',
+        html: `
+            <div class="text-left">
+                <p>¿Desea llamar al número:</p>
+                <div class="alert alert-info text-center">
+                    <h4 class="mb-0"><i class="fas fa-phone"></i> ${telefono}</h4>
+                </div>
+                <p class="text-muted small mt-2">
+                    <i class="fas fa-info-circle"></i>
+                    Esta acción abrirá su aplicación de teléfono predeterminada.
+                </p>
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-phone mr-1"></i> Sí, Llamar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#28a745',
+        width: '450px'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Abrir enlace tel: para dispositivos móviles
+            const linkLlamada = document.createElement('a');
+            linkLlamada.href = `tel:${telefonoLimpio}`;
+            linkLlamada.style.display = 'none';
+            document.body.appendChild(linkLlamada);
+            linkLlamada.click();
+            document.body.removeChild(linkLlamada);
+            
+            // Para desktop, mostrar mensaje
+            if (!/Mobi|Android/i.test(navigator.userAgent)) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Llamada simulada',
+                    html: `
+                        <div class="text-left">
+                            <p>En un dispositivo móvil se abriría la aplicación de teléfono.</p>
+                            <div class="alert alert-warning">
+                                <strong>Número:</strong> ${telefono}<br>
+                                <strong>Formateado:</strong> ${telefonoLimpio}
+                            </div>
+                        </div>
+                    `,
+                    confirmButtonText: 'Entendido'
+                });
+            }
+        }
+    });
+}
+
+// ✅ NUEVA FUNCIÓN: Copiar teléfono al portapapeles
+function copiarTelefono() {
+    const telefono = document.getElementById('view_telefono').textContent;
+    
+    if (telefono === 'N/A' || !telefono.trim()) {
+        showAlert('No hay número de teléfono para copiar', 'warning');
+        return;
+    }
+    
+    navigator.clipboard.writeText(telefono).then(() => {
+        Swal.fire({
+            icon: 'success',
+            title: 'Teléfono copiado',
+            text: `Número ${telefono} copiado al portapapeles`,
+            timer: 1500,
+            showConfirmButton: false
+        });
+    }).catch(() => {
+        // Fallback para navegadores antiguos
+        const tempInput = document.createElement('input');
+        tempInput.value = telefono;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+        
+        Swal.fire({
+            icon: 'success',
+            title: 'Teléfono copiado',
+            text: `Número ${telefono} copiado al portapapeles`,
+            timer: 1500,
+            showConfirmButton: false
+        });
     });
 }
 
@@ -3305,6 +3512,7 @@ function imprimirDetalles() {
                 <div class="info-row"><div class="label">DNI:</div><div>${document.getElementById('view_dni').textContent}</div></div>
                 <div class="info-row"><div class="label">Fecha Nacimiento:</div><div>${document.getElementById('view_fecha_nacimiento').textContent}</div></div>
                 <div class="info-row"><div class="label">Edad:</div><div>${document.getElementById('view_edad').textContent}</div></div>
+                <div class="info-row"><div class="label">Teléfono:</div><div>${document.getElementById('view_telefono').textContent}</div></div>
             </div>
             
             <div class="section">
@@ -3318,6 +3526,13 @@ function imprimirDetalles() {
                 <h3>Domicilio</h3>
                 <div class="info-row"><div class="label">Dirección:</div><div>${document.getElementById('view_domicilio').textContent}</div></div>
                 <div class="info-row"><div class="label">Coordenadas:</div><div>${document.getElementById('view_coordenadas').textContent}</div></div>
+            </div>
+            
+            <div class="section">
+                <h3>Información Adicional</h3>
+                <div class="info-row"><div class="label">Días registrado:</div><div>${document.getElementById('view_dias_registro').textContent}</div></div>
+                <div class="info-row"><div class="label">Próximo cumpleaños:</div><div>${document.getElementById('view_proximo_cumple').textContent}</div></div>
+                <div class="info-row"><div class="label">Formato teléfono:</div><div>${document.getElementById('view_formato_telefono').textContent}</div></div>
             </div>
             
             <div class="no-print" style="margin-top: 30px; text-align: center;">
@@ -3408,6 +3623,7 @@ function confirmarExportacion() {
         const partes = mesSeleccionado.split('-');
         mes = parseInt(partes[0]);
         año = parseInt(partes[1]);
+    }
 
     if (mesSeleccionado.match(/^(\d{4})-(\d{2})$/)) {
         const partes = mesSeleccionado.split('-');
@@ -4400,6 +4616,74 @@ code {
 
 .qr-error {
     color: #dc3545;
+}
+
+/* Estilos para el campo de teléfono en edición */
+#edit_telefono.is-valid {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+#edit_telefono.is-invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+/* Mejorar la disposición de los campos editables */
+@media (min-width: 768px) {
+    .edit-form-row {
+        display: flex;
+        gap: 15px;
+    }
+    
+    .edit-form-row .form-group {
+        flex: 1;
+    }
+}
+
+/* Estilos para el campo de teléfono en vista */
+#view_telefono {
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+#btn-llamar {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.4rem;
+    transition: all 0.3s ease;
+}
+
+#btn-llamar:hover {
+    transform: scale(1.05);
+    background-color: #28a745;
+    color: white;
+}
+
+/* Mejoras para la tarjeta de información personal */
+.card-body .row {
+    border-bottom: 1px solid #f8f9fa;
+    padding: 0.25rem 0;
+}
+
+.card-body .row:last-child {
+    border-bottom: none;
+}
+
+/* Estilos para el botón de llamar en móviles */
+@media (max-width: 768px) {
+    #btn-llamar {
+        display: block;
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+}
+
+/* Estilo para el formato de teléfono en información adicional */
+#view_formato_telefono {
+    font-size: 0.9rem;
+    color: #17a2b8;
+    font-weight: bold;
 }
 
 </style>

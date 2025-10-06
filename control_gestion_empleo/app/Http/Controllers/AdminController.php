@@ -22,6 +22,17 @@ class AdminController extends Controller
 {
     //
 
+    
+public function exportarExcelMes(Request $request)
+{
+   
+     $nombreArchivo = "empleados{$request->año}_{$request->mes}.xlsx";
+     try {
+    return Excel::download(new EmpleadosMesExport($request->mes, $request->año), $nombreArchivo);
+     } catch (\Exception $e) {
+        dd($e);
+     }
+}
 
     public function dashboard(){
         return view('admin.dashboard');
@@ -505,6 +516,7 @@ public function editEmployee($id)
             'fecha_nacimiento' => $empleado->fecha_nacimiento,
             'fecha_nacimiento_formatted' => \Carbon\Carbon::parse($empleado->fecha_nacimiento)->format('d/m/Y'),
             'domicilio' => $empleado->domicilio,
+            'telefono' => $empleado->telefono,
             'latitud' => $empleado->latitud,
             'longitud' => $empleado->longitud,
             'username' => $empleado->credencial->username ?? 'N/A',
@@ -532,15 +544,24 @@ public function updateEmployee(Request $request, $id)
         $empleado = Empleado::findOrFail($id);
 
         $validated = $request->validate([
+            'telefono' => 'required|string|max:9|regex:/^[+]?[0-9\s\-]+$/',
             'domicilio' => 'required|string|max:500',
             'latitud' => 'nullable|numeric',
             'longitud' => 'nullable|numeric',
+        ], [
+            'telefono.required' => 'El campo teléfono es obligatorio.',
+            'telefono.regex' => 'El formato del teléfono es inválido. Use formato internacional: +34 612 345 678',
+            'domicilio.required' => 'El campo domicilio es obligatorio.',
         ]);
 
         $empleado->update($validated);
 
-        \Log::info('Empleado actualizado:', ['id' => $id, 'domicilio' => $validated['domicilio']]);
-
+        \Log::info('Empleado actualizado:', [
+            'id' => $id, 
+            'telefono' => $validated['telefono'],
+            'domicilio' => $validated['domicilio']
+        ]);
+        
         return response()->json([
             'success' => true,
             'message' => 'Empleado actualizado correctamente'
@@ -572,6 +593,7 @@ public function show($id)
                 'fecha_nacimiento_formatted' => \Carbon\Carbon::parse($empleado->fecha_nacimiento)->format('d/m/Y'),
                 'edad' => \Carbon\Carbon::parse($empleado->fecha_nacimiento)->age,
                 'domicilio' => $empleado->domicilio,
+                'telefono' => $empleado->telefono,
                 'latitud' => $empleado->latitud,
                 'longitud' => $empleado->longitud,
                 'username' => $empleado->credencial->username,
@@ -622,123 +644,6 @@ public function destroyEmployee($id)
     }
 }
     
-public function exportarExcelMes(Request $request)
-{
-    try {
-        \Log::info('📤 INICIANDO EXPORTACIÓN EXCEL', [
-            'mes' => $request->mes,
-            'año' => $request->año,
-            'todos_los_parametros' => $request->all()
-        ]);
-
-        // Validación más flexible
-        $validator = \Validator::make($request->all(), [
-            'mes' => 'required|integer|between:1,12',
-            'año' => 'required|integer|min:2020|max:' . (date('Y') + 1)
-        ]);
-
-        if ($validator->fails()) {
-            \Log::error('❌ Validación fallida:', $validator->errors()->toArray());
-            return response()->json([
-                'success' => false,
-                'message' => 'Datos inválidos: ' . implode(', ', $validator->errors()->all())
-            ], 422);
-        }
-
-        $mes = (int) $request->mes;
-        $año = (int) $request->año;
-
-        \Log::info('🔍 Parámetros procesados:', ['mes' => $mes, 'año' => $año]);
-
-        // ✅ **DEBUG: Ver TODOS los empleados en el sistema**
-<<<<<<< HEAD
-    /*    $todosEmpleados = Empleado::with('credencial')
-=======
-        $todosEmpleados = Empleado::with('credencial')
->>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
-            ->select('id', 'dni', 'nombre', 'apellidos', 'created_at')
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function($emp) {
-                return [
-                    'id' => $emp->id,
-                    'dni' => $emp->dni,
-                    'nombre_completo' => $emp->nombre . ' ' . $emp->apellidos,
-                    'fecha_registro' => $emp->created_at->format('Y-m-d H:i:s'),
-                    'mes_registro' => $emp->created_at->month,
-                    'año_registro' => $emp->created_at->year,
-                    'username' => $emp->credencial->username ?? 'N/A'
-                ];
-            });
-
-        \Log::info('📊 EMPLEADOS EN SISTEMA:', [
-            'total_empleados' => $todosEmpleados->count(),
-            'empleados' => $todosEmpleados->toArray()
-<<<<<<< HEAD
-        ]);*/
-=======
-        ]);
->>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
-
-        // ✅ **BUSCAR empleados del mes/año específico**
-        $empleadosFiltrados = Empleado::with('credencial')
-            ->whereYear('created_at', $año)
-            ->whereMonth('created_at', $mes)
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        \Log::info('🎯 RESULTADO BÚSQUEDA FILTRADA:', [
-            'mes_buscado' => $mes,
-            'año_buscado' => $año,
-            'total_encontrados' => $empleadosFiltrados->count(),
-            'empleados_encontrados' => $empleadosFiltrados->map(function($emp) {
-                return [
-                    'id' => $emp->id,
-                    'dni' => $emp->dni,
-                    'nombre' => $emp->nombre,
-                    'fecha_registro' => $emp->created_at->format('Y-m-d H:i:s')
-                ];
-            })->toArray()
-        ]);
-
-        if ($empleadosFiltrados->count() === 0) {
-            \Log::warning('⚠️ NO HAY EMPLEADOS PARA EXPORTAR', [
-                'mes' => $mes,
-                'año' => $año,
-                'sugerencia' => 'Verificar que las fechas de created_at coincidan con el mes y año'
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'No hay empleados registrados en ' . $this->getNombreMes($mes) . ' de ' . $año . 
-                            '. Total de empleados en sistema: ' . $todosEmpleados->count() .
-                            '. Pruebe con otro mes o año.'
-            ], 404);
-        }
-
-        $nombreArchivo = 'empleados_' . $this->getNombreMesCorto($mes) . '_' . $año . '.xlsx';
-
-        \Log::info('✅ GENERANDO ARCHIVO EXCEL', [
-            'nombre_archivo' => $nombreArchivo,
-            'total_empleados' => $empleadosFiltrados->count(),
-            'primeros_5' => $empleadosFiltrados->take(5)->pluck('dni', 'nombre')->toArray()
-        ]);
-
-        return Excel::download(new EmpleadosMesExport($mes, $año), $nombreArchivo);
-
-    } catch (\Exception $e) {
-        \Log::error('💥 ERROR CRÍTICO EN EXPORTACIÓN:', [
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-            'request' => $request->all()
-        ]);
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Error crítico al generar el archivo: ' . $e->getMessage()
-        ], 500);
-    }
-}
 
 // Método auxiliar para nombre de mes corto
 private function getNombreMesCorto($mes)
@@ -787,7 +692,6 @@ public function verificarDatosMes(Request $request)
     }
 }
 
-<<<<<<< HEAD
 // Método para generar QR
 private function generarQR($dni, $nombreCompleto)
 {
@@ -917,6 +821,4 @@ private function generarQRPorDefecto($dni)
     }
 }
 
-=======
->>>>>>> db47f97ca6491ce026d72a79284a0d57d54ea54c
 }
