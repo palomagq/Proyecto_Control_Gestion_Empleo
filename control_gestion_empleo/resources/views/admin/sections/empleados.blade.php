@@ -181,8 +181,8 @@
                             <thead class="thead-dark">
                                 <tr>
                                     <th width="5%" class="all">ID</th> <!-- Clase 'all' para mostrar siempre -->
-                                    <th width="8%" class="min-tablet"><i class="fas fa-id-card mr-1"></i> DNI</th> <!-- Ocultar en móvil -->
-                                    <th width="15%" class="all">Nombre</th>
+                                    <th width="8%" class="all"><i class="fas fa-id-card mr-1"></i> DNI</th> <!-- Ocultar en móvil -->
+                                    <th width="12%" class="all">Nombre</th>
                                     <th width="15%" class="min-tablet">Apellidos</th>
                                     <th width="8%" class="min-desktop">Fecha Nac.</th> <!-- Ocultar en tablets pequeñas -->
                                     <th width="8%" class="all">Edad</th>
@@ -4992,8 +4992,459 @@ function descargarQR(empleadoId) {
     box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
 }
 
-.bg-gradient-success {
-    background: linear-gradient(45deg, #1cc88a, #0dbd7a);
+
+/* ===== CORRECCIONES PARA DATATABLE ===== */
+
+/* Contenedor principal de DataTables */
+.dataTables_wrapper {
+    padding: 0 15px;
+    position: relative;
+}
+
+/* Fila de controles (length + filter) */
+.dataTables_wrapper .row:first-child {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0 10px;
+}
+
+/* Mostrar registros - IZQUIERDA */
+.dataTables_length {
+    order: 1;
+    margin-left: 1rem;
+}
+
+.dataTables_length label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0;
+    font-weight: 600 !important;
+    color: #495057 !important;
+    font-size: 0.9rem !important;
+}
+
+.dataTables_length select {
+    margin: 0 8px !important;
+    padding: 0.4rem 1rem !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 0.35rem !important;
+    background-color: white !important;
+    min-width: 100px !important;
+    width: auto !important;
+    font-size: 0.9rem !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.75rem center !important;
+    background-size: 16px 12px !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+}
+
+/* Buscador - DERECHA */
+.dataTables_filter {
+    order: 2;
+    margin-right: 1rem;
+}
+
+.dataTables_filter label {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-bottom: 0;
+    font-weight: 600 !important;
+    color: #495057 !important;
+    font-size: 0.9rem !important;
+}
+
+.dataTables_filter input {
+    margin-left: 12px !important;
+    padding: 0.5rem 0.75rem !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 0.35rem !important;
+    width: auto !important;
+    min-width: 220px !important;
+    font-size: 0.9rem !important;
+    transition: all 0.3s ease !important;
+}
+
+.dataTables_filter input:focus {
+    border-color: #4e73df !important;
+    outline: 0 !important;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25) !important;
+}
+
+
+/* Separación mejorada para la tabla */
+.table-responsive {
+    margin-top: 1rem !important;
+    border: 1px solid #e3e6f0;
+    border-radius: 0.5rem !important;
+    overflow: hidden;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1) !important;
+}
+
+/* Información - IZQUIERDA */
+.dataTables_info {
+    order: 1;
+    padding-top: 0.75rem;
+    color: #6c757d;
+}
+
+/* Paginación - DERECHA */
+.dataTables_paginate {
+    order: 2;
+    padding-top: 0.75rem;
+    text-align: right;
+}
+
+/* Estilos para la paginación */
+.pagination {
+    margin-bottom: 0;
+    justify-content: flex-end;
+}
+
+.page-item.active .page-link {
+    background-color: #4e73df;
+    border-color: #4e73df;
+}
+
+.page-link {
+    color: #4e73df;
+    border: 1px solid #dddfeb;
+}
+
+.page-link:hover {
+    color: #2e59d9;
+    background-color: #eaecf4;
+    border-color: #dddfeb;
+}
+
+/* ===== RESPONSIVE ===== */
+
+/* Tablets */
+@media (max-width: 991.98px) {
+    .dataTables_wrapper .row:first-child {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .dataTables_length,
+    .dataTables_filter {
+        flex: none;
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+    
+    .dataTables_filter {
+        text-align: left;
+    }
+    
+    .dataTables_filter label {
+        justify-content: flex-start;
+    }
+    
+    .dataTables_filter input {
+        flex: 1;
+        min-width: auto;
+    }
+    
+    .dataTables_wrapper .row:last-child {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .dataTables_info,
+    .dataTables_paginate {
+        width: 100%;
+        text-align: center;
+        padding-right: 0rem !important;
+        
+    }
+    
+    .pagination {
+        justify-content: center;
+    }
+}
+
+/* Móviles */
+@media (max-width: 767.98px) {
+    .dataTables_wrapper {
+        padding: 0 5px;
+        font-size: 0.8rem;
+    }
+    
+    .dataTables_length label,
+    .dataTables_filter label {
+        flex-direction: row !important; /* Mantener en línea horizontal */
+        align-items: center !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .dataTables_length select {
+        margin: 0 8px !important; /* Espaciado normal */
+        width: auto !important; /* Ancho automático */
+        min-width: 80px !important; /* Ancho mínimo */
+    }
+    
+    .dataTables_filter label {
+        flex-direction: row !important; /* Mantener en línea horizontal */
+        align-items: center !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .dataTables_filter input {
+        margin: 0 0 0 8px !important; /* Espaciado normal */
+        width: auto !important; /* Ancho automático */
+        flex: 1 !important; /* Ocupar espacio disponible */
+        min-width: 150px !important; /* Ancho mínimo */
+    }
+    
+    .table-responsive {
+        font-size: 0.8rem;
+    }
+    
+    /* Mejoras para tabla responsiva de DataTables */
+    table.dataTable.dtr-inline.collapsed > tbody > tr > td:first-child::before,
+    table.dataTable.dtr-inline.collapsed > tbody > tr > th:first-child::before {
+        top: 50%;
+        transform: translateY(-50%);
+        background-color: #4e73df;
+    }
+    
+    /* Detalles expandidos en móvil */
+    .dtr-details {
+        font-size: 0.8rem;
+    }
+    
+    .dtr-details li {
+        border-bottom: 1px solid #efefef;
+        padding: 0.5rem 0;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .dtr-details li:last-child {
+        border-bottom: none;
+    }
+    
+    .dtr-title {
+        font-weight: 600;
+        color: #4e73df;
+        min-width: 100px;
+    }
+    
+    .dtr-data {
+        text-align: right;
+        flex: 1;
+    }
+}
+
+/* Pantallas muy pequeñas */
+@media (max-width: 575.98px) {
+    .dataTables_paginate .pagination {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .page-item {
+        margin-bottom: 0.25rem;
+    }
+    
+    .dataTables_info {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* ===== ESTILOS ADICIONALES PARA MEJORAR LA EXPERIENCIA ===== */
+
+/* Loading state */
+.dataTables_wrapper .dataTables_processing {
+    background: linear-gradient(45deg, #4e73df, #2e59d9);
+    color: white;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+/* Botones de exportación si los hay */
+.dt-buttons {
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.dt-buttons .btn {
+    margin: 0 2px 5px 2px;
+}
+
+#empleadosTable thead th.sorting:after,
+#empleadosTable thead th.sorting_asc:after,
+#empleadosTable thead th.sorting_desc:after {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Estilos para el ordenamiento */
+table.dataTable thead th.sorting,
+table.dataTable thead th.sorting_asc, 
+table.dataTable thead th.sorting_desc {
+    padding-right: 35px !important;
+    background-repeat: no-repeat !important;
+    background-position: center right 12px !important;
+}
+
+/* Posicionamiento de las flechas */
+table.dataTable thead .sorting:after,
+table.dataTable thead .sorting_asc:after,
+table.dataTable thead .sorting_desc:after {
+    position: absolute;
+    right: 12px;
+    top: 40%;
+    transform: translateY(-50%);
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    opacity: 0.5;
+    transition: all 0.3s ease;
+}
+/* Flechas de ordenamiento - SOLO TRIANGULARES */
+table.dataTable thead .sorting:after {
+    content: "\f0dc" !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    opacity: 0.7 !important;
+}
+
+table.dataTable thead .sorting_asc:after {
+    content: "\f0de" !important;
+    color: #fff !important;
+    opacity: 1 !important;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.8) !important;
+}
+
+table.dataTable thead .sorting_desc:after {
+    content: "\f0dd" !important;
+    color: #fff !important;
+    opacity: 1 !important;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Colores para estados en la tabla */
+.table-success {
+    background-color: #d4edda !important;
+}
+
+.table-warning {
+    background-color: #fff3cd !important;
+}
+
+.table-danger {
+    background-color: #f8d7da !important;
+}
+
+/* Efectos hover mejorados */
+.table-hover tbody tr:hover {
+    background-color: #f8f9fc;
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+
+/* Asegurar que la tabla ocupe todo el ancho disponible */
+#empleadosTable {
+    width: 100% !important;
+}
+
+/* Header de la tabla */
+#empleadosTable thead th {
+    color: white;
+    border: none;
+    font-weight: 600;
+    padding: 12px 15px;
+    white-space: nowrap;
+}
+
+/* Celdas de la tabla */
+#empleadosTable tbody td {
+    padding: 10px 15px;
+    vertical-align: middle;
+    border-bottom: 1px solid #e3e6f0;
+}
+
+/* Botones de acción en la tabla */
+.btn-action-group {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.btn-action-group .btn {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Responsive para botones de acción */
+@media (max-width: 767.98px) {
+    .btn-action-group {
+        flex-direction: column;
+    }
+    
+    .btn-action-group .btn {
+        margin-bottom: 2px;
+        text-align: center;
+    }
+}
+
+/* Badges en la tabla */
+.badge {
+    font-size: 0.7rem;
+    padding: 0.3em 0.6em;
+}
+
+/* Estilos para el contador de registros */
+.dataTables_length,
+.dataTables_info {
+    color: #6c757d;
+}
+
+.dataTables_info {
+    padding: 0.75rem 0;
+    padding-right: 12rem;
+}
+
+/* Mejoras visuales para el buscador */
+.dataTables_filter input {
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #d1d3e2;
+}
+
+.dataTables_filter input:focus {
+    border-color: #bac8f3;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+/* Separación visual entre controles */
+.dataTables_wrapper .row:first-child {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem !important; /* Más espacio */
+    padding: 15px 0 !important; /* Padding vertical */
+    border-bottom: 2px solid #e9ecef !important; /* Línea más definida */
+    background-color: #f8f9fa !important; /* Fondo diferenciado */
+    border-radius: 8px !important;
+    margin-top: 10px !important;
+}
+.dataTables_wrapper .row:last-child {
+    border-top: 1px solid #e3e6f0;
+    padding-top: 1rem;
+    margin-top: 0;
 }
 
 .btn-group .btn {
@@ -5025,10 +5476,6 @@ function descargarQR(empleadoId) {
 
 .form-text.text-muted {
     font-size: 0.85rem;
-}
-
-.bg-gradient-success {
-    background: linear-gradient(45deg, #28a745, #20c997);
 }
 
 .gm-style .gm-style-iw-c {
@@ -5169,6 +5616,7 @@ function descargarQR(empleadoId) {
     .dataTables_wrapper .dataTables_info,
     .dataTables_wrapper .dataTables_paginate {
         font-size: 0.8rem;
+        padding-right: 0rem !important;
     }
     
     /* Botones de acción más pequeños en móvil */
@@ -5183,6 +5631,61 @@ function descargarQR(empleadoId) {
     .container-fluid {
         padding-left: 1rem;
         padding-right: 1rem;
+    }
+
+     .dataTables_wrapper .row:last-child {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        flex-wrap: nowrap !important;
+    }
+    
+    .dataTables_info {
+        order: 1 !important;
+        width: auto !important;
+        text-align: left !important;
+        margin-bottom: 0 !important;
+        padding-right: 1rem !important;
+        flex: 1 !important;
+    }
+    
+    .dataTables_paginate {
+        order: 2 !important;
+        width: auto !important;
+        text-align: right !important;
+        margin-bottom: 0 !important;
+        padding-top: 0 !important;
+    }
+    
+    .pagination {
+        justify-content: flex-end !important;
+        margin-bottom: 0 !important;
+    }
+    
+    /* Asegurar que la información y paginación estén en la misma línea */
+    .dataTables_wrapper .row:last-child > * {
+        flex: 0 0 auto !important;
+    }
+}
+
+/* Tablets grandes (991px en adelante) */
+@media(min-width: 991px) and (max-width: 1199.98px) {
+    .dataTables_info {
+        padding-right: 0 !important;
+    }
+}
+
+/* Ajustes adicionales para tablets más pequeñas */
+@media (min-width: 768px) and (max-width: 820px) {
+    .dataTables_info {
+        font-size: 0.85rem !important;
+        padding-right: 0.5rem !important;
+    }
+    
+    .pagination .page-link {
+        padding: 0.3rem 0.6rem !important;
+        font-size: 0.85rem !important;
     }
 }
 
