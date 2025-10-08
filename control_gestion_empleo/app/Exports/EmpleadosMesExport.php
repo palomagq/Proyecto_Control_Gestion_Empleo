@@ -6,73 +6,41 @@ use App\Models\Empleado;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Carbon\Carbon;
 
-class EmpleadosMesExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithTitle, ShouldAutoSize
+class EmpleadosMesExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize
 {
     protected $mes;
     protected $año;
 
     public function __construct($mes, $año)
     {
-        $this->mes = $mes;
-        $this->año = $año;
-        
-        \Log::info('🔄 EmpleadosMesExport construido:', [
-            'mes' => $mes, 
-            'año' => $año,
-            'tipo_mes' => gettype($mes),
-            'tipo_año' => gettype($año)
-        ]);
+        $this->mes = (int)$mes;
+        $this->año = (int)$año;
     }
 
     public function collection()
     {
-        \Log::info('🔍 EmpleadosMesExport - Buscando colección:', [
+        $fechaInicio = Carbon::create($this->año, $this->mes, 1)->startOfMonth();
+        $fechaFin = Carbon::create($this->año, $this->mes, 1)->endOfMonth();
+
+        $empleados = Empleado::with('credencial')
+            ->whereBetween('created_at', [$fechaInicio, $fechaFin])
+            ->orderBy('id', 'asc')
+            ->get();
+
+        // Log para verificar el orden
+        \Log::info('📋 Empleados para exportar (ordenados por ID):', [
             'mes' => $this->mes,
-            'año' => $this->año
+            'año' => $this->año,
+            'total' => $empleados->count(),
+            'ids' => $empleados->pluck('id')->toArray(),
+            'primer_id' => $empleados->first()?->id,
+            'ultimo_id' => $empleados->last()?->id
         ]);
 
-        try {
-            // ✅ **Asegurar que son integers**
-            $mes = (int) $this->mes;
-            $año = (int) $this->año;
-
-            $empleados = Empleado::with('credencial')
-                ->whereYear('created_at', $año)
-                ->whereMonth('created_at', $mes)
-                ->orderBy('created_at', 'desc')
-                ->get();
-
-            \Log::info('📋 EmpleadosMesExport - Resultados:', [
-                'total' => $empleados->count(),
-                'sql' => Empleado::with('credencial')
-                    ->whereYear('created_at', $año)
-                    ->whereMonth('created_at', $mes)
-                    ->orderBy('created_at', 'desc')
-                    ->toSql(),
-                'empleados' => $empleados->pluck('id')->toArray()
-            ]);
-
-            if ($empleados->count() === 0) {
-                \Log::warning('🚨 EmpleadosMesExport - Colección vacía');
-                // Devolver colección vacía pero no lanzar excepción
-                return collect([]);
-            }
-
-            return $empleados;
-
-        } catch (\Exception $e) {
-            \Log::error('💥 EmpleadosMesExport - Error en collection:', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return collect([]);
-        }
+        return $empleados;
     }
 
     public function headings(): array
@@ -80,75 +48,37 @@ class EmpleadosMesExport implements FromCollection, WithHeadings, WithMapping, W
         return [
             'ID',
             'DNI',
-            'NOMBRE COMPLETO',
-            'FECHA NACIMIENTO',
-            'EDAD',
-            'DOMICILIO', 
-            'USERNAME',
-            'FECHA REGISTRO',
-            'COORDENADAS'
+            'Nombre',
+            'Apellidos',
+            'Fecha Nacimiento',
+            'Edad',
+            'Teléfono',
+            'Domicilio',
+            'Username',
+            'Fecha Registro',
+            'Coordenadas'
         ];
     }
 
     public function map($empleado): array
     {
-        try {
-            $edad = $empleado->fecha_nacimiento ? 
-                Carbon::parse($empleado->fecha_nacimiento)->age : 'N/A';
-            
-            $coordenadas = ($empleado->latitud && $empleado->longitud) ? 
-                round($empleado->latitud, 6) . ', ' . round($empleado->longitud, 6) : 'No especificadas';
-            
-            return [
-                $empleado->id ?? 'N/A',
-                $empleado->dni ?? 'N/A',
-                ($empleado->nombre ?? '') . ' ' . ($empleado->apellidos ?? ''),
-                $empleado->fecha_nacimiento ? 
-                    Carbon::parse($empleado->fecha_nacimiento)->format('d/m/Y') : 'N/A',
-                $edad . ' años',
-                $empleado->domicilio ?? 'N/A',
-                $empleado->credencial->username ?? 'N/A',
-                $empleado->created_at ? 
-                    $empleado->created_at->format('d/m/Y H:i:s') : 'N/A',
-                $coordenadas
-            ];
-        } catch (\Exception $e) {
-            \Log::error('Error mapeando empleado:', [
-                'empleado_id' => $empleado->id ?? 'unknown',
-                'error' => $e->getMessage()
-            ]);
-            
-            return [
-                'ERROR',
-                'ERROR',
-                'Error procesando datos',
-                'N/A',
-                'N/A',
-                'N/A',
-                'N/A',
-                'N/A',
-                'N/A'
-            ];
-        }
-    }
+        $edad = Carbon::parse($empleado->fecha_nacimiento)->age;
+        $coordenadas = $empleado->latitud && $empleado->longitud 
+            ? "{$empleado->latitud}, {$empleado->longitud}" 
+            : 'No especificadas';
 
-    public function styles(Worksheet $sheet)
-    {
         return [
-            1 => [
-                'font' => [
-                    'bold' => true,
-                    'color' => ['rgb' => 'FFFFFF'],
-                    'size' => 12
-                ],
-                'fill' => [
-                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => '4e73df']
-                ],
-                'alignment' => [
-                    'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
-                ]
-            ]
+            $empleado->id,
+            $empleado->dni,
+            $empleado->nombre,
+            $empleado->apellidos,
+            Carbon::parse($empleado->fecha_nacimiento)->format('d/m/Y'),
+            $edad . ' años',
+            $empleado->telefono,
+            $empleado->domicilio,
+            $empleado->credencial->username ?? 'N/A',
+            $empleado->created_at->format('d/m/Y H:i:s'),
+            $coordenadas
         ];
     }
 
@@ -160,6 +90,6 @@ class EmpleadosMesExport implements FromCollection, WithHeadings, WithMapping, W
             9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
         ];
         
-        return 'Empleados_' . ($meses[$this->mes] ?? 'Mes') . '_' . $this->año;
+        return "Empleados {$meses[$this->mes]} {$this->año}";
     }
 }

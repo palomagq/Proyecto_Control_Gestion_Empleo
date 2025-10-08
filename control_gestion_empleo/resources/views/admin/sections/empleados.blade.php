@@ -316,29 +316,38 @@
                             </div>
                         </div>
                     </div>
-                 <!-- NUEVA SECCIÓN: Vista previa del QR -->
+
+                    <!-- NUEVA SECCIÓN: Vista previa del QR dinámico -->
                     <div class="row mt-4">
                         <div class="col-12">
                             <div class="card border-primary">
-                                <div class="card-header bg-primary text-white">
+                                <div class="card-header bg-primary text-white py-2">
                                     <h6 class="mb-0">
                                         <i class="fas fa-qrcode mr-2"></i> Código QR del Empleado
                                     </h6>
                                 </div>
-                                <div class="card-body text-center">
-                                    <div id="qr-preview" class="mb-3">
+                                <div class="card-body text-center p-3">
+                                    <!-- Contenedor del QR que se actualizará dinámicamente -->
+                                    <div id="qr-preview">
+                                        <!-- Estado inicial - se generará automáticamente -->
                                         <div class="alert alert-info">
-                                            <i class="fas fa-info-circle mr-2"></i>
-                                            El código QR se generará automáticamente al crear el empleado
+                                            <i class="fas fa-qrcode mr-2"></i>
+                                            El código QR se generará automáticamente al completar el DNI
                                         </div>
                                     </div>
-                                    <small class="text-muted">
-                                        Este QR identificará al empleado en el sistema y podrá ser escaneado para acceder a su información
-                                    </small>
+                                    
+                                    <!-- Información de estado -->
+                                    <div id="qr-status" class="mt-2">
+                                        <small class="text-muted">
+                                            <i class="fas fa-sync-alt mr-1"></i>
+                                            El QR se actualiza en tiempo real según el DNI
+                                        </small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+
                     <div class="alert alert-info">
                         <small>
                             <i class="fas fa-info-circle"></i> Todos los campos marcados con * son obligatorios.
@@ -1006,17 +1015,17 @@ function generarUsername() {
     
     // ✅ CONTRASEÑA DE 4 DÍGITOS EXACTOS
     if (soloNumeros.length >= 4) {
-        passwordInput.value = soloNumeros.substring(0, 4); // Exactamente 4 dígitos
+        passwordInput.value = soloNumeros.substring(0, 4);
     } else if (soloNumeros.length > 0) {
-        // Si no hay 4 dígitos, completar con ceros
         passwordInput.value = soloNumeros.padEnd(4, '0');
     } else {
         passwordInput.value = '';
     }
     
     validarDNI();
-     // ✅ NUEVO: Generar preview del QR automáticamente
-    generarQRPreview()
+    
+    // ✅ NUEVO: Generar QR automáticamente
+    generarQRPreview();
 }
 
 // ✅ FUNCIÓN MEJORADA: Validación de edad exacta de 16 años
@@ -1030,7 +1039,7 @@ function validarEdadMinima() {
         return { valido: false, mensaje: 'La fecha de nacimiento es requerida' };
     }
     
-    // Calcular edad exacta
+    // Calcular edad exacta como ENTERO
     let edad = hoy.getFullYear() - fechaNacimiento.getFullYear();
     const mes = hoy.getMonth() - fechaNacimiento.getMonth();
     const dia = hoy.getDate() - fechaNacimiento.getDate();
@@ -1039,6 +1048,9 @@ function validarEdadMinima() {
     if (mes < 0 || (mes === 0 && dia < 0)) {
         edad--;
     }
+    
+    // ✅ FORZAR A ENTERO
+    edad = Math.floor(edad);
     
     console.log('📅 Validación de edad:', {
         fechaNacimiento: fechaNacimientoInput.value,
@@ -1212,6 +1224,23 @@ function submitEmployeeForm() {
     
     console.log('=== INICIANDO VALIDACIÓN ===');
     
+
+ 
+    // Obtener el token CSRF del meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    if (!csrfToken) {
+        console.error('❌ No se encontró el token CSRF');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de seguridad',
+            text: 'No se pudo verificar la seguridad de la solicitud. Recargue la página.'
+        });
+        return;
+    }
+
+    console.log('✅ Token CSRF encontrado:', csrfToken.substring(0, 20) + '...');
+
     // 1. Validar DNI COMPLETO (8 números + 1 letra)
     if (!validarDNI()) {
         Swal.fire({
@@ -1324,7 +1353,6 @@ function submitEmployeeForm() {
     };
 
     // 8. Preparar datos para enviar
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     
     const empleadoData = {
         _token: csrfToken,
@@ -1346,7 +1374,7 @@ function submitEmployeeForm() {
     console.log('📤 Datos validados para enviar:', empleadoData);
     
     // 9. Enviar datos al servidor
-    enviarDatosAlServidor(empleadoData, validacionEdad.edad);
+    enviarDatosAlServidor(empleadoData, Math.floor(validacionEdad.edad)); // ✅ Añadir Math.floor()
 }
 
 // ✅ FUNCIÓN MEJORADA: Envío de datos con debug completo
@@ -1384,10 +1412,14 @@ function enviarDatosAlServidor(empleadoData, edadEmpleado) {
                         <div class="alert alert-success mt-3">
                             <h6><i class="fas fa-key"></i> Credenciales Generadas</h6>
                             <hr>
-                            <strong>Username:</strong> ${empleadoData.username}<br>
-                            <strong>Contraseña (4 dígitos):</strong> <code class="bg-light p-1 rounded">${empleadoData.password}</code><br>
-                            <strong>Edad:</strong> ${edadEmpleado} años
+                            <strong>Username:</strong> ${data.data.username}<br>
+                            <strong>Contraseña (4 dígitos):</strong> <code class="bg-light p-1 rounded">${data.data.password}</code><br>
+                            <strong>Edad:</strong> ${data.data.edad} años<br>
+                            <strong>ID Empleado:</strong> ${data.data.empleado_id}
                         </div>
+                        <p class="text-info small">
+                            <i class="fas fa-qrcode"></i> El código QR se ha generado y guardado correctamente.
+                        </p>
                     </div>
                 `,
                 showConfirmButton: true,
@@ -1395,20 +1427,14 @@ function enviarDatosAlServidor(empleadoData, edadEmpleado) {
                 allowOutsideClick: false,
                 width: '600px'
             }).then((result) => {
-                // ✅ RECARGAR DATATABLE Y ACTUALIZAR ESTADÍSTICAS
                 if (typeof table !== 'undefined' && $.fn.DataTable.isDataTable('#empleadosTable')) {
                     table.ajax.reload(function() {
                         console.log('🔄 DataTable recargado completamente');
-                        // ✅ ACTUALIZAR ESTADÍSTICAS DESPUÉS DE RECARGAR EL DATATABLE
                         updateStats();
                     }, false);
-                } else {
-                    console.log('⚠️ DataTable no encontrado, recargando página');
-                    location.reload();
                 }
             });
-            
-        } else {
+        }else {
             throw new Error(data.message || 'Error desconocido del servidor');
         }
     })
@@ -3710,161 +3736,65 @@ function ejecutarExportacion(mes, año, nombreMes) {
                     <span class="sr-only">Generando...</span>
                 </div>
                 <p>Exportando empleados de <strong>${nombreMes} de ${año}</strong></p>
-                <p class="text-muted small">Formato: MM-AAAA (${mes}-${año})</p>
-                <p class="text-muted small">Buscando empleados registrados en este período...</p>
             </div>
         `,
         allowOutsideClick: false,
-        showConfirmButton: false,
-        width: '450px'
+        showConfirmButton: false
     });
 
-    // ✅ **CORREGIDO: Usar parámetros en la URL correctamente**
+    // ✅ URL corregida
     const url = `/admin/empleados/exportar-excel-mes?mes=${mes}&año=${año}`;
     
     console.log('🔍 URL de exportación:', url);
 
-    // Hacer la petición para exportar
+    // Hacer la petición
     fetch(url, {
         method: 'GET',
         headers: {
             'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'application/json, application/vnd.ms-excel',
         }
     })
     .then(response => {
-        console.log('📋 Respuesta del servidor:', {
-            status: response.status,
-            ok: response.ok,
-            contentType: response.headers.get('content-type')
-        });
-
-        // Si la respuesta no es OK, intentar obtener el mensaje de error
+        console.log('📋 Respuesta del servidor:', response);
+        
         if (!response.ok) {
-            // Si es error 404 (no hay datos), manejarlo específicamente
-            if (response.status === 404) {
-                return response.json().then(errorData => {
-                    throw new Error(errorData.message || 'No hay empleados en el período seleccionado');
-                });
-            }
-            
             return response.json().then(errorData => {
-                throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
-            }).catch(() => {
-                throw new Error(`Error ${response.status}: ${response.statusText}`);
+                throw new Error(errorData.message || `Error ${response.status}`);
             });
         }
-
-        // Verificar si es un JSON (error) o un blob (archivo)
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-            return response.json().then(data => {
-                if (!data.success) {
-                    throw new Error(data.message || 'Error en la generación del archivo');
-                }
-                throw new Error('Respuesta inesperada del servidor');
-            });
-        }
-
-        // Si es un archivo Excel, devolver el blob
+        
         return response.blob();
     })
     .then(blob => {
-        // Verificar si el blob es un JSON de error disfrazado
-        if (blob.type && blob.type.includes('application/json')) {
-            return new Response(blob).json().then(errorData => {
-                throw new Error(errorData.message || 'Error en la generación del archivo');
-            });
-        }
-
-        // Verificar que el blob no esté vacío
-        if (blob.size === 0) {
-            throw new Error('El archivo generado está vacío. No hay datos para exportar.');
-        }
-
         Swal.close();
         
-        // Crear URL para descargar el archivo
+        // Crear URL para descargar
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
         
-        // Nombre del archivo
         const nombreArchivo = `empleados_${getNombreMesCorto(mes)}_${año}.xlsx`;
         a.download = nombreArchivo;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         
-        // Mostrar mensaje de éxito
+        // Mensaje de éxito
         Swal.fire({
             icon: 'success',
             title: '¡Excel Exportado!',
-            html: `
-                <div class="text-left">
-                    <div class="alert alert-success">
-                        <h6 class="mb-2"><i class="fas fa-check-circle"></i> Exportación completada</h6>
-                        <p class="mb-1"><strong>Archivo:</strong> ${nombreArchivo}</p>
-                        <p class="mb-1"><strong>Período:</strong> ${nombreMes} de ${año}</p>
-                        <p class="mb-0"><strong>Tamaño del archivo:</strong> ${(blob.size / 1024).toFixed(2)} KB</p>
-                    </div>
-                    <p class="text-muted small">
-                        <i class="fas fa-download"></i>
-                        El archivo se ha descargado automáticamente. 
-                        Verifique su carpeta de descargas.
-                    </p>
-                </div>
-            `,
-            confirmButtonText: 'Aceptar',
-            width: '500px'
+            text: `Archivo ${nombreArchivo} descargado correctamente`,
+            confirmButtonText: 'Aceptar'
         });
-        
     })
     .catch(error => {
-        console.error('❌ Error exportando Excel:', error);
-        
         Swal.close();
-        
-        // Mensajes específicos según el tipo de error
-        let mensajeError = error.message;
-        let tituloError = 'Error al Exportar';
-        
-        if (error.message.includes('No hay empleados') || error.message.includes('no hay empleados')) {
-            tituloError = 'Sin datos para exportar';
-            mensajeError = `No se encontraron empleados registrados en <strong>${nombreMes} de ${año}</strong>`;
-        } else if (error.message.includes('404') || error.message.includes('No query results')) {
-            tituloError = 'Sin datos encontrados';
-            mensajeError = `No hay empleados registrados en el período seleccionado: <strong>${nombreMes} de ${año}</strong>`;
-        } else if (error.message.includes('500') || error.message.includes('Error interno')) {
-            tituloError = 'Error del servidor';
-            mensajeError = 'Ocurrió un error interno al generar el archivo. Por favor, intente más tarde.';
-        } else if (error.message.includes('vacío')) {
-            tituloError = 'Archivo vacío';
-            mensajeError = 'No hay datos para exportar en el período seleccionado.';
-        }
-
         Swal.fire({
             icon: 'error',
-            title: tituloError,
-            html: `
-                <div class="text-left">
-                    <div class="alert alert-warning">
-                        <p class="mb-2">${mensajeError}</p>
-                    </div>
-                    <div class="text-muted small">
-                        <p><strong>Sugerencias:</strong></p>
-                        <ul class="pl-3">
-                            <li>Verifique que el mes y año sean correctos</li>
-                            <li>Intente con otro período diferente</li>
-                            <li>Confirme que hay empleados registrados en el sistema</li>
-                            <li>Verifique las fechas de registro de los empleados</li>
-                        </ul>
-                    </div>
-                </div>
-            `,
-            confirmButtonText: 'Entendido',
-            width: '550px'
+            title: 'Error al Exportar',
+            text: error.message,
+            confirmButtonText: 'Entendido'
         });
     });
 }
@@ -3929,44 +3859,651 @@ function verificarDatosAntesDeExportar(mes, año) {
 }
 
 
-// ✅ NUEVA FUNCIÓN: Generar preview del QR automáticamente
+// ✅ FUNCIÓN MEJORADA: Generar QR automáticamente por DNI en tiempo real
+// ✅ FUNCIÓN MEJORADA: Generar QR automáticamente por DNI
 function generarQRPreview() {
     const dni = document.getElementById('dni').value.trim().toUpperCase();
     const nombre = document.getElementById('nombre').value.trim();
     const apellidos = document.getElementById('apellidos').value.trim();
+    const qrPreview = document.getElementById('qr-preview');
+    const qrStatus = document.getElementById('qr-status');
     
-    // Solo generar QR si el DNI es válido y hay nombre/apellidos
-    if (dni.length === 9 && validarDNI() && nombre && apellidos) {
-        const nombreCompleto = `${nombre} ${apellidos}`;
-        
-        // Mostrar loading en el preview
-        document.getElementById('qr-preview').innerHTML = `
+    // Estado inicial
+    if (!dni) {
+        qrPreview.innerHTML = `
+            <div class="alert alert-info text-center">
+                <i class="fas fa-qrcode fa-2x mb-3 text-muted"></i>
+                <h6 class="mb-1">Código QR del Empleado</h6>
+                <p class="small mb-0">Ingrese el DNI para generar el código QR automáticamente</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Mostrar progreso según longitud del DNI
+    if (dni.length < 9) {
+        const porcentaje = Math.round((dni.length / 9) * 100);
+        qrPreview.innerHTML = `
             <div class="text-center">
-                <div class="spinner-border text-primary mb-2" role="status">
+                <div class="mb-3">
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-info progress-bar-striped progress-bar-animated" 
+                             style="width: ${porcentaje}%"></div>
+                    </div>
+                    <small class="text-muted">DNI: ${dni.length}/9 caracteres (${porcentaje}%)</small>
+                </div>
+                <div class="text-muted">
+                    <i class="fas fa-qrcode fa-3x mb-2 opacity-50"></i>
+                    <p class="small mb-0">Complete el DNI para ver el QR</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    // DNI completo - generar QR
+    if (dni.length === 9) {
+        // Validar formato DNI
+        const dniRegex = /^[0-9]{8}[TRWAGMYFPDXBNJZSQVHLCKE]$/i;
+        if (!dniRegex.test(dni)) {
+            qrPreview.innerHTML = `
+                <div class="alert alert-danger text-center">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                    <h6 class="mb-1">DNI Inválido</h6>
+                    <p class="small mb-0">Formato incorrecto. Use: 8 números + 1 letra</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Validar letra del DNI
+        const numero = dni.substring(0, 8);
+        const letra = dni.substring(8, 9).toUpperCase();
+        const letrasValidas = 'TRWAGMYFPDXBNJZSQVHLCKE';
+        const letraCalculada = letrasValidas[numero % 23];
+        
+        if (letra !== letraCalculada) {
+            qrPreview.innerHTML = `
+                <div class="alert alert-warning text-center">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                    <h6 class="mb-1">Letra de DNI Incorrecta</h6>
+                    <p class="small mb-0">La letra debería ser: <strong>${letraCalculada}</strong></p>
+                </div>
+            `;
+            return;
+        }
+
+        // Mostrar loading
+        qrPreview.innerHTML = `
+            <div class="text-center">
+                <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
                     <span class="sr-only">Generando QR...</span>
                 </div>
-                <p class="small text-muted">Generando código QR...</p>
+                <p class="small text-muted">Generando QR para DNI: <strong>${dni}</strong></p>
             </div>
         `;
+
+        // Llamar al servidor para generar QR
+        generarQRDesdeServidor(dni, nombre, apellidos);
+    }
+}
+
+// ✅ NUEVA FUNCIÓN: Generar QR desde el servidor
+function generarQRDesdeServidor(dni, nombre, apellidos) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    fetch('/admin/empleados/generar-qr-preview', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            dni: dni,
+            nombre: nombre,
+            apellidos: apellidos
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        const qrPreview = document.getElementById('qr-preview');
+        const qrStatus = document.getElementById('qr-status');
         
-        // Generar QR usando una API online o librería cliente
-        generarQRCliente(dni, nombreCompleto);
-    } else if (dni.length > 0) {
-        // Mostrar mensaje de que se necesita DNI válido
-        document.getElementById('qr-preview').innerHTML = `
-            <div class="alert alert-warning">
-                <i class="fas fa-info-circle mr-2"></i>
-                Complete el DNI correctamente para generar el QR
+        if (data.success && data.qr_image) {
+            // Mostrar el QR generado
+            qrPreview.innerHTML = `
+                <div class="text-center">
+                    <img src="data:image/png;base64,${data.qr_image}" 
+                         alt="QR Code para DNI: ${dni}" 
+                         class="img-fluid rounded border shadow-sm qr-generated" 
+                         style="max-width: 200px; transition: all 0.3s ease;">
+                    <p class="small text-success mt-2">
+                        <i class="fas fa-check-circle mr-1"></i>
+                        QR generado para DNI: <strong>${dni}</strong>
+                    </p>
+                    <div class="mt-2">
+                        <small class="text-info">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Este QR se guardará al crear el empleado
+                        </small>
+                    </div>
+                </div>
+            `;
+        } else {
+            throw new Error(data.message || 'Error generando QR');
+        }
+    })
+    .catch(error => {
+        console.error('Error generando QR:', error);
+        const qrPreview = document.getElementById('qr-preview');
+        qrPreview.innerHTML = `
+            <div class="alert alert-danger text-center">
+                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                <h6 class="mb-1">Error Generando QR</h6>
+                <p class="small mb-0">${error.message}</p>
             </div>
         `;
-    } else {
-        // Estado inicial
-        document.getElementById('qr-preview').innerHTML = `
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle mr-2"></i>
-                El código QR se generará automáticamente al completar el DNI
+    });
+}
+
+// ✅ FUNCIÓN FALLBACK: Usar Google Charts si el servidor falla
+function generarQRConGoogleChartsFallback(dni, nombre, apellidos) {
+    const qrPreview = document.getElementById('qr-preview');
+    const qrStatus = document.getElementById('qr-status');
+    const nombreCompleto = `${nombre} ${apellidos}`.trim();
+    
+    // Datos para el QR
+    const qrData = {
+        empleado_dni: dni,
+        empleado_nombre: nombreCompleto,
+        tipo: 'empleado',
+        fecha_generacion: new Date().toISOString()
+    };
+    
+    const qrContent = JSON.stringify(qrData);
+    const qrUrl = `https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=${encodeURIComponent(qrContent)}&choe=UTF-8&chld=H|2`;
+    
+    qrPreview.innerHTML = `
+        <div class="text-center">
+            <img src="${qrUrl}" 
+                 alt="QR Code para DNI: ${dni}" 
+                 class="img-fluid rounded border shadow-sm qr-generated" 
+                 style="max-width: 200px; transition: all 0.3s ease;">
+            <p class="small text-success mt-2">
+                <i class="fas fa-check-circle mr-1"></i>
+                QR generado para DNI: <strong>${dni}</strong>
+            </p>
+            <div class="mt-2">
+                <small class="text-info">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Este QR se guardará al crear el empleado
+                </small>
+            </div>
+        </div>
+    `;
+    
+    // Actualizar estado
+    if (qrStatus) {
+        qrStatus.innerHTML = `
+            <div class="alert alert-success py-1 mb-0">
+                <i class="fas fa-check-circle mr-1"></i>
+                <strong>QR listo</strong> - Generado automáticamente
             </div>
         `;
+    }
+}
+
+// ✅ AGREGAR este event listener al DNI
+document.addEventListener('DOMContentLoaded', function() {
+    const dniInput = document.getElementById('dni');
+    if (dniInput) {
+         dniInput.addEventListener('input', function() {
+            clearTimeout(window.qrTimeout);
+            window.qrTimeout = setTimeout(generarQRPreview, 500);
+        });
+    }
+});
+
+// ✅ FUNCIÓN FALLBACK: Generar QR del lado del cliente si falla el servidor
+function generarQRClienteFallback(dni, nombre, apellidos) {
+    const qrPreview = document.getElementById('qr-preview');
+    const nombreCompleto = `${nombre} ${apellidos}`.trim();
+    
+    // Crear canvas para QR básico
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const size = 200;
+    
+    canvas.width = size;
+    canvas.height = size;
+    
+    // Fondo blanco
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, size, size);
+    
+    // Generar patrón QR básico
+    generarPatronQRBasico(ctx, size, dni);
+    
+    // Texto
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    
+    const texto1 = 'EMPLEADO';
+    const texto2 = `DNI: ${dni}`;
+    
+    ctx.fillText(texto1, size / 2, size / 2 - 10);
+    ctx.fillText(texto2, size / 2, size / 2 + 15);
+    
+    // Convertir a data URL
+    const dataUrl = canvas.toDataURL('image/png');
+    
+    qrPreview.innerHTML = `
+        <div class="text-center">
+            <img src="${dataUrl}" alt="QR Code para DNI: ${dni}" class="qr-image" style="max-width: 200px;">
+            <p class="small text-warning mt-2">
+                <i class="fas fa-exclamation-triangle mr-1"></i>
+                QR generado localmente
+            </p>
+            <div class="mt-2">
+                <small class="text-muted">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    El QR final se generará al crear el empleado
+                </small>
+            </div>
+        </div>
+    `;
+}
+
+// ✅ FUNCIÓN: Generar patrón QR básico
+function generarPatronQRBasico(ctx, size, dni) {
+    const cellSize = 8;
+    const cells = Math.floor(size / cellSize);
+    
+    // Colores
+    const colorNegro = '#000000';
+    
+    // Marcadores de posición (esquinas)
+    ctx.fillStyle = colorNegro;
+    
+    // Esquina superior izquierda
+    for (let i = 0; i < 7; i++) {
+        for (let j = 0; j < 7; j++) {
+            if ((i < 2 || i > 4) && (j < 2 || j > 4)) {
+                ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
+            }
+        }
+    }
+    
+    // Esquina superior derecha
+    for (let i = 0; i < 7; i++) {
+        for (let j = 0; j < 7; j++) {
+            if ((i < 2 || i > 4) && (j < 2 || j > 4)) {
+                ctx.fillRect((cells - 1 - i) * cellSize, j * cellSize, cellSize, cellSize);
+            }
+        }
+    }
+    
+    // Esquina inferior izquierda
+    for (let i = 0; i < 7; i++) {
+        for (let j = 0; j < 7; j++) {
+            if ((i < 2 || i > 4) && (j < 2 || j > 4)) {
+                ctx.fillRect(i * cellSize, (cells - 1 - j) * cellSize, cellSize, cellSize);
+            }
+        }
+    }
+    
+    // Patrón aleatorio interno (usando DNI como semilla para consistencia)
+    const seed = Array.from(dni).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    
+    for (let i = 7; i < cells - 7; i++) {
+        for (let j = 7; j < cells - 7; j++) {
+            // Evitar área central para el texto
+            if (!(i >= Math.floor(cells/2) - 2 && i <= Math.floor(cells/2) + 2 &&
+                  j >= Math.floor(cells/2) - 4 && j <= Math.floor(cells/2) + 4)) {
+                
+                // Usar una función pseudo-aleatoria basada en la semilla
+                const valor = Math.sin(i * 0.7 + seed) * Math.cos(j * 0.7 + seed) + Math.sin(i * j * 0.01);
+                
+                if (valor > 0.3) {
+                    ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
+                }
+            }
+        }
+    }
+}
+
+// ✅ FUNCIÓN: Generar QR del lado del cliente (SIN BOTÓN DESCARGAR)
+function generarQRCliente(dni, nombreCompleto) {
+    try {
+        // Datos para el QR
+        const qrData = {
+            empleado_dni: dni,
+            empleado_nombre: nombreCompleto,
+            tipo: 'empleado',
+            fecha_generacion: new Date().toISOString()
+        };
+        
+        const qrContent = JSON.stringify(qrData);
+        
+        // Opción 1: Usar API de Google Charts (gratuita y sin librerías)
+        generarQRConGoogleCharts(qrContent, dni);
+        
+    } catch (error) {
+        console.error('Error generando QR cliente:', error);
+        mostrarQRError();
+    }
+}
+
+// ✅ FUNCIÓN: Generar QR usando Google Charts API (SIN BOTÓN DESCARGAR)
+function generarQRConGoogleCharts(qrContent, dni) {
+    const qrSize = 200;
+    const encodedContent = encodeURIComponent(qrContent);
+    
+    // URL de la API de Google Charts para QR
+    const qrUrl = `https://chart.googleapis.com/chart?cht=qr&chs=${qrSize}x${qrSize}&chl=${encodedContent}&choe=UTF-8`;
+    
+    // Crear elemento de imagen
+    const img = new Image();
+    img.src = qrUrl;
+    img.alt = `QR Code para DNI: ${dni}`;
+    img.className = 'qr-image';
+    img.style.maxWidth = '100%';
+    img.style.height = 'auto';
+    
+    img.onload = function() {
+        document.getElementById('qr-preview').innerHTML = `
+            <div class="text-center">
+                <img src="${qrUrl}" alt="QR Code para DNI: ${dni}" class="qr-image" style="max-width: 100%; height: auto;">
+                <p class="small text-muted mt-2">Código QR generado automáticamente</p>
+                <!-- SE ELIMINÓ EL BOTÓN DESCARGAR QR -->
+            </div>
+        `;
+    };
+    
+    img.onerror = function() {
+        // Fallback: generar QR con texto
+        generarQRFallback(dni);
+    };
+}
+
+// ✅ FUNCIÓN: Fallback para generar QR simple con texto (SIN BOTÓN DESCARGAR)
+function generarQRFallback(dni) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const size = 200;
+    
+    canvas.width = size;
+    canvas.height = size;
+    
+    // Fondo blanco
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, size, size);
+    
+    // Bordes
+    ctx.strokeStyle = '#007bff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(5, 5, size - 10, size - 10);
+    
+    // Texto
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    
+    const texto1 = 'EMPLEADO';
+    const texto2 = `DNI: ${dni}`;
+    
+    ctx.fillText(texto1, size / 2, size / 2 - 10);
+    ctx.fillText(texto2, size / 2, size / 2 + 15);
+    
+    // Convertir a data URL
+    const dataUrl = canvas.toDataURL('image/png');
+    
+    document.getElementById('qr-preview').innerHTML = `
+        <div class="text-center">
+            <img src="${dataUrl}" alt="QR Code para DNI: ${dni}" class="qr-image" style="max-width: 100%; height: auto;">
+            <p class="small text-muted mt-2">QR generado localmente</p>
+            <!-- SE ELIMINÓ EL BOTÓN DESCARGAR QR -->
+        </div>
+    `;
+}
+
+// ✅ FUNCIÓN: Generar QR progresivo del lado del cliente
+function generarQRProgresivoCliente(dni, nombre, apellidos) {
+    const canvas = document.getElementById('qrCanvas');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const size = 150;
+    const progreso = dni.length / 9; // 0 a 1
+    
+    // Limpiar canvas
+    ctx.clearRect(0, 0, size, size);
+    
+    // Fondo blanco
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, size, size);
+    
+    // Generar patrón progresivo
+    generarPatronQRProgresivo(ctx, size, progreso, dni);
+}
+
+// ✅ FUNCIÓN: Generar patrón QR progresivo
+function generarPatronQRProgresivo(ctx, size, progreso, dni) {
+    const cellSize = 6;
+    const cells = Math.floor(size / cellSize);
+    
+    // Colores
+    const colorCompleto = '#000000';
+    const colorParcial = '#666666';
+    const colorClaro = '#cccccc';
+    
+    // Patrón de posicionamiento (esquinas - siempre visibles)
+    ctx.fillStyle = colorCompleto;
+    
+    // Esquina superior izquierda
+    for (let i = 0; i < 7; i++) {
+        for (let j = 0; j < 7; j++) {
+            if ((i < 2 || i > 4) && (j < 2 || j > 4)) {
+                ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
+            }
+        }
+    }
+    
+    // Esquina superior derecha
+    for (let i = 0; i < 7; i++) {
+        for (let j = 0; j < 7; j++) {
+            if ((i < 2 || i > 4) && (j < 2 || j > 4)) {
+                ctx.fillRect((cells - 1 - i) * cellSize, j * cellSize, cellSize, cellSize);
+            }
+        }
+    }
+    
+    // Esquina inferior izquierda
+    for (let i = 0; i < 7; i++) {
+        for (let j = 0; j < 7; j++) {
+            if ((i < 2 || i > 4) && (j < 2 || j > 4)) {
+                ctx.fillRect(i * cellSize, (cells - 1 - j) * cellSize, cellSize, cellSize);
+            }
+        }
+    }
+    
+    // Patrón progresivo interno
+    for (let i = 7; i < cells - 7; i++) {
+        for (let j = 7; j < cells - 7; j++) {
+            const deberiaEstarLleno = calcularCeldaQR(i, j, cells, progreso, dni);
+            
+            if (deberiaEstarLleno === 'completo') {
+                ctx.fillStyle = colorCompleto;
+                ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
+            } else if (deberiaEstarLleno === 'parcial') {
+                ctx.fillStyle = colorParcial;
+                ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
+            } else if (deberiaEstarLleno === 'claro') {
+                ctx.fillStyle = colorClaro;
+                ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
+            }
+        }
+    }
+}
+
+// ✅ FUNCIÓN: Calcular estado de cada celda del QR
+function calcularCeldaQR(x, y, totalCells, progreso, dni) {
+    // Usar el DNI como semilla para consistencia
+    const seed = Array.from(dni).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const valor = Math.sin(x * 0.7 + seed) * Math.cos(y * 0.7 + seed) + Math.sin(x * y * 0.01);
+    
+    // Ajustar umbrales basados en el progreso
+    const umbralCompleto = progreso * 0.8;
+    const umbralParcial = progreso * 0.5;
+    const umbralClaro = progreso * 0.3;
+    
+    if (valor > umbralCompleto) {
+        return 'completo';
+    } else if (valor > umbralParcial) {
+        return 'parcial';
+    } else if (valor > umbralClaro) {
+        return 'claro';
+    }
+    
+    return null;
+}
+
+// ✅ FUNCIÓN: Generar QR completo desde el servidor
+function generarQRCompleto(dni, nombre, apellidos) {
+    const qrPreview = document.getElementById('qr-preview');
+    
+    // Mostrar loading
+    qrPreview.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="sr-only">Generando QR final...</span>
+            </div>
+            <p class="small text-muted">Generando código QR final...</p>
+        </div>
+    `;
+    
+    // Llamar al servidor para generar QR completo
+    fetch('/admin/empleados/generar-qr-preview', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            dni: dni,
+            nombre: nombre,
+            apellidos: apellidos
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            qrPreview.innerHTML = `
+                <div class="text-center">
+                    <img src="data:image/png;base64,${data.qr_image}" 
+                         alt="QR Code para DNI: ${dni}" 
+                         class="qr-image img-fluid" 
+                         style="max-width: 200px;">
+                    <p class="small text-success mt-2">
+                        <i class="fas fa-check-circle mr-1"></i>
+                        QR generado correctamente
+                    </p>
+                    <div class="mt-2">
+                        <small class="text-info">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Este QR identificará al empleado en el sistema
+                        </small>
+                    </div>
+                </div>
+            `;
+        } else {
+            throw new Error(data.message || 'Error generando QR');
+        }
+    })
+    .catch(error => {
+        console.error('Error generando QR completo:', error);
+        qrPreview.innerHTML = `
+            <div class="alert alert-danger text-center">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                Error generando QR
+                <p class="small mb-0 mt-1">${error.message}</p>
+            </div>
+        `;
+    });
+}
+
+
+
+// ✅ FUNCIÓN: Mostrar QR simulado (será reemplazado por el real del servidor)
+function mostrarQRSimulado(dni, nombreCompleto) {
+    // Crear un canvas para un QR simulado más realista
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const size = 200;
+    
+    canvas.width = size;
+    canvas.height = size;
+    
+    // Fondo blanco
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, size, size);
+    
+    // Generar patrón de QR básico
+    generarPatronQR(ctx, size);
+    
+    // Convertir a data URL
+    const dataUrl = canvas.toDataURL('image/png');
+    
+    document.getElementById('qr-preview').innerHTML = `
+        <div class="text-center">
+            <img src="${dataUrl}" alt="QR Code para DNI: ${dni}" class="qr-image img-fluid" style="max-width: 200px;">
+            <p class="small text-muted mt-2">
+                <i class="fas fa-qrcode mr-1"></i>
+                Vista previa del código QR
+            </p>
+            <div class="mt-2">
+                <small class="text-info">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    El QR final se generará al crear el empleado
+                </small>
+            </div>
+        </div>
+    `;
+}
+
+// ✅ FUNCIÓN: Generar patrón básico de QR
+function generarPatronQR(ctx, size) {
+    const cellSize = 10;
+    const cells = size / cellSize;
+    
+    ctx.fillStyle = '#000000';
+    
+    // Patrón de posicionamiento (esquinas)
+    for (let i = 0; i < 7; i++) {
+        for (let j = 0; j < 7; j++) {
+            // Esquina superior izquierda
+            if ((i < 2 || i > 4) && (j < 2 || j > 4)) {
+                ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
+            }
+            
+            // Esquina superior derecha
+            ctx.fillRect((cells - 1 - i) * cellSize, j * cellSize, cellSize, cellSize);
+            
+            // Esquina inferior izquierda
+            ctx.fillRect(i * cellSize, (cells - 1 - j) * cellSize, cellSize, cellSize);
+        }
+    }
+    
+    // Patrón aleatorio interno (simulación)
+    for (let i = 7; i < cells - 7; i++) {
+        for (let j = 7; j < cells - 7; j++) {
+            if (Math.random() > 0.5) {
+                ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
+            }
+        }
     }
 }
 
@@ -4023,64 +4560,30 @@ function generarQRConGoogleCharts(qrContent, dni) {
     };
 }
 
-// ✅ FUNCIÓN: Fallback para generar QR simple con texto
-function generarQRFallback(dni) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const size = 200;
-    
-    canvas.width = size;
-    canvas.height = size;
-    
-    // Fondo blanco
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, size, size);
-    
-    // Bordes
-    ctx.strokeStyle = '#007bff';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(5, 5, size - 10, size - 10);
-    
-    // Texto
-    ctx.fillStyle = '#000000';
-    ctx.font = 'bold 14px Arial';
-    ctx.textAlign = 'center';
-    
-    const texto1 = 'EMPLEADO';
-    const texto2 = `DNI: ${dni}`;
-    
-    ctx.fillText(texto1, size / 2, size / 2 - 10);
-    ctx.fillText(texto2, size / 2, size / 2 + 15);
-    
-    // Convertir a data URL
-    const dataUrl = canvas.toDataURL('image/png');
-    
-    document.getElementById('qr-preview').innerHTML = `
-        <div class="text-center">
-            <img src="${dataUrl}" alt="QR Code para DNI: ${dni}" class="qr-image" style="max-width: 100%; height: auto;">
-            <p class="small text-muted mt-2">QR generado localmente</p>
-            <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="descargarQRPreview('${dni}')">
-                <i class="fas fa-download mr-1"></i> Descargar QR
-            </button>
-        </div>
-    `;
-}
-
 // ✅ FUNCIÓN: Descargar el QR generado
 function descargarQRPreview(dni) {
     const qrImage = document.querySelector('#qr-preview img');
-    if (qrImage) {
+    if (qrImage && qrImage.src && !qrImage.src.includes('svg+xml')) {
         const link = document.createElement('a');
-        link.download = `qr_empleado_${dni}.png`;
+        link.download = `qr_empleado_${dni}_${new Date().getTime()}.png`;
         link.href = qrImage.src;
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
         
+        // Mostrar confirmación
         Swal.fire({
             icon: 'success',
             title: 'QR Descargado',
             text: `El código QR para DNI ${dni} se ha descargado correctamente`,
             timer: 2000,
             showConfirmButton: false
+        });
+    } else {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error al descargar',
+            text: 'No hay código QR disponible para descargar'
         });
     }
 }
@@ -4095,6 +4598,348 @@ function mostrarQRError() {
     `;
 }
 
+// ✅ FUNCIÓN COMPLETA: Imprimir QR por la web
+function imprimirQR(id) {
+    console.log('🖨️ Solicitando impresión de QR para empleado ID:', id);
+    
+    Swal.fire({
+        title: 'Generando QR para impresión...',
+        text: 'Preparando código QR',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    fetch(`/admin/empleados/${id}/qr-info`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error al obtener información del QR');
+            }
+            return response.json();
+        })
+        .then(data => {
+            Swal.close();
+            
+            if (data.success) {
+                mostrarModalImpresionQR(data.data);
+            } else {
+                throw new Error(data.message || 'Error al obtener información del QR');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error obteniendo QR:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudo obtener el código QR: ' + error.message
+            });
+        });
+}
+
+
+// ✅ FUNCIÓN: Imprimir QR directamente
+function imprimirQRDirecto() {
+    // Ocultar elementos no necesarios para impresión
+    const elementosOcultar = document.querySelectorAll('#imprimirQRModal .modal-header, #imprimirQRModal .modal-footer, #imprimirQRModal .btn-group, #imprimirQRModal .card-header:not(.bg-primary)');
+    elementosOcultar.forEach(el => el.classList.add('d-none'));
+    
+    // Mostrar área de impresión
+    document.getElementById('area-impresion').classList.remove('d-none');
+    
+    // Esperar un momento para que se renderice y luego imprimir
+    setTimeout(() => {
+        window.print();
+        
+        // Restaurar vista después de imprimir
+        setTimeout(() => {
+            elementosOcultar.forEach(el => el.classList.remove('d-none'));
+            document.getElementById('area-impresion').classList.add('d-none');
+        }, 500);
+    }, 500);
+}
+
+// ✅ FUNCIÓN: Mostrar modal de impresión de QR
+function mostrarModalImpresionQR(qrData) {
+    const modalHtml = `
+        <div class="modal fade" id="imprimirQRModal" tabindex="-1" role="dialog" aria-labelledby="imprimirQRModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title" id="imprimirQRModalLabel">
+                            <i class="fas fa-qrcode mr-2"></i> Imprimir Código QR
+                        </h5>
+                        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-user mr-2 text-primary"></i>Información del Empleado
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row mb-2">
+                                            <div class="col-4 font-weight-bold text-muted">Nombre:</div>
+                                            <div class="col-8">${qrData.nombre_completo}</div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-4 font-weight-bold text-muted">DNI:</div>
+                                            <div class="col-8"><span class="badge badge-primary">${qrData.dni}</span></div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-4 font-weight-bold text-muted">Usuario:</div>
+                                            <div class="col-8"><code>${qrData.username}</code></div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-4 font-weight-bold text-muted">Código:</div>
+                                            <div class="col-8"><small class="text-muted">${qrData.codigo_unico}</small></div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-4 font-weight-bold text-muted">Generado:</div>
+                                            <div class="col-8"><small class="text-muted">${qrData.fecha_generacion}</small></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <div class="btn-group w-100">
+                                        <button type="button" class="btn btn-success" onclick="descargarQR(${qrData.empleado_id})">
+                                            <i class="fas fa-download mr-1"></i> Descargar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-qrcode mr-2 text-success"></i>Código QR
+                                        </h6>
+                                    </div>
+                                    <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                                        <img src="data:image/png;base64,${qrData.qr_image}" 
+                                             alt="QR Code para ${qrData.nombre_completo}" 
+                                             class="img-fluid rounded border shadow mb-3"
+                                             style="max-width: 200px;">
+                                        <p class="text-center text-muted small">
+                                            <i class="fas fa-info-circle mr-1"></i>
+                                            Este código QR identifica al empleado en el sistema
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Área de impresión (oculta inicialmente) -->
+                        <div id="area-impresion" class="mt-4 d-none">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white text-center">
+                                    <h4 class="mb-0">CÓDIGO QR DEL EMPLEADO</h4>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="row">
+                                        <div class="col-md-8 mx-auto">
+                                            <img src="data:image/png;base64,${qrData.qr_image}" 
+                                                 alt="QR Code para ${qrData.nombre_completo}" 
+                                                 class="img-fluid mb-3"
+                                                 style="max-width: 250px;">
+                                            
+                                            <h5 class="mb-1">${qrData.nombre_completo}</h5>
+                                            <p class="mb-1"><strong>DNI:</strong> ${qrData.dni}</p>
+                                            <p class="mb-1"><strong>Usuario:</strong> ${qrData.username}</p>
+                                            <p class="mb-1"><strong>Código único:</strong> <small>${qrData.codigo_unico}</small></p>
+                                            <p class="mb-0 text-muted"><small>Generado: ${qrData.fecha_generacion} | Impreso: ${new Date().toLocaleDateString('es-ES')}</small></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times mr-1"></i> Cerrar
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="imprimirQRDirecto()">
+                            <i class="fas fa-print mr-1"></i> Imprimir QR
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remover modal anterior si existe
+    $('#imprimirQRModal').remove();
+    
+    // Añadir nuevo modal al body
+    $('body').append(modalHtml);
+    
+    // Mostrar modal
+    $('#imprimirQRModal').modal('show');
+}
+
+// ✅ FUNCIÓN: Imprimir QR directamente
+function imprimirQRDirecto() {
+    // Ocultar elementos no necesarios para impresión
+    const elementosOcultar = document.querySelectorAll('.modal-header, .modal-footer, .btn-group, .card-header:not(.bg-primary)');
+    elementosOcultar.forEach(el => el.classList.add('d-none'));
+    
+    // Mostrar área de impresión
+    document.getElementById('area-impresion').classList.remove('d-none');
+    
+    // Esperar un momento para que se renderice y luego imprimir
+    setTimeout(() => {
+        window.print();
+        
+        // Restaurar vista después de imprimir
+        setTimeout(() => {
+            elementosOcultar.forEach(el => el.classList.remove('d-none'));
+            document.getElementById('area-impresion').classList.add('d-none');
+        }, 500);
+    }, 500);
+}
+
+// ✅ FUNCIÓN: Enviar QR por WhatsApp
+function enviarQRWhatsApp(empleadoId) {
+    console.log('📱 Enviando QR por WhatsApp para empleado ID:', empleadoId);
+    
+    Swal.fire({
+        title: 'Enviar QR por WhatsApp',
+        html: `
+            <div class="text-left">
+                <p>Ingrese el número de teléfono para enviar el QR:</p>
+                <input type="tel" id="whatsappTelefono" class="swal2-input" 
+                       placeholder="Ej: +34 612 345 678" required>
+                <small class="form-text text-muted">
+                    Incluya el código de país (ej: +34 para España)
+                </small>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fab fa-whatsapp mr-1"></i> Enviar por WhatsApp',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#25D366',
+        preConfirm: () => {
+            const telefono = document.getElementById('whatsappTelefono').value.trim();
+            if (!telefono) {
+                Swal.showValidationMessage('Por favor, ingrese un número de teléfono');
+                return false;
+            }
+            return telefono;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const telefono = result.value;
+            
+            Swal.fire({
+                title: 'Generando enlace...',
+                text: 'Preparando enlace de WhatsApp',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            fetch(`/admin/empleados/${empleadoId}/enviar-whatsapp`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    telefono: telefono
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                Swal.close();
+                
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Enlace listo!',
+                        html: `
+                            <div class="text-left">
+                                <p>Enlace de WhatsApp generado para:</p>
+                                <div class="alert alert-success">
+                                    <strong>Teléfono:</strong> ${data.data.telefono}<br>
+                                    <strong>Empleado:</strong> ${data.data.empleado}
+                                </div>
+                                <p class="text-muted small">
+                                    <i class="fas fa-info-circle"></i>
+                                    Se abrirá WhatsApp con el mensaje predefinido
+                                </p>
+                            </div>
+                        `,
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="fab fa-whatsapp mr-1"></i> Abrir WhatsApp',
+                        cancelButtonText: 'Cerrar',
+                        confirmButtonColor: '#25D366'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Abrir WhatsApp en nueva pestaña
+                            window.open(data.data.whatsapp_url, '_blank');
+                        }
+                    });
+                } else {
+                    throw new Error(data.message || 'Error al generar enlace de WhatsApp');
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error enviando por WhatsApp:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudo generar el enlace de WhatsApp: ' + error.message
+                });
+            });
+        }
+    });
+}
+
+// ✅ FUNCIÓN: Descargar QR
+function descargarQR(empleadoId) {
+    fetch(`/admin/empleados/${empleadoId}/qr-info`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const qrData = data.data;
+                
+                // Crear enlace de descarga
+                const link = document.createElement('a');
+                link.download = `qr_empleado_${qrData.dni}_${new Date().getTime()}.png`;
+                link.href = `data:image/png;base64,${qrData.qr_image}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'QR Descargado',
+                    text: `El código QR para ${qrData.nombre_completo} se ha descargado correctamente`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                throw new Error(data.message || 'Error al obtener QR para descarga');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error descargando QR:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudo descargar el código QR: ' + error.message
+            });
+        });
+}
 
 </script>
 
@@ -4563,29 +5408,32 @@ code {
     box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
 }
 
-/* Estilos para la sección del QR */
+/* Estilos mejorados para la sección del QR */
 #qr-preview {
-    min-height: 200px;
+    min-height: 250px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
 }
 
 .qr-image {
     max-width: 200px;
     max-height: 200px;
     border: 2px solid #dee2e6;
-    border-radius: 5px;
+    border-radius: 8px;
     padding: 10px;
     background: white;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     transition: transform 0.3s ease;
 }
 
 .qr-image:hover {
     transform: scale(1.05);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
 }
 
 /* Animación para la generación del QR */
@@ -4596,13 +5444,6 @@ code {
 
 .qr-generated {
     animation: qr-generate 0.5s ease-out;
-}
-
-/* Botón de descarga QR */
-.btn-download-qr {
-    margin-top: 10px;
-    font-size: 0.8rem;
-    padding: 0.25rem 0.5rem;
 }
 
 /* Estados del preview del QR */
@@ -4616,6 +5457,15 @@ code {
 
 .qr-error {
     color: #dc3545;
+}
+
+/* Mejorar la tarjeta del QR */
+.card-border-primary {
+    border-color: #007bff !important;
+}
+
+.card-header.bg-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3) !important;
 }
 
 /* Estilos para el campo de teléfono en edición */
@@ -4640,6 +5490,66 @@ code {
         flex: 1;
     }
 }
+
+
+/* Estilos para la impresión de QR */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #area-impresion,
+    #area-impresion * {
+        visibility: visible;
+    }
+    #area-impresion {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+    .modal-footer,
+    .modal-header,
+    .btn-group {
+        display: none !important;
+    }
+}
+
+#imprimirQRModal .btn-success {
+    background-color: #25D366;
+    border-color: #25D366;
+}
+
+#imprimirQRModal .btn-success:hover {
+    background-color: #128C7E;
+    border-color: #128C7E;
+}
+
+/* Estilos para el área de impresión */
+#area-impresion .card {
+    border: 2px solid #007bff !important;
+}
+
+#area-impresion .card-header {
+    background: linear-gradient(45deg, #007bff, #0056b3) !important;
+    color: white;
+    font-weight: bold;
+}
+
+/* Mejoras responsivas */
+@media (max-width: 768px) {
+    #imprimirQRModal .modal-dialog {
+        margin: 0.5rem;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+    }
+    
+    .btn-group .btn {
+        margin-bottom: 0.5rem;
+    }
+}
+
 
 /* Estilos para el campo de teléfono en vista */
 #view_telefono {
@@ -4684,6 +5594,73 @@ code {
     font-size: 0.9rem;
     color: #17a2b8;
     font-weight: bold;
+}
+
+/* Estilos mejorados para la sección del QR */
+#qr-preview {
+    min-height: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    border: 2px dashed #dee2e6;
+}
+
+.qr-generated {
+    animation: qrPulse 0.5s ease-out;
+}
+
+@keyframes qrPulse {
+    0% { 
+        opacity: 0; 
+        transform: scale(0.8) rotate(-5deg); 
+    }
+    100% { 
+        opacity: 1; 
+        transform: scale(1) rotate(0deg); 
+    }
+}
+
+/* Estados del preview del QR */
+.qr-loading {
+    color: #6c757d;
+}
+
+.qr-success {
+    color: #28a745;
+}
+
+.qr-error {
+    color: #dc3545;
+}
+
+/* Mejorar la tarjeta del QR */
+.card-border-primary {
+    border-color: #007bff !important;
+}
+
+.card-header.bg-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3) !important;
+}
+
+/* Animación para la barra de progreso */
+.progress-bar-animated {
+    animation: progress-bar-stripes 1s linear infinite;
+}
+
+@keyframes progress-bar-stripes {
+    0% { background-position: 1rem 0; }
+    100% { background-position: 0 0; }
+}
+
+/* Efectos hover para el QR */
+.qr-image:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
 }
 
 </style>

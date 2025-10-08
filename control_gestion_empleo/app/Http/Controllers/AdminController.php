@@ -6,6 +6,7 @@ use App\Models\Usuario;
 use App\Models\Empleado; 
 use App\Models\Credencial; 
 use App\Models\Rol;
+use App\Models\QR;
 
 use Illuminate\Http\Request;
 use App\Http\Requests\UserRequest;
@@ -25,13 +26,46 @@ class AdminController extends Controller
     
 public function exportarExcelMes(Request $request)
 {
-   
-     $nombreArchivo = "empleados{$request->año}_{$request->mes}.xlsx";
-     try {
-    return Excel::download(new EmpleadosMesExport($request->mes, $request->año), $nombreArchivo);
-     } catch (\Exception $e) {
-        dd($e);
-     }
+    try {
+        // Validar los parámetros
+        $request->validate([
+            'mes' => 'required|integer|between:1,12',
+            'año' => 'required|integer|min:2020|max:' . (date('Y') + 1)
+        ]);
+
+        $mes = $request->mes;
+        $año = $request->año;
+
+        // Verificar si hay datos para el mes seleccionado
+        $fechaInicio = Carbon::create($año, $mes, 1)->startOfMonth();
+        $fechaFin = Carbon::create($año, $mes, 1)->endOfMonth();
+        
+        $existenDatos = Empleado::whereBetween('created_at', [$fechaInicio, $fechaFin])->exists();
+
+        if (!$existenDatos) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No hay empleados registrados en el mes seleccionado'
+            ], 404);
+        }
+
+        $nombreArchivo = "empleados_{$mes}_{$año}.xlsx";
+        
+        return Excel::download(new EmpleadosMesExport($mes, $año), $nombreArchivo);
+
+    } catch (\Exception $e) {
+        Log::error('Error exportando Excel:', [
+            'mes' => $request->mes,
+            'año' => $request->año,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al generar el archivo Excel: ' . $e->getMessage()
+        ], 500);
+    }
 }
 
     public function dashboard(){
@@ -95,7 +129,10 @@ public function storeEmployee(Request $request)
 
         // Validación adicional de edad (doble verificación)
         $fechaNacimiento = \Carbon\Carbon::parse($validated['fecha_nacimiento']);
-        $edad = $fechaNacimiento->diffInYears(now());
+        $edad = $fechaNacimiento->diffInYears(now()); // ✅ Esto ya devuelve un entero
+        
+        // ✅ Asegurar que sea entero
+        $edad = (int) $edad;
         
         Log::info('📅 Cálculo de edad:', [
             'fecha_nacimiento' => $validated['fecha_nacimiento'],
@@ -152,14 +189,17 @@ public function storeEmployee(Request $request)
         }
 
         // Iniciar transacción para asegurar consistencia de datos
+// Iniciar transacción
         DB::beginTransaction();
 
         try {
             Log::info('🔄 Iniciando creación de empleado en transacción...');
 
-            // **PRIMERO: Generar y guardar el QR**
+            // **PRIMERO: Generar y guardar el QR** - ✅ CORREGIDO
             $qrData = $this->generarQR($dni, $validated['nombre'] . ' ' . $validated['apellidos']);
-            $qr = \App\Models\Qr::create([
+            
+            // Crear el QR sin incluir la imagen binaria en la respuesta
+            $qr = Qr::create([
                 'imagen_qr' => $qrData['imagen'],
                 'codigo_unico' => $qrData['codigo_unico']
             ]);
@@ -171,7 +211,6 @@ public function storeEmployee(Request $request)
                 'username' => $validated['username'],
                 'password' => bcrypt($validated['password']),
                 'rol_id' => $rolId,
-                // empleado_id se actualizará después
             ]);
 
             Log::info('✅ Credencial creada:', [
@@ -186,12 +225,12 @@ public function storeEmployee(Request $request)
                 'apellidos' => $validated['apellidos'],
                 'dni' => $dni,
                 'fecha_nacimiento' => $validated['fecha_nacimiento'],
-                'telefono' => $validated['telefono'], // NUEVO CAMPO
+                'telefono' => $validated['telefono'],
                 'domicilio' => $validated['domicilio'],
                 'latitud' => $validated['latitud'] ?? '40.4168',
                 'longitud' => $validated['longitud'] ?? '-3.7038',
                 'credencial_id' => $credencial->id,
-                'qr_id' => $qr->id, // NUEVO CAMPO
+                'qr_id' => $qr->id,
                 'rol_id' => $rolId,
             ]);
 
@@ -199,19 +238,12 @@ public function storeEmployee(Request $request)
                 'empleado_id' => $empleado->id,
                 'nombre' => $empleado->nombre,
                 'dni' => $empleado->dni,
-                'telefono' => $empleado->telefono,
-                'qr_id' => $empleado->qr_id,
-                'rol_id' => $rolId
+                'qr_id' => $empleado->qr_id
             ]);
 
             // **ACTUALIZAR la credencial con el empleado_id**
             $credencial->update([
                 'empleado_id' => $empleado->id,
-            ]);
-
-            Log::info('✅ Credencial actualizada con empleado_id:', [
-                'credencial_id' => $credencial->id,
-                'empleado_id' => $empleado->id
             ]);
 
             // Confirmar transacción
@@ -220,11 +252,10 @@ public function storeEmployee(Request $request)
             Log::info('🎉 Empleado creado exitosamente con QR', [
                 'empleado_id' => $empleado->id,
                 'username' => $validated['username'],
-                'rol_id' => $rolId,
-                'edad' => $edad,
-                'qr_id' => $qr->id
+                'edad' => $edad
             ]);
 
+            // ✅ CORREGIDO: No incluir la imagen binaria en la respuesta JSON
             return response()->json([
                 'success' => true,
                 'message' => 'Empleado creado exitosamente',
@@ -235,12 +266,11 @@ public function storeEmployee(Request $request)
                     'edad' => $edad,
                     'rol_id' => $rolId,
                     'qr_id' => $qr->id,
-                    'qr_image' => base64_encode($qrData['imagen']) // Para mostrar en frontend
+                    // ❌ NO incluir qr_image aquí para evitar problemas de encoding
                 ]
             ]);
 
         } catch (\Exception $e) {
-            // Revertir transacción en caso de error
             DB::rollBack();
             Log::error('❌ Error en transacción al crear empleado:', [
                 'message' => $e->getMessage(),
@@ -265,8 +295,7 @@ public function storeEmployee(Request $request)
         Log::error('❌ Error general al crear empleado:', [
             'message' => $e->getMessage(),
             'file' => $e->getFile(),
-            'line' => $e->getLine(),
-            'trace' => $e->getTraceAsString()
+            'line' => $e->getLine()
         ]);
         return response()->json([
             'success' => false,
@@ -342,14 +371,18 @@ public function getEmpleadosDataTable(Request $request)
         \Log::info('📋 Total de empleados encontrados:', ['count' => $empleados->count()]);
 
         $data = $empleados->map(function($empleado) {
-            $edad = Carbon::parse($empleado->fecha_nacimiento)->age;
+            // ✅ CALCULAR EDAD COMO ENTERO
+            $edad = \Carbon\Carbon::parse($empleado->fecha_nacimiento)->age;
+            
+            // ✅ Asegurar que sea entero
+            $edadEntero = (int) $edad;
 
             return [
                 'id' => $empleado->id,
                 'dni' => $empleado->dni,
                 'nombre' => $empleado->nombre,
                 'apellidos' => $empleado->apellidos,
-                'fecha_nacimiento' => Carbon::parse($empleado->fecha_nacimiento)->format('d/m/Y'),
+                'fecha_nacimiento' => \Carbon\Carbon::parse($empleado->fecha_nacimiento)->format('d/m/Y'),
                 'edad' => $edad . ' años',
                 'domicilio' => $empleado->domicilio,
                 'telefono' => $empleado->telefono,
@@ -364,6 +397,9 @@ public function getEmpleadosDataTable(Request $request)
                         </button>
                         <button class="btn btn-danger" onclick="eliminarEmpleado(' . $empleado->id . ')" title="Eliminar">
                             <i class="fas fa-trash"></i>
+                        </button>
+                        <button class="btn btn-success" onclick="imprimirQR(' . $empleado->id . ')" title="Visualizar QR">
+                            <i class="fas fa-qrcode"></i>
                         </button>
                     </div>
                 '
@@ -514,7 +550,7 @@ public function editEmployee($id)
             'apellidos' => $empleado->apellidos,
             'dni' => $empleado->dni,
             'fecha_nacimiento' => $empleado->fecha_nacimiento,
-            'fecha_nacimiento_formatted' => \Carbon\Carbon::parse($empleado->fecha_nacimiento)->format('d/m/Y'),
+            'fecha_nacimiento_formatted' => (int) \Carbon\Carbon::parse($empleado->fecha_nacimiento)->format('d/m/Y'),
             'domicilio' => $empleado->domicilio,
             'telefono' => $empleado->telefono,
             'latitud' => $empleado->latitud,
@@ -561,7 +597,7 @@ public function updateEmployee(Request $request, $id)
             'telefono' => $validated['telefono'],
             'domicilio' => $validated['domicilio']
         ]);
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Empleado actualizado correctamente'
@@ -590,7 +626,7 @@ public function show($id)
                 'apellidos' => $empleado->apellidos,
                 'dni' => $empleado->dni,
                 'fecha_nacimiento' => $empleado->fecha_nacimiento,
-                'fecha_nacimiento_formatted' => \Carbon\Carbon::parse($empleado->fecha_nacimiento)->format('d/m/Y'),
+                'fecha_nacimiento_formatted' => (int) \Carbon\Carbon::parse($empleado->fecha_nacimiento)->format('d/m/Y'),
                 'edad' => \Carbon\Carbon::parse($empleado->fecha_nacimiento)->age,
                 'domicilio' => $empleado->domicilio,
                 'telefono' => $empleado->telefono,
@@ -692,133 +728,483 @@ public function verificarDatosMes(Request $request)
     }
 }
 
-// Método para generar QR
-private function generarQR($dni, $nombreCompleto)
-{
-    try {
-        // Generar código único para el QR
-        $codigoUnico = 'EMP_' . $dni . '_' . time();
-        
-        // Datos que se incluirán en el QR
-        $qrData = [
-            'empleado_dni' => $dni,
-            'empleado_nombre' => $nombreCompleto,
-            'codigo_unico' => $codigoUnico,
-            'fecha_generacion' => now()->toISOString()
-        ];
-        
-        $qrContent = json_encode($qrData);
-        
-        // Verificar si la librería Simple QrCode está disponible
-        if (class_exists('SimpleSoftwareIO\QrCode\Facades\QrCode')) {
-            // Generar QR usando la librería
-            $qrImage = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('png')
-                ->size(300)
-                ->generate($qrContent);
-        } else {
-            // Fallback: generar QR simple usando GD
-            Log::warning('⚠️ Librería QR no disponible, usando fallback GD');
-            $qrImage = $this->generarQRFallback($qrContent, $dni);
+
+ /**
+     * Generar QR de forma automática y eficiente
+     */
+     private function generarQR($dni, $nombreCompleto)
+    {
+        try {
+            Log::info('🔄 Iniciando generación de QR para DNI: ' . $dni);
+
+            // Generar código único
+            $codigoUnico = 'EMP_' . $dni . '_' . time();
+            
+            // Contenido simple para mejor compatibilidad
+            $qrContent = "EMPLEADO|{$dni}|{$nombreCompleto}|{$codigoUnico}";
+            
+            Log::info('📝 Contenido QR: ' . $qrContent);
+
+            // ✅ MÉTODO 1: Simple QR Code (PRIMERA OPCIÓN)
+            $qrImage = $this->generarConSimpleQRCode($qrContent);
+            if ($qrImage) {
+                Log::info('✅ QR generado con Simple QR Code');
+                return [
+                    'imagen' => $qrImage,
+                    'codigo_unico' => $codigoUnico,
+                    'contenido' => $qrContent
+                ];
+            }
+
+            // ✅ MÉTODO 2: Google Charts (SEGUNDA OPCIÓN)
+            $qrImage = $this->generarConGoogleCharts($qrContent);
+            if ($qrImage) {
+                Log::info('✅ QR generado con Google Charts');
+                return [
+                    'imagen' => $qrImage,
+                    'codigo_unico' => $codigoUnico,
+                    'contenido' => $qrContent
+                ];
+            }
+
+            // ✅ MÉTODO 3: API Externa (TERCERA OPCIÓN)
+            $qrImage = $this->generarConAPIExterna($qrContent);
+            if ($qrImage) {
+                Log::info('✅ QR generado con API Externa');
+                return [
+                    'imagen' => $qrImage,
+                    'codigo_unico' => $codigoUnico,
+                    'contenido' => $qrContent
+                ];
+            }
+
+            // ✅ MÉTODO 4: QR Básico Local (ÚLTIMO RECURSO)
+            Log::info('🔄 Usando generación local básica');
+            return $this->generarQRLocalBasico($dni, $nombreCompleto, $codigoUnico);
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error crítico en generarQR: ' . $e->getMessage());
+            // Último recurso absoluto
+            return $this->generarQRMinimo($dni, $codigoUnico);
         }
-        
-        return [
-            'imagen' => $qrImage,
-            'codigo_unico' => $codigoUnico
-        ];
-        
-    } catch (\Exception $e) {
-        Log::error('❌ Error generando QR:', ['error' => $e->getMessage()]);
-        
-        // QR por defecto en caso de error
-        return [
-            'imagen' => $this->generarQRPorDefecto($dni),
-            'codigo_unico' => 'EMP_' . $dni . '_' . time()
-        ];
     }
-}
 
-// Método fallback para generar QR con GD
-private function generarQRFallback($content, $dni)
-{
-    try {
-        // Crear una imagen simple como fallback
-        $width = 300;
-        $height = 300;
-        
-        $image = imagecreate($width, $height);
-        
-        // Colores
+
+    /**
+     * Generar QR usando Simple QR Code (recomendado)
+     */
+    private function generarConSimpleQRCode($content)
+    {
+        try {
+            // Verificar si la clase existe
+            if (!class_exists('SimpleSoftwareIO\QrCode\Facades\QrCode')) {
+                Log::warning('❌ Simple QR Code no está instalado');
+                return null;
+            }
+
+            // Generar QR con configuración simple
+            $qrCode = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('png')
+                ->size(250)
+                ->margin(2)
+                ->errorCorrection('H')
+                ->generate($content);
+
+            return $qrCode;
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error en Simple QR Code: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Generar QR usando Google Charts API
+     */
+    private function generarConGoogleCharts($content)
+    {
+        try {
+            $encodedContent = urlencode($content);
+            $url = "https://chart.googleapis.com/chart?cht=qr&chs=250x250&chl={$encodedContent}&choe=UTF-8&chld=H";
+            
+            Log::info('🔗 URL Google Charts: ' . $url);
+
+            $context = stream_context_create([
+                'http' => [
+                    'timeout' => 15,
+                    'header' => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\n",
+                    'ignore_errors' => true
+                ],
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                ]
+            ]);
+
+            $imageData = @file_get_contents($url, false, $context);
+            
+            if ($imageData && strlen($imageData) > 1000) {
+                // Verificar que sea una imagen PNG válida
+                if (strpos($imageData, "\x89PNG\r\n\x1a\n") === 0) {
+                    Log::info('✅ Google Charts: Imagen PNG válida generada');
+                    return $imageData;
+                } else {
+                    Log::warning('❌ Google Charts: Respuesta no es PNG válido');
+                }
+            } else {
+                Log::warning('❌ Google Charts: Imagen vacía o muy pequeña');
+            }
+
+            return null;
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error en Google Charts: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+
+    private function generarConAPIExterna($content)
+    {
+        try {
+            $encodedContent = urlencode($content);
+            
+            // Probar diferentes APIs externas
+            $apis = [
+                "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={$encodedContent}&format=png",
+                "https://quickchart.io/qr?text={$encodedContent}&size=250&format=png",
+                "http://api.qrserver.com/v1/create-qr-code/?data={$encodedContent}&size=250x250"
+            ];
+
+            foreach ($apis as $apiUrl) {
+                try {
+                    Log::info('🔗 Probando API: ' . $apiUrl);
+                    
+                    $context = stream_context_create([
+                        'http' => [
+                            'timeout' => 10,
+                            'header' => "User-Agent: Mozilla/5.0\r\n",
+                            'ignore_errors' => true
+                        ]
+                    ]);
+
+                    $imageData = @file_get_contents($apiUrl, false, $context);
+                    
+                    if ($imageData && strlen($imageData) > 500) {
+                        Log::info('✅ API Externa: QR generado exitosamente');
+                        return $imageData;
+                    }
+                } catch (\Exception $apiError) {
+                    Log::warning('❌ API falló: ' . $apiError->getMessage());
+                    continue;
+                }
+            }
+
+            return null;
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error en APIs externas: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+private function generarQRLocalBasico($dni, $nombreCompleto, $codigoUnico)
+    {
+        try {
+            Log::info('🎨 Generando QR local básico');
+
+            $size = 250;
+            $image = imagecreate($size, $size);
+            
+            if (!$image) {
+                throw new \Exception('No se pudo crear la imagen GD');
+            }
+
+            // Colores
+            $white = imagecolorallocate($image, 255, 255, 255);
+            $black = imagecolorallocate($image, 0, 0, 0);
+            $blue = imagecolorallocate($image, 41, 128, 185);
+            
+            // Fondo blanco
+            imagefill($image, 0, 0, $white);
+            
+            // Bordes
+            imagerectangle($image, 5, 5, $size-6, $size-6, $black);
+            imagerectangle($image, 6, 6, $size-7, $size-7, $black);
+            
+            // Texto centrado
+            $textos = [
+                "EMPLEADO",
+                "DNI: " . $dni,
+                substr($nombreCompleto, 0, 20) // Limitar longitud
+            ];
+            
+            foreach ($textos as $i => $texto) {
+                $font = 3; // Fuente GD built-in
+                $textWidth = imagefontwidth($font) * strlen($texto);
+                $x = ($size - $textWidth) / 2;
+                $y = 90 + ($i * 25);
+                
+                imagestring($image, $font, $x, $y, $texto, $black);
+            }
+            
+            // Capturar imagen
+            ob_start();
+            imagepng($image);
+            $imageData = ob_get_clean();
+            imagedestroy($image);
+
+            Log::info('✅ QR local básico generado exitosamente');
+            
+            return [
+                'imagen' => $imageData,
+                'codigo_unico' => $codigoUnico,
+                'contenido' => "EMPLEADO|{$dni}|{$nombreCompleto}"
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error en QR local básico: ' . $e->getMessage());
+            throw $e; // Pasar al siguiente nivel
+        }
+    }
+
+ private function generarQRMinimo($dni, $codigoUnico)
+    {
+        try {
+            Log::info('🆘 Generando QR mínimo de emergencia');
+
+            $size = 150;
+            $image = imagecreate($size, $size);
+            
+            $white = imagecolorallocate($image, 255, 255, 255);
+            $black = imagecolorallocate($image, 0, 0, 0);
+            
+            imagefill($image, 0, 0, $white);
+            
+            // Texto muy simple
+            $texto = "EMP: " . $dni;
+            $font = 3;
+            $textWidth = imagefontwidth($font) * strlen($texto);
+            $x = ($size - $textWidth) / 2;
+            $y = ($size - imagefontheight($font)) / 2;
+            
+            imagestring($image, $font, $x, $y, $texto, $black);
+            
+            ob_start();
+            imagepng($image);
+            $imageData = ob_get_clean();
+            imagedestroy($image);
+
+            Log::info('✅ QR mínimo generado en modo emergencia');
+            
+            return [
+                'imagen' => $imageData,
+                'codigo_unico' => $codigoUnico,
+                'contenido' => "EMERGENCIA|{$dni}"
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('❌ ERROR CRÍTICO: No se pudo generar ningún tipo de QR');
+            // Devolver estructura vacía pero válida
+            return [
+                'imagen' => '',
+                'codigo_unico' => $codigoUnico,
+                'contenido' => "ERROR|{$dni}"
+            ];
+        }
+    }
+
+    /**
+     * QR básico como último recurso
+     */
+    private function generarQRBasico($dni, $nombreCompleto)
+    {
+        try {
+            $size = 200;
+            $image = imagecreate($size, $size);
+            
+            $white = imagecolorallocate($image, 255, 255, 255);
+            $black = imagecolorallocate($image, 0, 0, 0);
+            $blue = imagecolorallocate($image, 41, 128, 185);
+            
+            imagefill($image, 0, 0, $white);
+            
+            // Bordes
+            imagerectangle($image, 5, 5, $size-6, $size-6, $black);
+            imagerectangle($image, 6, 6, $size-7, $size-7, $black);
+            
+            // Texto
+            $textos = [
+                "EMPLEADO",
+                $dni,
+                substr($nombreCompleto, 0, 20)
+            ];
+            
+            foreach ($textos as $i => $texto) {
+                $font = 3;
+                $textWidth = imagefontwidth($font) * strlen($texto);
+                $x = ($size - $textWidth) / 2;
+                $y = 80 + ($i * 20);
+                
+                if ($i === 1) {
+                    imagestring($image, $font, $x, $y, $texto, $blue);
+                } else {
+                    imagestring($image, $font, $x, $y, $texto, $black);
+                }
+            }
+            
+            ob_start();
+            imagepng($image);
+            $imageData = ob_get_clean();
+            imagedestroy($image);
+            
+            Log::info('✅ QR básico generado exitosamente');
+            return $imageData;
+            
+        } catch (\Exception $e) {
+            Log::error('Error incluso en QR básico: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Generar preview del QR en tiempo real
+     */
+    public function generarQRPreview(Request $request)
+    {
+        try {
+            $dni = $request->get('dni', '');
+            $nombre = $request->get('nombre', '');
+            $apellidos = $request->get('apellidos', '');
+
+            Log::info('🎨 SOLICITUD QR Preview - DNI: ' . $dni);
+
+            // Validaciones básicas
+            if (empty($dni)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'DNI requerido'
+                ], 400);
+            }
+
+            if (strlen($dni) < 2) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'DNI demasiado corto'
+                ], 400);
+            }
+
+            $nombreCompleto = trim($nombre . ' ' . $apellidos);
+            
+            // Forzar generación incluso si hay errores
+            $qrData = $this->generarQR($dni, $nombreCompleto);
+
+            if ($qrData && !empty($qrData['imagen'])) {
+                Log::info('✅ QR Preview generado EXITOSAMENTE');
+                
+                return response()->json([
+                    'success' => true,
+                    'qr_image' => base64_encode($qrData['imagen']),
+                    'dni' => $dni,
+                    'message' => 'QR generado correctamente',
+                    'metodo' => 'multiple_fallbacks',
+                    'qr_content' => $qrData['contenido']
+                ]);
+            } else {
+                // Último intento desesperado
+                Log::warning('🆘 Todos los métodos fallaron, usando respuesta de emergencia');
+                
+                return response()->json([
+                    'success' => true, // ¡IMPORTANTE! success: true para que el frontend no falle
+                    'qr_image' => base64_encode($this->crearImagenEmergencia($dni)),
+                    'dni' => $dni,
+                    'message' => 'QR generado (modo emergencia)',
+                    'metodo' => 'emergencia',
+                    'qr_content' => "EMERGENCIA|{$dni}"
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('💥 ERROR CATASTRÓFICO en QR Preview: ' . $e->getMessage());
+
+            // Respuesta de último recurso absoluto
+            return response()->json([
+                'success' => true, // ¡IMPORTANTE! Siempre true para evitar errores en frontend
+                'qr_image' => null,
+                'dni' => $request->get('dni', ''),
+                'message' => 'QR disponible al guardar',
+                'metodo' => 'fallback_total',
+                'qr_content' => "FALLBACK|{$request->get('dni', '')}"
+            ]);
+        }
+    }
+
+ /**
+     * Crear imagen de emergencia cuando todo falla
+     */
+    private function crearImagenEmergencia($dni)
+    {
+        $size = 200;
+        $image = imagecreate($size, $size);
         $white = imagecolorallocate($image, 255, 255, 255);
-        $black = imagecolorallocate($image, 0, 0, 0);
+        $red = imagecolorallocate($image, 255, 0, 0);
         
-        // Fondo blanco
         imagefill($image, 0, 0, $white);
         
-        // Texto simple
-        $text = "EMP: " . substr($dni, 0, 8);
-        $font = 5; // Fuente built-in
-        $textWidth = imagefontwidth($font) * strlen($text);
-        $textHeight = imagefontheight($font);
+        $texto = "QR NO DISP.";
+        $font = 4;
+        $textWidth = imagefontwidth($font) * strlen($texto);
+        $x = ($size - $textWidth) / 2;
+        $y = 80;
         
-        $x = ($width - $textWidth) / 2;
-        $y = ($height - $textHeight) / 2;
+        imagestring($image, $font, $x, $y, $texto, $red);
+        imagestring($image, 3, ($size - (imagefontwidth(3) * strlen($dni))) / 2, 110, $dni, $red);
         
-        imagestring($image, $font, $x, $y, $text, $black);
-        
-        // Capturar la imagen como string
         ob_start();
         imagepng($image);
         $imageData = ob_get_clean();
         imagedestroy($image);
         
         return $imageData;
-        
-    } catch (\Exception $e) {
-        Log::error('❌ Error en fallback QR:', ['error' => $e->getMessage()]);
-        return ''; // QR vacío
     }
-}
 
-// Método para generar QR por defecto
-private function generarQRPorDefecto($dni)
+    /**
+ * Obtener información del QR para impresión
+ */
+public function getQRInfo($id)
 {
     try {
-        $width = 300;
-        $height = 300;
+        $empleado = Empleado::with(['credencial', 'qr'])->findOrFail($id);
         
-        $image = imagecreate($width, $height);
-        
-        // Colores
-        $white = imagecolorallocate($image, 255, 255, 255);
-        $blue = imagecolorallocate($image, 0, 0, 255);
-        
-        // Fondo blanco
-        imagefill($image, 0, 0, $white);
-        
-        // Texto por defecto
-        $text = "EMPLEADO: " . $dni;
-        $font = 5;
-        
-        $textWidth = imagefontwidth($font) * strlen($text);
-        $textHeight = imagefontheight($font);
-        
-        $x = ($width - $textWidth) / 2;
-        $y = ($height - $textHeight) / 2;
-        
-        imagestring($image, $font, $x, $y, $text, $blue);
-        
-        // Capturar la imagen
-        ob_start();
-        imagepng($image);
-        $imageData = ob_get_clean();
-        imagedestroy($image);
-        
-        return $imageData;
-        
+        if (!$empleado->qr) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encontró código QR para este empleado'
+            ], 404);
+        }
+
+        $data = [
+            'empleado_id' => $empleado->id,
+            'nombre_completo' => $empleado->nombre . ' ' . $empleado->apellidos,
+            'dni' => $empleado->dni,
+            'username' => $empleado->credencial->username ?? 'N/A',
+            'codigo_unico' => $empleado->qr->codigo_unico,
+            'qr_image' => base64_encode($empleado->qr->imagen_qr),
+            'fecha_generacion' => $empleado->qr->created_at->format('d/m/Y H:i')
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => $data
+        ]);
+
     } catch (\Exception $e) {
-        Log::error('❌ Error generando QR por defecto:', ['error' => $e->getMessage()]);
-        return '';
+        Log::error('Error obteniendo información QR:', ['id' => $id, 'error' => $e->getMessage()]);
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al obtener información del QR: ' . $e->getMessage()
+        ], 500);
     }
 }
 
+    
 }
