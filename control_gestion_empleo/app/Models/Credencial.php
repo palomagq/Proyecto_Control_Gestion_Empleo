@@ -8,7 +8,6 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 
 class Credencial extends Authenticatable
 {
-    //
     use HasFactory;
 
     protected $table = 'tabla_credenciales';
@@ -33,7 +32,7 @@ class Credencial extends Authenticatable
     }
 
     /**
-     * Relación: Una credencial puede tener un empleado
+     * Relación: Una credencial puede tener un empleado (si es empleado)
      */
     public function employee()
     {
@@ -41,7 +40,7 @@ class Credencial extends Authenticatable
     }
 
     /**
-     * Relación: Una credencial puede tener un admin
+     * Relación: Una credencial puede tener un admin (si es admin)
      */
     public function admin()
     {
@@ -53,7 +52,7 @@ class Credencial extends Authenticatable
      */
     public function esAdmin()
     {
-        return $this->rol->nombre === 'admin';
+        return $this->rol && $this->rol->nombre === 'admin';
     }
 
     /**
@@ -61,14 +60,38 @@ class Credencial extends Authenticatable
      */
     public function esEmpleado()
     {
-        return $this->rol->nombre === 'empleado';
+        return $this->rol && $this->rol->nombre === 'empleado';
     }
 
     /**
-     * Scope para buscar credencial por username
+     * Obtener el usuario asociado (admin o empleado)
      */
-    public function scopePorUsername($query, $username)
+    public function usuario()
     {
-        return $query->where('username', $username);
+        if ($this->esAdmin()) {
+            return $this->admin;
+        } elseif ($this->esEmpleado()) {
+            return $this->employee;
+        }
+        
+        return null;
+    }
+
+    /**
+     * Obtener el nombre del usuario según su tipo
+     */
+    public function getNombreUsuarioAttribute()
+    {
+        $usuario = $this->usuario();
+        
+        if ($usuario) {
+            if ($this->esAdmin()) {
+                return $usuario->nombre ?? $this->username;
+            } elseif ($this->esEmpleado()) {
+                return $usuario->nombre_completo ?? $this->username;
+            }
+        }
+        
+        return $this->username;
     }
 }

@@ -10,9 +10,14 @@ class Admin extends Model
     //
     use HasFactory;
 
+     // Especificar el nombre de la tabla
+    protected $table = 'tabla_admin'; // o el nombre que tengas en tu BD
+
     protected $fillable = [
         'credencial_id',
         'rol_id',
+        'nombre', // Agregar este campo si no existe
+        'email',  // Agregar este campo si no existe
     ];
 
     /**
@@ -37,6 +42,15 @@ class Admin extends Model
     public function getUsernameAttribute()
     {
         return $this->credencial->username;
+    }
+
+    
+    /**
+     * Obtener el admin único del sistema
+     */
+    public static function obtenerAdmin()
+    {
+        return self::with(['credencial', 'rol'])->first();
     }
 
     /**

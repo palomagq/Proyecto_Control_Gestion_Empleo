@@ -4,11 +4,12 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use App\Models\Credencial;
 
 class LoginController extends Controller
 {
-    //
-public function showLoginForm()
+    public function showLoginForm()
     {
         return view('login');
     }
@@ -22,24 +23,45 @@ public function showLoginForm()
 
         // Buscar la credencial por username
         $credencial = Credencial::where('username', $request->username)
-            ->with('rol')
+            ->with(['rol', 'admin', 'employee'])
             ->first();
 
-        if ($credencial && Hash::check($request->password, $credencial->password)) {
-            
-            // Verificar el tipo de usuario y redirigir según el rol
-            if ($credencial->rol->nombre === 'admin') {
-                Auth::login($credencial);
-                return redirect()->route('admin.dashboard');
-            } elseif ($credencial->rol->nombre === 'empleado') {
-                Auth::login($credencial);
-                // Aquí puedes redirigir a un dashboard de empleado si lo necesitas
-                return redirect()->route('empleado.dashboard');
-            }
+        // Debug información (puedes eliminar esto después)
+        \Log::info('Login attempt:', [
+            'username' => $request->username,
+            'credencial_found' => $credencial ? 'yes' : 'no',
+            'rol' => $credencial ? $credencial->rol->nombre : 'none'
+        ]);
+
+        if (!$credencial) {
+            return back()->withErrors([
+                'username' => 'Usuario no encontrado.',
+            ]);
         }
 
+        // Verificar la contraseña
+        if (!Hash::check($request->password, $credencial->password)) {
+            return back()->withErrors([
+                'username' => 'Contraseña incorrecta.',
+            ]);
+        }
+
+        // Autenticar al usuario
+        Auth::login($credencial);
+
+        // Redirigir según el rol
+        if ($credencial->esAdmin()) {
+            return redirect()->route('admin.empleados')
+                ->with('success', '¡Bienvenido Administrador!');
+        } elseif ($credencial->esEmpleado()) {
+            return redirect()->route('empleado.dashboard')
+                ->with('success', '¡Bienvenido Empleado!');
+        }
+
+        // Rol no reconocido
+        Auth::logout();
         return back()->withErrors([
-            'username' => 'Las credenciales proporcionadas no son válidas.',
+            'username' => 'Rol no válido.',
         ]);
     }
 
@@ -48,6 +70,6 @@ public function showLoginForm()
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect('/login');
+        return redirect('/login')->with('status', 'Sesión cerrada correctamente.');
     }
 }
