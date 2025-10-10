@@ -4,8 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use App\Models\Credencial;
+use Illuminate\Support\Facades\DB;
 
 class LoginController extends Controller
 {
@@ -21,47 +20,39 @@ class LoginController extends Controller
             'password' => 'required|string',
         ]);
 
-        // Buscar la credencial por username
-        $credencial = Credencial::where('username', $request->username)
-            ->with(['rol', 'admin', 'employee'])
-            ->first();
+        if (Auth::attempt($request->only('username', 'password'))) {
+            $request->session()->regenerate();
+            
+            $user = Auth::user();
+            
+            // DEBUG
+            \Log::info("LOGIN EXITOSO - Usuario: {$user->username}, Rol ID: {$user->rol_id}");
 
-        // Debug información (puedes eliminar esto después)
-        \Log::info('Login attempt:', [
-            'username' => $request->username,
-            'credencial_found' => $credencial ? 'yes' : 'no',
-            'rol' => $credencial ? $credencial->rol->nombre : 'none'
-        ]);
+            // REDIRECCIÓN SIMPLE Y DIRECTA
+            if ($user->rol_id == 1) { // Administrador
+                return redirect()->route('admin.empleados')
+                    ->with('success', '¡Bienvenido Administrador!');
+            } 
+            else { // Cualquier otro número = Empleado
+                $empleado = DB::table('tabla_empleados')
+                    ->where('credencial_id', $user->id)
+                    ->first();
 
-        if (!$credencial) {
-            return back()->withErrors([
-                'username' => 'Usuario no encontrado.',
-            ]);
+                if ($empleado) {
+                    \Log::info("Redirigiendo a empleado: {$empleado->id} - {$empleado->nombre}");
+                    return redirect()->route('empleado.perfil', $empleado->id)
+                        ->with('success', "¡Bienvenido {$empleado->nombre}!");
+                } else {
+                    Auth::logout();
+                    return back()->withErrors([
+                        'username' => 'Error: No se encontró información del empleado.',
+                    ]);
+                }
+            }
         }
 
-        // Verificar la contraseña
-        if (!Hash::check($request->password, $credencial->password)) {
-            return back()->withErrors([
-                'username' => 'Contraseña incorrecta.',
-            ]);
-        }
-
-        // Autenticar al usuario
-        Auth::login($credencial);
-
-        // Redirigir según el rol
-        if ($credencial->esAdmin()) {
-            return redirect()->route('admin.empleados')
-                ->with('success', '¡Bienvenido Administrador!');
-        } elseif ($credencial->esEmpleado()) {
-            return redirect()->route('empleado.dashboard')
-                ->with('success', '¡Bienvenido Empleado!');
-        }
-
-        // Rol no reconocido
-        Auth::logout();
         return back()->withErrors([
-            'username' => 'Rol no válido.',
+            'username' => 'Usuario o contraseña incorrectos.',
         ]);
     }
 

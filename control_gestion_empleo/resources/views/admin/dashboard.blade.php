@@ -61,5 +61,7 @@
 
     <!-- Scripts adicionales -->
     @yield('scripts')
+    @yield('css')
+
   </body>
 </html>

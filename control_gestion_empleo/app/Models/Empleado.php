@@ -30,17 +30,13 @@ class Empleado extends Model
         'fecha_nacimiento' => 'date',
     ];
 
-    /**
-     * Relación: Un empleado pertenece a una credencial
-     */
+    // Relación con Credencial
     public function credencial()
     {
         return $this->belongsTo(Credencial::class, 'credencial_id');
     }
 
-    /**
-     * Relación: Un empleado pertenece a un rol
-     */
+    // Relación con Rol
     public function rol()
     {
         return $this->belongsTo(Rol::class, 'rol_id');
