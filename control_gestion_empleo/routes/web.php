@@ -65,6 +65,12 @@ Route::prefix('empleado')->group(function () {
     Route::get('/registro/{id}/datatable', [EmpleadoController::class, 'getDataTable'])->name('empleado.registro.datatable');
     Route::get('/registro/{id}/resumen-periodo', [EmpleadoController::class, 'getResumenPeriodo'])->name('empleado.registro.resumen-periodo');
 
+    Route::get('/registro/{id}/estadisticas-mes', [EmpleadoController::class, 'getEstadisticasMes']);
+
+
+    Route::get('/registro/{empleado}/detalles/{registro}', [EmpleadoController::class, 'getDetallesRegistro'])
+    ->name('empleado.registro.detalles');
+
     // Redirección por defecto para empleados
     Route::get('/', function () {
         $empleadoId = Auth::user()->empleado->id;
