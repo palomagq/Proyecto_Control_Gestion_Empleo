@@ -1167,21 +1167,46 @@ private function generarQRLocalBasico($dni, $nombreCompleto, $codigoUnico)
         return $imageData;
     }
 
-    /**
- * Obtener información del QR para impresión
+/**
+ * Obtener información del QR para impresión - VERSIÓN CORREGIDA
  */
 public function getQRInfo($id)
 {
     try {
-        $empleado = Empleado::with(['credencial', 'qr'])->findOrFail($id);
+        \Log::info('🔍 Solicitando información QR para empleado ID:', ['id' => $id]);
+
+        // Cargar empleado con la relación QR
+        $empleado = Empleado::with('qr')->find($id);
         
+        if (!$empleado) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Empleado no encontrado'
+            ], 404);
+        }
+
+        // Verificar si existe el QR relacionado
         if (!$empleado->qr) {
+            \Log::error('❌ QR no encontrado para empleado:', [
+                'empleado_id' => $empleado->id,
+                'qr_id_en_empleado' => $empleado->qr_id
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'No se encontró código QR para este empleado'
             ], 404);
         }
 
+        // Verificar que la imagen del QR existe
+        if (empty($empleado->qr->imagen_qr)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La imagen del QR está vacía'
+            ], 500);
+        }
+
+        // Preparar datos para respuesta
         $data = [
             'empleado_id' => $empleado->id,
             'nombre_completo' => $empleado->nombre . ' ' . $empleado->apellidos,
@@ -1192,13 +1217,22 @@ public function getQRInfo($id)
             'fecha_generacion' => $empleado->qr->created_at->format('d/m/Y H:i')
         ];
 
+        \Log::info('✅ Información QR enviada correctamente', [
+            'empleado_id' => $empleado->id,
+            'qr_id' => $empleado->qr->id
+        ]);
+
         return response()->json([
             'success' => true,
             'data' => $data
         ]);
 
     } catch (\Exception $e) {
-        Log::error('Error obteniendo información QR:', ['id' => $id, 'error' => $e->getMessage()]);
+        \Log::error('❌ Error obteniendo información QR:', [
+            'id' => $id, 
+            'error' => $e->getMessage()
+        ]);
+        
         return response()->json([
             'success' => false,
             'message' => 'Error al obtener información del QR: ' . $e->getMessage()

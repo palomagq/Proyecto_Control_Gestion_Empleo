@@ -22,15 +22,15 @@ Route::prefix('admin')->group(function () {
     Route::get('/empleados/datatable', [AdminController::class, 'getEmpleadosDataTable'])->name('admin.empleados.datatable');
     Route::get('/empleados/stats', [AdminController::class, 'getStats'])->name('admin.empleados.stats');
 
-    Route::get('/admin/empleados/buscar-por-dni/{dni}', [AdminController::class, 'buscarPorDni'])->name('admin.empleados.buscar-por-dni');
+    Route::get('/empleados/buscar-por-dni/{dni}', [AdminController::class, 'buscarPorDni'])->name('admin.empleados.buscar-por-dni');
 
-    Route::get('/admin/empleados/verificar-username/{username}', [AdminController::class, 'verificarUsername'])->name('admin.empleados.verificar-username');
+    Route::get('/empleados/verificar-username/{username}', [AdminController::class, 'verificarUsername'])->name('admin.empleados.verificar-username');
     Route::get('/empleados/exportar-excel-mes', [AdminController::class, 'exportarExcelMes'])->name('admin.empleados.exportar-excel-mes');
      // Rutas para gestión de QR
-    Route::get('/admin/empleados/{id}/qr-info', [AdminController::class, 'getQRInfo'])->name('admin.empleados.qr-info');
-    Route::post('/admin/empleados/generar-qr-preview', [AdminController::class, 'generarQRPreview'])->name('admin.empleados.generar-qr-preview');
-    Route::post('/admin/empleados/{id}/enviar-whatsapp', [AdminController::class, 'enviarQRWhatsApp'])->name('admin.empleados.enviar-whatsapp');
-    Route::get('/admin/empleados/{id}/generar-pdf', [AdminController::class, 'generarPDFQR'])->name('admin.empleados.generar-pdf-qr');
+    Route::get('/empleados/{id}/qr-info', [AdminController::class, 'getQRInfo'])->name('admin.empleados.qr-info');
+    Route::post('/empleados/generar-qr-preview', [AdminController::class, 'generarQRPreview'])->name('admin.empleados.generar-qr-preview');
+    Route::post('/empleados/{id}/enviar-whatsapp', [AdminController::class, 'enviarQRWhatsApp'])->name('admin.empleados.enviar-whatsapp');
+    Route::get('/empleados/{id}/generar-pdf', [AdminController::class, 'generarPDFQR'])->name('admin.empleados.generar-pdf-qr');
 
 
     // Rutas para los registros del empleado en el modal de vista

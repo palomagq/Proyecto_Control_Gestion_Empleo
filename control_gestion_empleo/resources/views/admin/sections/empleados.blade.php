@@ -4692,23 +4692,25 @@ function mostrarQRError() {
     `;
 }
 
-// ✅ FUNCIÓN COMPLETA: Imprimir QR por la web
+// ✅ FUNCIÓN CORREGIDA: Imprimir QR con mejor manejo
 function imprimirQR(id) {
-    console.log('🖨️ Solicitando impresión de QR para empleado ID:', id);
+    console.log('🖨️ Solicitando QR para empleado ID:', id);
     
     Swal.fire({
-        title: 'Generando QR para impresión...',
-        text: 'Preparando código QR',
+        title: 'Cargando QR...',
+        text: 'Obteniendo código QR del empleado',
         allowOutsideClick: false,
         didOpen: () => {
             Swal.showLoading();
         }
     });
 
+    // Hacer la petición directamente
     fetch(`/admin/empleados/${id}/qr-info`)
         .then(response => {
+            console.log('📋 Respuesta del servidor:', response.status);
             if (!response.ok) {
-                throw new Error('Error al obtener información del QR');
+                throw new Error(`Error del servidor: ${response.status}`);
             }
             return response.json();
         })
@@ -4716,17 +4718,24 @@ function imprimirQR(id) {
             Swal.close();
             
             if (data.success) {
+                console.log('✅ QR obtenido correctamente:', data.data);
                 mostrarModalImpresionQR(data.data);
             } else {
-                throw new Error(data.message || 'Error al obtener información del QR');
+                console.error('❌ Error en respuesta:', data.message);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message || 'No se pudo obtener el código QR'
+                });
             }
         })
         .catch(error => {
-            console.error('❌ Error obteniendo QR:', error);
+            console.error('❌ Error en la petición:', error);
+            Swal.close();
             Swal.fire({
                 icon: 'error',
-                title: 'Error',
-                text: 'No se pudo obtener el código QR: ' + error.message
+                title: 'Error de conexión',
+                text: 'No se pudo conectar con el servidor: ' + error.message
             });
         });
 }
