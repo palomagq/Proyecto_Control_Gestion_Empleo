@@ -552,9 +552,9 @@ $(document).ready(function() {
                 }
             ],
             language: {
-                url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json',
-                emptyTable: 'No hay registros de tiempo para el mes seleccionado',
-                zeroRecords: 'No se encontraron registros que coincidan con el filtro'
+                url: "{{ asset('js/datatables/Spanish.json') }}",
+                emptyTable: 'No hay registros para el mes seleccionado',
+                zeroRecords: 'No se encontraron registros que coincidan'
             },
             order: [[0, 'desc']],
             scrollX: true,
@@ -808,10 +808,9 @@ $(document).ready(function() {
         });
     });
 
-    // Evento STOP 
-    // Evento STOP - VERSIÓN CON CORRECCIÓN DE EMERGENCIA
+   // Evento STOP - VERSIÓN QUE CALCULA LA PAUSA MANUALMENTE
 btnStop.click(function() {
-    console.log('=== INICIANDO STOP CON CORRECCIÓN ===');
+    console.log('=== STOP - CÁLCULO CON PAUSA MANUAL ===');
     
     $.ajax({
         url: `/empleado/registro/${empleadoId}/estado`,
@@ -820,79 +819,88 @@ btnStop.click(function() {
             console.log('Respuesta estado:', estadoResponse);
             
             if (estadoResponse.activo) {
-                let tiempoFormateado = estadoResponse.tiempo_formateado;
-                let tiempoSegundos = estadoResponse.tiempo_transcurrido;
+                // CÁLCULO COMPLETO MANUAL INCLUYENDO PAUSAS
+                const inicio = new Date(estadoResponse.inicio);
+                const fin = new Date();
                 
-                // CORRECCIÓN DE EMERGENCIA: Si el tiempo bruto es negativo, forzar cálculo
-                if (estadoResponse.debug && estadoResponse.debug.tiempo_bruto_formateado.includes('-')) {
-                    console.log('❌ TIEMPO BRUTO NEGATIVO - APLICANDO CORRECCIÓN DE EMERGENCIA');
+                // 1. Calcular tiempo bruto (fin - inicio)
+                const diferenciaMs = fin - inicio;
+                const segundosBrutos = Math.floor(diferenciaMs / 1000);
+                
+                // 2. CALCULAR PAUSA MANUALMENTE SI HAY DATOS
+                let segundosPausa = 0;
+                
+                // Si hay información de pausa en el debug, calcularla
+                if (estadoResponse.debug && estadoResponse.debug.pausa_inicio_bd) {
+                    const pausaInicio = new Date(estadoResponse.debug.pausa_inicio_bd);
+                    const pausaFin = estadoResponse.debug.pausa_fin_bd ? 
+                        new Date(estadoResponse.debug.pausa_fin_bd) : fin;
                     
-                    // Calcular tiempo manualmente basado en la hora actual
-                    const ahora = new Date();
-                    const inicio = new Date(estadoResponse.inicio_original);
+                    const pausaMs = pausaFin - pausaInicio;
+                    segundosPausa = Math.floor(pausaMs / 1000);
                     
-                    console.log('Fechas para cálculo:', {
-                        ahora: ahora.toLocaleString(),
-                        inicio: inicio.toLocaleString(),
-                        inicio_original: estadoResponse.inicio_original
+                    console.log('Pausa calculada manualmente:', {
+                        pausaInicio: estadoResponse.debug.pausa_inicio_bd,
+                        pausaFin: estadoResponse.debug.pausa_fin_bd || 'Ahora',
+                        pausaMs: pausaMs,
+                        segundosPausa: segundosPausa
                     });
-                    
-                    // Si la fecha de inicio es en el futuro, forzar cálculo con hora actual menos 1 hora
-                    if (inicio > ahora) {
-                        console.log('Fecha de inicio en el futuro, forzando cálculo...');
-                        const inicioForzado = new Date(ahora.getTime() - (60 * 60 * 1000)); // 1 hora antes
-                        const diferenciaMs = ahora - inicioForzado;
-                        const segundosBrutos = Math.floor(diferenciaMs / 1000);
-                        const segundosNetos = Math.max(0, segundosBrutos - estadoResponse.tiempo_pausa_total);
-                        
-                        tiempoFormateado = formatTime(segundosNetos);
-                        tiempoSegundos = segundosNetos;
-                        
-                        console.log('Cálculo forzado:', {
-                            segundosBrutos,
-                            segundosNetos,
-                            tiempoFormateado
-                        });
-                    }
+                } else {
+                    // Si no hay datos de pausa, usar el valor del response
+                    segundosPausa = estadoResponse.tiempo_pausa_total || 0;
                 }
                 
-                // Si después de todo sigue siendo 0, usar un valor mínimo
-                if (tiempoSegundos === 0 && estadoResponse.debug) {
-                    const segundosNetosManual = Math.max(1, estadoResponse.debug.segundos_totales - estadoResponse.debug.pausa_acumulada);
-                    if (segundosNetosManual > 0) {
-                        tiempoFormateado = formatTime(segundosNetosManual);
-                        tiempoSegundos = segundosNetosManual;
-                        console.log('Aplicando cálculo manual final:', tiempoFormateado);
-                    }
-                }
+                // 3. Calcular tiempo neto (bruto - pausa)
+                const segundosNetos = Math.max(0, segundosBrutos - segundosPausa);
+                
+                // Formatear tiempos
+                const tiempoBrutoFormateado = formatTime(segundosBrutos);
+                const pausaFormateada = formatTime(segundosPausa);
+                const tiempoNetoFormateado = formatTime(segundosNetos);
+                
+                console.log('Cálculo final modal:', {
+                    segundosBrutos,
+                    segundosPausa,
+                    segundosNetos,
+                    tiempoBrutoFormateado,
+                    pausaFormateada,
+                    tiempoNetoFormateado
+                });
 
-                const tiempoPausaFormateado = estadoResponse.debug?.pausa_formateada || '00:00:00';
-                const tiempoBrutoFormateado = estadoResponse.debug?.tiempo_bruto_formateado || '00:00:00';
-                
                 let contenidoModal = `
-                    <div class="mb-2">
-                        <strong class="h4 text-primary">${tiempoFormateado}</strong>
+                    <div class="mb-3">
+                        <strong class="h4 text-primary">${tiempoNetoFormateado}</strong>
+                    </div>
+                    <div class="small text-muted mb-3">
+                        <div>🕐 <strong>Inicio:</strong> ${new Date(estadoResponse.inicio).toLocaleTimeString()}</div>
+                        <div>🛑 <strong>Fin:</strong> ${fin.toLocaleTimeString()}</div>
+                        <div>⏱️ <strong>Duración bruta:</strong> ${Math.floor(segundosBrutos / 60)} minutos ${segundosBrutos % 60} segundos</div>
                     </div>
                     <div class="small">
-                        <div>⏱️ Tiempo bruto: ${tiempoBrutoFormateado}</div>
-                        <div>⏸️ Tiempo pausa: ${tiempoPausaFormateado}</div>
+                        <div>⏱️ <strong>Tiempo bruto:</strong> ${tiempoBrutoFormateado}</div>
+                        <div>⏸️ <strong>Tiempo pausa:</strong> ${pausaFormateada}</div>
+                        <div>📊 <strong>Fórmula:</strong> (${tiempoBrutoFormateado} bruto) - (${pausaFormateada} pausa) = ${tiempoNetoFormateado} neto</div>
                     </div>
                 `;
                 
-                // Mostrar advertencia si se aplicó corrección
-                if (estadoResponse.correccion_aplicada || tiempoBrutoFormateado.includes('-')) {
+                // Mostrar detalles de la pausa
+                if (estadoResponse.debug && estadoResponse.debug.pausa_inicio_bd) {
+                    const pausaInicioTime = new Date(estadoResponse.debug.pausa_inicio_bd).toLocaleTimeString();
+                    const pausaFinTime = estadoResponse.debug.pausa_fin_bd ? 
+                        new Date(estadoResponse.debug.pausa_fin_bd).toLocaleTimeString() : 'En pausa';
+                    
                     contenidoModal += `
-                        <div class="alert alert-warning small mt-2">
-                            <i class="fas fa-exclamation-triangle"></i> 
-                            Se corrigió automáticamente un problema con la fecha/hora del sistema
+                        <div class="mt-2 small text-info">
+                            <i class="fas fa-pause-circle"></i> 
+                            Pausa registrada: ${pausaInicioTime} - ${pausaFinTime} (${formatTime(segundosPausa)})
                         </div>
                     `;
                 }
                 
                 $('#tiempo-final').html(contenidoModal);
                 $('#confirmStopModal').modal('show');
-                $('#confirm-stop').data('tiempo-total', tiempoSegundos);
-                $('#confirm-stop').data('tiempo-formateado', tiempoFormateado);
+                $('#confirm-stop').data('tiempo-total', segundosNetos);
+                $('#confirm-stop').data('tiempo-formateado', tiempoNetoFormateado);
                 
             } else {
                 Swal.fire({
@@ -1107,15 +1115,19 @@ btnStop.click(function() {
 
 
 
-    // Función auxiliar para formatear tiempo
+    // Función para formatear tiempo en segundos a HH:MM:SS o MM:SS
     function formatTime(seconds) {
-        if (!seconds || seconds === 0) return '00:00:00';
+        seconds = Math.max(0, parseInt(seconds));
         
-        const segundosPositivos = Math.max(0, parseInt(seconds));
-        const hours = Math.floor(segundosPositivos / 3600);
-        const minutes = Math.floor((segundosPositivos % 3600) / 60);
-        const secs = segundosPositivos % 60;
-        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        
+        if (hours > 0) {
+            return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        } else {
+            return `${minutes}:${secs.toString().padStart(2, '0')}`;
+        }
     }
 
     // Inicializar

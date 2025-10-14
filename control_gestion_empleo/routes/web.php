@@ -32,11 +32,18 @@ Route::prefix('admin')->group(function () {
     Route::post('/admin/empleados/{id}/enviar-whatsapp', [AdminController::class, 'enviarQRWhatsApp'])->name('admin.empleados.enviar-whatsapp');
     Route::get('/admin/empleados/{id}/generar-pdf', [AdminController::class, 'generarPDFQR'])->name('admin.empleados.generar-pdf-qr');
 
+
+    // Rutas para los registros del empleado en el modal de vista
+    Route::get('/empleados/{id}/registros/datatable', [AdminController::class, 'getRegistrosDataTable'])->name('admin.empleados.registros.datatable');
+    Route::get('/empleados/{id}/registros/resumen', [AdminController::class, 'getResumenRegistros'])->name('admin.empleados.registros.resumen');
+
     Route::get('/empleados/{id}/edit', [AdminController::class, 'editEmployee'])->name('admin.empleados.edit');
     Route::put('/empleados/{id}', [AdminController::class, 'updateEmployee'])->name('admin.empleados.update');
     Route::get('/empleados/{id}', [AdminController::class, 'show'])->name('admin.empleados.show');
     Route::delete('/empleados/{id}', [AdminController::class, 'destroyEmployee'])->name('admin.empleados.destroy');
 
+
+    
 });
 
 

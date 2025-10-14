@@ -112,132 +112,110 @@ public function startTiempo(Request $request, $id)
         }
     }
 
-      /**
- * Pausar o reanudar el tiempo - VERSIÓN COMPLETAMENTE CORREGIDA
+     /**
+ * Pausar o reanudar el tiempo - VERSIÓN CORREGIDA
  */
-    public function pauseTiempo(Request $request, $id)
-    {
-        try {
-            if (!Auth::check()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No autenticado'
-                ], 401);
-            }
+public function pauseTiempo(Request $request, $id)
+{
+    try {
+        if (!Auth::check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autenticado'
+            ], 401);
+        }
 
-            // Obtener el registro activo
-            $registro = DB::table('tabla_registros_tiempo')
-                ->where('empleado_id', $id)
-                ->whereNull('fin')
-                ->whereDate('created_at', Carbon::today())
-                ->first();
-            
-            if (!$registro) {
+        // Obtener el registro activo
+        $registro = DB::table('tabla_registros_tiempo')
+            ->where('empleado_id', $id)
+            ->whereNull('fin')
+            ->whereDate('created_at', Carbon::today())
+            ->first();
+        
+        if (!$registro) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No hay tiempo activo para pausar'
+            ]);
+        }
+        
+        $now = Carbon::now();
+        $nuevoEstado = $registro->estado === 'activo' ? 'pausado' : 'activo';
+        
+        \Log::info("=== PAUSA/REANUDAR ===");
+        \Log::info("Registro ID: {$registro->id}");
+        \Log::info("Estado actual: {$registro->estado}");
+        \Log::info("Nuevo estado: {$nuevoEstado}");
+
+        if ($nuevoEstado === 'pausado') {
+            // INICIAR PAUSA - solo registrar el inicio
+            DB::table('tabla_registros_tiempo')
+                ->where('id', $registro->id)
+                ->update([
+                    'estado' => 'pausado',
+                    'pausa_inicio' => $now,
+                    'pausa_fin' => null, // Asegurar que sea null
+                    'updated_at' => $now
+                ]);
+                
+            \Log::info("PAUSA INICIADA - Hora: {$now}");
+                
+            $mensaje = 'Tiempo pausado';
+        } else {
+            // REANUDAR - calcular tiempo de pausa actual y acumular
+            if (!$registro->pausa_inicio) {
+                \Log::error("No hay pausa_inicio para reanudar");
                 return response()->json([
                     'success' => false,
-                    'message' => 'No hay tiempo activo para pausar'
+                    'message' => 'No hay pausa iniciada para reanudar'
                 ]);
             }
             
-            $now = Carbon::now();
-            $nuevoEstado = $registro->estado === 'activo' ? 'pausado' : 'activo';
+            $pausaInicio = Carbon::parse($registro->pausa_inicio);
             
-            \Log::info("=== PAUSA/RENAUDAR ===");
-            \Log::info("Registro ID: {$registro->id}");
-            \Log::info("Estado actual: {$registro->estado}");
-            \Log::info("Nuevo estado: {$nuevoEstado}");
-            \Log::info("Pausa inicio actual: " . ($registro->pausa_inicio ?? 'NULO'));
-            \Log::info("Pausa fin actual: " . ($registro->pausa_fin ?? 'NULO'));
-            \Log::info("Tiempo pausa acumulado: " . ($registro->tiempo_pausa_total ?? 0));
+            // Calcular tiempo de esta pausa específica
+            $tiempoEstaPausa = $now->diffInSeconds($pausaInicio);
             
-            if ($nuevoEstado === 'pausado') {
-                // INICIAR PAUSA - solo registrar el inicio
-                DB::table('tabla_registros_tiempo')
-                    ->where('id', $registro->id)
-                    ->update([
-                        'estado' => 'pausado',
-                        'pausa_inicio' => $now,
-                        'pausa_fin' => null, // Asegurar que sea null
-                        'updated_at' => $now
-                    ]);
-                    
-                \Log::info("PAUSA INICIADA - Hora: {$now}");
-                    
-                $mensaje = 'Tiempo pausado';
-            } else {
-                // REANUDAR - calcular tiempo de pausa actual y acumular
-                if (!$registro->pausa_inicio) {
-                    \Log::error("No hay pausa_inicio para reanudar");
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'No hay pausa iniciada para reanudar'
-                    ]);
-                }
-                
-                $pausaInicio = Carbon::parse($registro->pausa_inicio);
-                
-                // Verificar que la pausa no sea en el futuro
-                if ($pausaInicio->greaterThan($now)) {
-                    \Log::warning('Pausa inicio en el futuro, corrigiendo...');
-                    $pausaInicio = $now->copy()->subSecond();
-                }
-                
-                $tiempoPausaActual = $now->diffInSeconds($pausaInicio);
-                
-                // Tiempo de pausa total acumulado (anterior + actual)
-                $tiempoPausaAnterior = $registro->tiempo_pausa_total ?? 0;
-                $tiempoPausaTotal = $tiempoPausaActual - $tiempoPausaAnterior;
-                
-                \Log::info("=== REANUDAR PAUSA ===");
-                \Log::info("Pausa desde: {$registro->pausa_inicio}");
-                \Log::info("Reanudar en: {$now}");
-                \Log::info("Tiempo pausa actual: {$tiempoPausaActual} segundos");
-                \Log::info("Tiempo pausa anterior: {$tiempoPausaAnterior} segundos");
-                \Log::info("Tiempo pausa total acumulado: {$tiempoPausaTotal} segundos");
-                
-                DB::table('tabla_registros_tiempo')
-                    ->where('id', $registro->id)
-                    ->update([
-                        'estado' => 'activo',
-                        'pausa_fin' => $now,
-                        'tiempo_pausa_total' => $tiempoPausaTotal,
-                        'updated_at' => $now
-                    ]);
-                    
-                $mensaje = 'Tiempo reanudado';
-            }
+            // Tiempo de pausa total acumulado (anterior + actual)
+            $tiempoPausaAnterior = $registro->tiempo_pausa_total ?? 0;
+            $nuevoTiempoPausaTotal = $tiempoPausaAnterior + $tiempoEstaPausa;
             
-            // Obtener el registro actualizado para verificar
-            $registroActualizado = DB::table('tabla_registros_tiempo')
+            \Log::info("=== REANUDAR PAUSA ===");
+            \Log::info("Pausa desde: {$registro->pausa_inicio}");
+            \Log::info("Reanudar en: {$now}");
+            \Log::info("Tiempo esta pausa: {$tiempoEstaPausa} segundos");
+            \Log::info("Tiempo pausa anterior: {$tiempoPausaAnterior} segundos");
+            \Log::info("Nuevo tiempo pausa total: {$nuevoTiempoPausaTotal} segundos");
+            
+            DB::table('tabla_registros_tiempo')
                 ->where('id', $registro->id)
-                ->first();
+                ->update([
+                    'estado' => 'activo',
+                    'pausa_fin' => $now,
+                    'tiempo_pausa_total' => $nuevoTiempoPausaTotal,
+                    'updated_at' => $now
+                ]);
                 
-            \Log::info("Registro actualizado:", [
-                'estado' => $registroActualizado->estado,
-                'pausa_inicio' => $registroActualizado->pausa_inicio,
-                'pausa_fin' => $registroActualizado->pausa_fin,
-                'tiempo_pausa_total' => $registroActualizado->tiempo_pausa_total
-            ]);
-            
-            return response()->json([
-                'success' => true,
-                'message' => $mensaje,
-                'estado' => $nuevoEstado,
-                'tiempo_pausa_total' => $registroActualizado->tiempo_pausa_total ?? 0
-            ]);
-            
-        } catch (\Exception $e) {
-            \Log::error('Error al pausar el tiempo: ' . $e->getMessage());
-            \Log::error('Trace: ' . $e->getTraceAsString());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al pausar el tiempo: ' . $e->getMessage()
-            ], 500);
+            $mensaje = 'Tiempo reanudado';
         }
+        
+        return response()->json([
+            'success' => true,
+            'message' => $mensaje,
+            'estado' => $nuevoEstado
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Error al pausar el tiempo: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al pausar el tiempo: ' . $e->getMessage()
+        ], 500);
     }
+}
 
-    /**
- * Detener el tiempo - VERSIÓN CON CÁLCULO SIMPLIFICADO
+/**
+ * Detener el tiempo - USANDO EL MISMO CÁLCULO QUE EL MODAL
  */
 public function stopTiempo(Request $request, $id)
 {
@@ -262,53 +240,62 @@ public function stopTiempo(Request $request, $id)
             ]);
         }
         
-        $fin = Carbon::now();
-        $inicio = Carbon::parse($registro->inicio);
+        \Log::info("=== STOP TIEMPO - CÁLCULO CONSISTENTE ===");
+
+        // Mismo cálculo que en el JavaScript
+        $inicio = strtotime($registro->inicio);
+        $fin = time();
         
-        \Log::info("=== STOP TIEMPO - CÁLCULO SIMPLIFICADO ===");
+        // 1. TIEMPO BRUTO
+        $tiempoBrutoSegundos = $fin - $inicio;
 
-        // CÁLCULO SIMPLIFICADO
-        // 1. Tiempo total bruto
-        $tiempoTotalSegundos = $fin->getTimestamp() - $inicio->getTimestamp();
-        $tiempoTotalSegundos = max(0, $tiempoTotalSegundos);
-        \Log::info("Tiempo total bruto: {$tiempoTotalSegundos} segundos");
-
-        // 2. Tiempo de pausa total
-        $tiempoPausaTotal = max(0, intval($registro->tiempo_pausa_total ?? 0));
-        \Log::info("Tiempo pausa almacenado: {$tiempoPausaTotal} segundos");
-
-        // 3. Si hay pausa activa, agregar tiempo actual
-        if ($registro->pausa_inicio && !$registro->pausa_fin) {
-            $pausaInicio = Carbon::parse($registro->pausa_inicio);
-            $tiempoPausaActual = $fin->getTimestamp() - $pausaInicio->getTimestamp();
-            $tiempoPausaActual = max(0, $tiempoPausaActual);
-            $tiempoPausaTotal += $tiempoPausaActual;
-            \Log::info("Pausa activa agregada: {$tiempoPausaActual} segundos");
+        // 2. CALCULAR PAUSA MANUALMENTE (igual que en el modal)
+        $tiempoPausaTotal = 0;
+        
+        if ($registro->pausa_inicio && $registro->pausa_fin) {
+            $pausaInicio = strtotime($registro->pausa_inicio);
+            $pausaFin = strtotime($registro->pausa_fin);
+            $tiempoPausaTotal = $pausaFin - $pausaInicio;
+        } else if ($registro->pausa_inicio && !$registro->pausa_fin) {
+            $pausaInicio = strtotime($registro->pausa_inicio);
+            $tiempoPausaTotal = $fin - $pausaInicio;
         }
 
-        // 4. Tiempo neto
-        $tiempoNeto = max(0, $tiempoTotalSegundos - $tiempoPausaTotal);
+        // 3. TIEMPO NETO
+        $tiempoNeto = max(0, $tiempoBrutoSegundos - $tiempoPausaTotal);
 
-        \Log::info("Tiempo neto final: {$tiempoNeto} segundos");
+        \Log::info("CÁLCULO FINAL: {$tiempoBrutoSegundos}s - {$tiempoPausaTotal}s = {$tiempoNeto}s");
 
         // Actualizar registro
+        $updateData = [
+            'fin' => date('Y-m-d H:i:s', $fin),
+            'estado' => 'completado',
+            'tiempo_total' => $tiempoNeto,
+            'tiempo_pausa_total' => $tiempoPausaTotal,
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+
+        if ($registro->pausa_inicio && !$registro->pausa_fin) {
+            $updateData['pausa_fin'] = date('Y-m-d H:i:s', $fin);
+        }
+
         DB::table('tabla_registros_tiempo')
             ->where('id', $registro->id)
-            ->update([
-                'fin' => $fin,
-                'pausa_fin' => $fin,
-                'estado' => 'completado',
-                'tiempo_total' => $tiempoNeto,
-                'tiempo_pausa_total' => $tiempoPausaTotal,
-                'updated_at' => Carbon::now()
-            ]);
+            ->update($updateData);
         
         return response()->json([
             'success' => true,
             'message' => 'Tiempo detenido correctamente',
             'tiempo_total' => $tiempoNeto,
             'tiempo_formateado' => $this->formatearTiempo($tiempoNeto),
-            'tiempo_pausa_formateado' => $this->formatearTiempo($tiempoPausaTotal)
+            'tiempo_pausa_formateado' => $this->formatearTiempo($tiempoPausaTotal),
+            'detalles' => [
+                'inicio' => $registro->inicio,
+                'fin' => date('Y-m-d H:i:s', $fin),
+                'duracion_bruta' => $this->formatearTiempo($tiempoBrutoSegundos),
+                'pausa_total' => $this->formatearTiempo($tiempoPausaTotal),
+                'duracion_neta' => $this->formatearTiempo($tiempoNeto)
+            ]
         ]);
         
     } catch (\Exception $e) {
@@ -323,7 +310,7 @@ public function stopTiempo(Request $request, $id)
 
 
 /**
- * Obtener estado actual del tiempo - VERSIÓN CON CÁLCULO DIRECTO
+ * Obtener estado actual del tiempo - CÁLCULO CORREGIDO DE PAUSAS
  */
 public function getEstado(Request $request, $id)
 {
@@ -347,71 +334,59 @@ public function getEstado(Request $request, $id)
                 'estado' => 'inactivo'
             ]);
         }
-        
-        \Log::info("=== GET ESTADO - CÁLCULO DIRECTO ===");
-        \Log::info("Inicio: {$registro->inicio}");
-        \Log::info("Estado: {$registro->estado}");
 
-        $inicio = Carbon::parse($registro->inicio);
-        $now = Carbon::now();
-        
-        // CÁLCULO DIRECTO Y SIMPLE
-        // 1. Tiempo total desde inicio hasta ahora
-        $segundosTranscurridos = $now->getTimestamp() - $inicio->getTimestamp();
-        \Log::info("Tiempo total (timestamp): {$segundosTranscurridos} segundos");
-        
-        // Asegurar que no sea negativo
-        $segundosTranscurridos = max(0, $segundosTranscurridos);
-        \Log::info("Tiempo total (corregido): {$segundosTranscurridos} segundos");
+        \Log::info("=== CÁLCULO CORREGIDO CON PAUSAS ===");
 
-        // 2. Tiempo de pausa total
+        // CÁLCULO MANUAL
+        $inicio = strtotime($registro->inicio);
+        $now = time();
+        
+        // 1. TIEMPO BRUTO
+        $tiempoBrutoSegundos = $now - $inicio;
+
+        // 2. TIEMPO PAUSA TOTAL - USAR DIRECTAMENTE EL VALOR DE LA BD
         $tiempoPausaTotal = max(0, intval($registro->tiempo_pausa_total ?? 0));
-        \Log::info("Tiempo pausa almacenado: {$tiempoPausaTotal} segundos");
+        
+        \Log::info("Tiempo pausa total desde BD: " . $tiempoPausaTotal);
+        \Log::info("Pausa inicio: " . ($registro->pausa_inicio ?: 'NULL'));
+        \Log::info("Pausa fin: " . ($registro->pausa_fin ?: 'NULL'));
 
-        // 3. Si está PAUSADO actualmente, agregar tiempo de pausa actual
-        if ($registro->estado === 'pausado' && $registro->pausa_inicio) {
-            $pausaInicio = Carbon::parse($registro->pausa_inicio);
-            $pausaActual = $now->getTimestamp() - $pausaInicio->getTimestamp();
-            $pausaActual = max(0, $pausaActual);
-            
+        // 3. SI HAY PAUSA ACTIVA (pausa_inicio SIN pausa_fin), CALCULARLA
+        if ($registro->estado === 'pausado' && $registro->pausa_inicio && !$registro->pausa_fin) {
+            $pausaInicio = strtotime($registro->pausa_inicio);
+            $pausaActual = $now - $pausaInicio;
             $tiempoPausaTotal += $pausaActual;
-            \Log::info("Pausa activa - tiempo agregado: {$pausaActual} segundos");
+            \Log::info("Pausa activa agregada: " . $pausaActual . " segundos");
         }
 
-        \Log::info("Tiempo pausa total: {$tiempoPausaTotal} segundos");
+        \Log::info("Tiempo pausa total final: " . $tiempoPausaTotal . " segundos");
 
-        // 4. Tiempo neto trabajado
-        $segundosNetos = max(0, $segundosTranscurridos - $tiempoPausaTotal);
-        
-        \Log::info("=== RESUMEN FINAL ===");
-        \Log::info("Tiempo bruto: {$segundosTranscurridos} segundos");
-        \Log::info("Tiempo pausa: {$tiempoPausaTotal} segundos");
-        \Log::info("Tiempo neto: {$segundosNetos} segundos");
+        // 4. TIEMPO NETO
+        $tiempoNeto = max(0, $tiempoBrutoSegundos - $tiempoPausaTotal);
 
-        // Formatear tiempos
-        $tiempoFormateado = $this->formatearTiempo($segundosNetos);
-        $tiempoBrutoFormateado = $this->formatearTiempo($segundosTranscurridos);
-        $pausaFormateada = $this->formatearTiempo($tiempoPausaTotal);
+        \Log::info("RESULTADO: {$tiempoBrutoSegundos}s - {$tiempoPausaTotal}s = {$tiempoNeto}s");
+
+        $debugData = [
+            'tiempo_bruto_formateado' => $this->formatearTiempo($tiempoBrutoSegundos),
+            'pausa_formateada' => $this->formatearTiempo($tiempoPausaTotal),
+            'formula' => "({$this->formatearTiempo($tiempoBrutoSegundos)} bruto) - ({$this->formatearTiempo($tiempoPausaTotal)} pausa) = {$this->formatearTiempo($tiempoNeto)} neto",
+            'tiempo_bruto_segundos' => $tiempoBrutoSegundos,
+            'pausa_total_segundos' => $tiempoPausaTotal,
+            'tiempo_neto_segundos' => $tiempoNeto,
+            'pausa_inicio_bd' => $registro->pausa_inicio,
+            'pausa_fin_bd' => $registro->pausa_fin,
+            'tiempo_pausa_total_bd' => $registro->tiempo_pausa_total
+        ];
 
         return response()->json([
             'activo' => true,
             'estado' => $registro->estado,
             'inicio' => $registro->inicio,
-            'tiempo_transcurrido' => $segundosNetos,
-            'tiempo_formateado' => $tiempoFormateado,
+            'tiempo_transcurrido' => $tiempoNeto,
+            'tiempo_formateado' => $this->formatearTiempo($tiempoNeto),
             'tiempo_pausa_total' => $tiempoPausaTotal,
             'pausado' => $registro->estado === 'pausado',
-            'debug' => [
-                'segundos_totales' => $segundosTranscurridos,
-                'pausa_acumulada' => $tiempoPausaTotal,
-                'segundos_netos' => $segundosNetos,
-                'tiempo_bruto_formateado' => $tiempoBrutoFormateado,
-                'pausa_formateada' => $pausaFormateada,
-                'pausa_inicio' => $registro->pausa_inicio,
-                'pausa_fin' => $registro->pausa_fin,
-                'timestamp_inicio' => $inicio->getTimestamp(),
-                'timestamp_ahora' => $now->getTimestamp()
-            ]
+            'debug' => $debugData
         ]);
         
     } catch (\Exception $e) {
@@ -478,29 +453,23 @@ public function getEstado(Request $request, $id)
 
 
 
-    /**
-     * Formatear tiempo en segundos a HH:MM:SS
-     */
-    private function formatearTiempo($segundos)
-    {
-        // Asegurar que sea un número y positivo
-        $segundos = intval($segundos);
-        $esNegativo = $segundos < 0;
-        $segundos = abs($segundos); // Trabajar con valor absoluto
-        
-        $horas = floor($segundos / 3600);
-        $minutos = floor(($segundos % 3600) / 60);
-        $segundos = $segundos % 60;
-        
-        $formateado = sprintf('%02d:%02d:%02d', $horas, $minutos, $segundos);
-        
-        // Si era negativo, agregar signo
-        if ($esNegativo) {
-            $formateado = '-' . $formateado;
-        }
-        
-        return $formateado;
+/**
+ * Formatear tiempo en segundos a formato legible
+ */
+private function formatearTiempo($segundos)
+{
+    $segundos = max(0, intval($segundos));
+    
+    $horas = floor($segundos / 3600);
+    $minutos = floor(($segundos % 3600) / 60);
+    $segundos = $segundos % 60;
+    
+    if ($horas > 0) {
+        return sprintf('%d:%02d:%02d', $horas, $minutos, $segundos);
+    } else {
+        return sprintf('%d:%02d', $minutos, $segundos);
     }
+}
 
     /**
      * Obtener historial del día

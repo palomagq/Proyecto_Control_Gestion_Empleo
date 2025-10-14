@@ -1206,5 +1206,213 @@ public function getQRInfo($id)
     }
 }
 
+
+/**
+ * Obtener registros del empleado para DataTable - VERSIÓN CORREGIDA
+ */
+public function getRegistrosDataTable(Request $request, $id)
+{
+    try {
+        \Log::info('📊 Datatable registros solicitado:', [
+            'empleado_id' => $id,
+            'mes' => $request->input('mes'),
+            'año' => $request->input('año'),
+            'draw' => $request->input('draw')
+        ]);
+
+        $empleado = Empleado::find($id);
+        
+        if (!$empleado) {
+            \Log::error('❌ Empleado no encontrado:', ['id' => $id]);
+            return response()->json([
+                'draw' => intval($request->input('draw', 1)),
+                'recordsTotal' => 0,
+                'recordsFiltered' => 0,
+                'data' => [],
+                'error' => 'Empleado no encontrado'
+            ]);
+        }
+
+        $query = DB::table('tabla_registros_tiempo')
+            ->where('empleado_id', $empleado->id);
+
+        // Aplicar filtros de mes y año
+        $month = $request->input('mes');
+        $year = $request->input('año');
+
+        if ($month && $year) {
+            $fechaInicio = Carbon::create($year, $month, 1)->startOfMonth();
+            $fechaFin = Carbon::create($year, $month, 1)->endOfMonth();
+            
+            $query->whereBetween('created_at', [$fechaInicio, $fechaFin]);
+            
+            \Log::info('📅 Filtro aplicado:', [
+                'mes' => $month,
+                'año' => $year,
+                'inicio' => $fechaInicio,
+                'fin' => $fechaFin
+            ]);
+        } else {
+            // Por defecto, mes actual
+            $now = Carbon::now();
+            $month = $now->month;
+            $year = $now->year;
+            
+            $fechaInicio = $now->copy()->startOfMonth();
+            $fechaFin = $now->copy()->endOfMonth();
+            
+            $query->whereBetween('created_at', [$fechaInicio, $fechaFin]);
+        }
+
+        // Obtener el total de registros
+        $recordsTotal = $query->count();
+
+        // Obtener datos paginados
+        $registros = $query->orderBy('created_at', 'desc')->get();
+
+        \Log::info('📋 Registros encontrados:', ['total' => $registros->count()]);
+
+        $data = $registros->map(function($registro) {
+            return [
+                'id' => $registro->id,
+                'inicio' => $registro->inicio,
+                'fin' => $registro->fin,
+                'tiempo_total' => $registro->tiempo_total,
+                'tiempo_pausa_total' => $registro->tiempo_pausa_total,
+                'estado' => $registro->estado,
+                'created_at' => $registro->created_at
+            ];
+        });
+
+        $response = [
+            'draw' => intval($request->input('draw', 1)),
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsTotal,
+            'data' => $data
+        ];
+
+        \Log::info('✅ Respuesta DataTable generada:', [
+            'draw' => $response['draw'],
+            'recordsTotal' => $response['recordsTotal'],
+            'data_count' => count($response['data'])
+        ]);
+
+        return response()->json($response);
+
+    } catch (\Exception $e) {
+        \Log::error('❌ Error en datatable registros empleado:', [
+            'empleado_id' => $id,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        return response()->json([
+            'draw' => intval($request->input('draw', 1)),
+            'recordsTotal' => 0,
+            'recordsFiltered' => 0,
+            'data' => [],
+            'error' => 'Error interno: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Obtener resumen de registros del empleado - VERSIÓN CORREGIDA
+ */
+public function getResumenRegistros(Request $request, $id)
+{
+    try {
+        \Log::info('📈 Resumen registros solicitado:', [
+            'empleado_id' => $id,
+            'mes' => $request->input('mes'),
+            'año' => $request->input('año')
+        ]);
+
+        $empleado = Empleado::find($id);
+        
+        if (!$empleado) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Empleado no encontrado'
+            ], 404);
+        }
+
+        $query = DB::table('tabla_registros_tiempo')
+            ->where('empleado_id', $empleado->id);
+
+        // Aplicar filtros de mes y año
+        $month = $request->input('mes');
+        $year = $request->input('año');
+
+        if ($month && $year) {
+            $fechaInicio = Carbon::create($year, $month, 1)->startOfMonth();
+            $fechaFin = Carbon::create($year, $month, 1)->endOfMonth();
+            
+            $query->whereBetween('created_at', [$fechaInicio, $fechaFin]);
+        } else {
+            // Por defecto, mes actual
+            $now = Carbon::now();
+            $fechaInicio = $now->copy()->startOfMonth();
+            $fechaFin = $now->copy()->endOfMonth();
+            
+            $query->whereBetween('created_at', [$fechaInicio, $fechaFin]);
+        }
+
+        $registros = $query->get();
+
+        \Log::info('📊 Registros para resumen:', ['total' => $registros->count()]);
+
+        // Calcular estadísticas
+        $totalSegundos = 0;
+        foreach ($registros as $registro) {
+            if ($registro->tiempo_total && $registro->tiempo_total > 0) {
+                $totalSegundos += $registro->tiempo_total;
+            }
+        }
+
+        $totalHoras = number_format($totalSegundos / 3600, 2);
+        $totalRegistros = $registros->count();
+        
+        // Días trabajados = días distintos con registros
+        $diasTrabajados = $registros->unique(function($registro) {
+            return Carbon::parse($registro->created_at)->format('Y-m-d');
+        })->count();
+
+        // Promedio diario
+        $promedioDiario = $diasTrabajados > 0 ? number_format($totalSegundos / $diasTrabajados / 3600, 2) : 0;
+
+        \Log::info('📈 Resumen calculado:', [
+            'total_horas' => $totalHoras,
+            'total_registros' => $totalRegistros,
+            'dias_trabajados' => $diasTrabajados,
+            'promedio_diario' => $promedioDiario
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'total_horas' => $totalHoras,
+            'total_registros' => $totalRegistros,
+            'promedio_diario' => $promedioDiario,
+            'dias_trabajados' => $diasTrabajados
+        ]);
+
+    } catch (\Exception $e) {
+        \Log::error('❌ Error obteniendo resumen registros:', [
+            'empleado_id' => $id,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'total_horas' => '0.00',
+            'total_registros' => 0,
+            'promedio_diario' => '0.00',
+            'dias_trabajados' => 0,
+            'error' => $e->getMessage()
+        ]);
+    }
+}
+
     
 }
