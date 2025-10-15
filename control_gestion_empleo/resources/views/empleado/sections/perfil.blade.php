@@ -185,6 +185,50 @@
 @endsection
 
 @section('modals')
+
+<!-- Modal de Detalles del Registro -->
+<div class="modal fade" id="detailsModal" tabindex="-1" role="dialog" aria-labelledby="detailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="detailsModalLabel">
+                    <i class="fas fa-clock mr-2"></i>Detalles Completos del Registro
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="modal-loading" class="text-center py-4">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="sr-only">Cargando...</span>
+                    </div>
+                    <p class="text-muted">Cargando detalles del registro...</p>
+                </div>
+                
+                <div id="modal-content" style="display: none;">
+                    <!-- El contenido se cargará aquí dinámicamente -->
+                </div>
+                
+                <div id="modal-error" class="text-center py-4" style="display: none;">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h5>Error al cargar detalles</h5>
+                    <p class="text-muted" id="error-message">No se pudieron cargar los detalles del registro.</p>
+                    <button class="btn btn-secondary mt-2" data-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-2"></i>Cerrar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="imprimirDetalles()">
+                    <i class="fas fa-print mr-2"></i>Imprimir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal de confirmación para STOP -->
 <div class="modal fade" id="confirmStopModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
@@ -203,156 +247,6 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-danger" id="confirm-stop">Sí, Detener</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-<!-- Modal de Detalles del Registro -->
-<div class="modal fade" id="detailsModal" tabindex="-1" role="dialog" aria-labelledby="detailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="detailsModalLabel">
-                    <i class="fas fa-clock mr-2"></i>Detalles del Registro
-                </h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <!-- Información Básica -->
-                    <div class="col-md-6">
-                        <div class="card mb-3">
-                            <div class="card-header bg-primary text-white py-2">
-                                <h6 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Información Básica</h6>
-                            </div>
-                            <div class="card-body">
-                                <table class="table table-sm table-borderless">
-                                    <tr>
-                                        <td><strong>Fecha:</strong></td>
-                                        <td id="detail-fecha">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Estado:</strong></td>
-                                        <td><span id="detail-estado" class="badge">-</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Duración Total:</strong></td>
-                                        <td><span id="detail-duracion" class="font-weight-bold">-</span></td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Tiempos -->
-                    <div class="col-md-6">
-                        <div class="card mb-3">
-                            <div class="card-header bg-info text-white py-2">
-                                <h6 class="mb-0"><i class="fas fa-history mr-2"></i>Linea de Tiempo</h6>
-                            </div>
-                            <div class="card-body">
-                                <table class="table table-sm table-borderless">
-                                    <tr>
-                                        <td><strong>Inicio:</strong></td>
-                                        <td id="detail-inicio">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Fin:</strong></td>
-                                        <td id="detail-fin">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Tiempo Activo:</strong></td>
-                                        <td id="detail-tiempo-activo">-</td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Información de Pausas -->
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header bg-warning text-white py-2">
-                                <h6 class="mb-0"><i class="fas fa-pause-circle mr-2"></i>Información de Pausas</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <table class="table table-sm table-borderless">
-                                            <tr>
-                                                <td><strong>Pausa Inicio:</strong></td>
-                                                <td id="detail-pausa-inicio">-</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Pausa Fin:</strong></td>
-                                                <td id="detail-pausa-fin">-</td>
-                                            </tr>
-                                        </table>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <table class="table table-sm table-borderless">
-                                            <tr>
-                                                <td><strong>Tiempo en Pausa:</strong></td>
-                                                <td><span id="detail-tiempo-pausa" class="text-info font-weight-bold">-</span></td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Eficiencia:</strong></td>
-                                                <td><span id="detail-eficiencia" class="font-weight-bold">-</span></td>
-                                            </tr>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Información Adicional -->
-                <div class="row mt-3">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header bg-secondary text-white py-2">
-                                <h6 class="mb-0"><i class="fas fa-chart-bar mr-2"></i>Estadísticas del Día</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="row text-center">
-                                    <div class="col-md-4">
-                                        <div class="stat-item">
-                                            <div class="stat-number text-primary" id="detail-total-dia">0.00h</div>
-                                            <div class="stat-label small">Total del Día</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="stat-item">
-                                            <div class="stat-number text-success" id="detail-registros-dia">0</div>
-                                            <div class="stat-label small">Registros del Día</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="stat-item">
-                                            <div class="stat-number text-info" id="detail-promedio-dia">0.00h</div>
-                                            <div class="stat-label small">Promedio por Registro</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-2"></i>Cerrar
-                </button>
-                <button type="button" class="btn btn-primary" onclick="imprimirDetalles()">
-                    <i class="fas fa-print mr-2"></i>Imprimir
-                </button>
             </div>
         </div>
     </div>
@@ -503,11 +397,7 @@ $(document).ready(function() {
                             return '<span class="text-muted">Sin pausas</span>';
                         }
                         
-                        const hours = Math.floor(tiempoPausa / 3600);
-                        const minutes = Math.floor((tiempoPausa % 3600) / 60);
-                        const seconds = tiempoPausa % 60;
-                        
-                        return `<span class="text-info font-weight-bold">${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}</span>`;
+                        return `<span class="text-info font-weight-bold">${formatTime(tiempoPausa)}</span>`;
                     }
                 },
                 { 
@@ -520,11 +410,7 @@ $(document).ready(function() {
                         }
                         
                         const tiempoPositivo = Math.max(0, parseInt(data));
-                        const hours = Math.floor(tiempoPositivo / 3600);
-                        const minutes = Math.floor((tiempoPositivo % 3600) / 60);
-                        const seconds = tiempoPositivo % 60;
-                        
-                        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                         return formatTime(tiempoPositivo);
                     }
                 },
                 { 
@@ -720,6 +606,8 @@ $(document).ready(function() {
         return meses[mesNumero] ? `${meses[mesNumero]} de ${año}` : dateString;
     }
 
+
+
     // Actualizar resumen del período
     function updatePeriodSummary() {
         const selectedDate = $('#filterMes').val(); // CAMBIADO: filterMes en lugar de filter-month-year
@@ -744,7 +632,17 @@ $(document).ready(function() {
                 year: year
             },
             success: function(response) {
-                $('#total-horas-periodo').text(response.total_horas + 'h');
+                // Convertir horas totales a formato extendido si es necesario
+                const totalHoras = parseFloat(response.total_horas);
+                let horasFormateadas = response.total_horas + 'h';
+                
+                if (totalHoras >= 24) {
+                    const dias = Math.floor(totalHoras / 24);
+                    const horasRestantes = (totalHoras % 24).toFixed(2);
+                    horasFormateadas = `${dias}d ${horasRestantes}h`;
+                }
+                
+                $('#total-horas-periodo').text(horasFormateadas);
                 $('#total-registros-periodo').text(response.total_registros);
                 $('#promedio-diario-periodo').text(response.promedio_diario + 'h');
                 $('#dias-trabajados-periodo').text(response.dias_trabajados);
@@ -760,6 +658,53 @@ $(document).ready(function() {
             }
         });
     }
+
+
+    // Función mejorada para ver detalles del registro
+    window.viewDetails = function(registroId) {
+        console.log('🔍 Cargando detalles del registro:', registroId);
+        
+        // Resetear modal
+        $('#modal-loading').show();
+        $('#modal-content').hide();
+        $('#modal-error').hide();
+        
+        // Mostrar modal inmediatamente
+        $('#detailsModal').modal('show');
+        
+        // Obtener datos del registro via AJAX
+        $.ajax({
+            url: `/empleado/registro/${empleadoId}/detalles/${registroId}`,
+            method: 'GET',
+            timeout: 10000,
+            success: function(response) {
+                console.log('✅ Respuesta detalles:', response);
+                
+                if (response.success && response.registro) {
+                    mostrarDetallesCompletos(response.registro, response.estadisticasDia);
+                } else {
+                    mostrarErrorModal(response.message || 'No se pudieron cargar los detalles del registro.');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('❌ Error al cargar detalles:', error);
+                
+                let mensajeError = 'Error de conexión';
+                if (xhr.status === 404) {
+                    mensajeError = 'Registro no encontrado';
+                } else if (xhr.status === 403) {
+                    mensajeError = 'No tienes permiso para ver este registro';
+                } else if (xhr.status === 500) {
+                    mensajeError = 'Error interno del servidor';
+                } else if (status === 'timeout') {
+                    mensajeError = 'Tiempo de espera agotado';
+                }
+                
+                mostrarErrorModal(mensajeError);
+            }
+        });
+    };
+
 
     // Control de tiempo (mantener tu lógica existente)
     const btnStart = $('#btn-start');
@@ -1699,11 +1644,7 @@ function encontrarMejorUbicacion(resultados) {
 
     // Función auxiliar para actualizar el display
     function actualizarDisplayTiempo(segundos) {
-        const horas = Math.floor(segundos / 3600);
-        const minutos = Math.floor((segundos % 3600) / 60);
-        const segs = segundos % 60;
-        
-        const tiempoFormateado = `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segs.toString().padStart(2, '0')}`;
+        const tiempoFormateado = formatTime(segundos);
         tiempoTranscurridoElement.text(`Tiempo: ${tiempoFormateado}`);
         
         // Debug cada 30 segundos
@@ -1747,15 +1688,26 @@ function encontrarMejorUbicacion(resultados) {
     function formatTime(seconds) {
         seconds = Math.max(0, parseInt(seconds));
         
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const secs = seconds % 60;
+        if (seconds === 0) return '00:00:00';
         
-        if (hours > 0) {
-            return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        } else {
-            return `${minutes}:${secs.toString().padStart(2, '0')}`;
+        // Calcular días, horas, minutos y segundos
+        const dias = Math.floor(seconds / 86400); // 24 * 60 * 60
+        const horas = Math.floor((seconds % 86400) / 3600);
+        const minutos = Math.floor((seconds % 3600) / 60);
+        const segundos = seconds % 60;
+        
+        // Si hay días, mostrar formato extendido
+        if (dias > 0) {
+            return `${dias}d ${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
         }
+        
+        // Si solo hay horas, mostrar formato normal
+        if (horas > 0) {
+            return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+        }
+        
+        // Si son solo minutos y segundos
+        return `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
     }
 
     // Función para recargar datos completos
@@ -1788,6 +1740,308 @@ function encontrarMejorUbicacion(resultados) {
         });
     }
 
+
+    // Función para mostrar error en el modal
+function mostrarErrorModal(mensaje) {
+    $('#modal-loading').hide();
+    $('#error-message').text(mensaje);
+    $('#modal-error').show();
+}
+
+// Función para formatear tiempo en formato tabla (HH:MM:SS)
+function formatTimeForTable(seconds) {
+    seconds = Math.max(0, parseInt(seconds));
+    
+    if (seconds === 0) return '00:00:00';
+    
+    const horas = Math.floor(seconds / 3600);
+    const minutos = Math.floor((seconds % 3600) / 60);
+    const segundos = seconds % 60;
+    
+    if (horas > 0) {
+        return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+    }
+    
+    return `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+}
+
+// Función para mostrar detalles completos en el modal
+function mostrarDetallesCompletos(registro, estadisticasDia) {
+    console.log('📊 Mostrando detalles completos:', registro);
+    
+    // Formatear fechas y tiempos
+    const fechaCompleta = registro.created_at ? new Date(registro.created_at).toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    }) : '-';
+    
+    const fechaCorta = registro.created_at ? new Date(registro.created_at).toLocaleDateString('es-ES') : '-';
+    const inicio = registro.inicio ? new Date(registro.inicio).toLocaleTimeString('es-ES') : '-';
+    const fin = registro.fin ? new Date(registro.fin).toLocaleTimeString('es-ES') : 'En progreso';
+    const pausaInicio = registro.pausa_inicio ? new Date(registro.pausa_inicio).toLocaleTimeString('es-ES') : 'No hubo pausas';
+    const pausaFin = registro.pausa_fin ? new Date(registro.pausa_fin).toLocaleTimeString('es-ES') : (registro.pausa_inicio ? 'Pausa activa' : 'No hubo pausas');
+    
+    // Calcular tiempos
+    const tiempoTotal = registro.tiempo_total ? formatTimeForTable(registro.tiempo_total) : '00:00:00';
+    const tiempoPausa = registro.tiempo_pausa_total ? formatTimeForTable(registro.tiempo_pausa_total) : '00:00:00';
+    
+    // Calcular tiempo activo (tiempo total - tiempo pausa)
+    const tiempoActivoSegundos = Math.max(0, (registro.tiempo_total || 0) - (registro.tiempo_pausa_total || 0));
+    const tiempoActivo = formatTimeForTable(tiempoActivoSegundos);
+    
+    // Calcular eficiencia
+    let eficiencia = '-';
+    let eficienciaColor = 'text-muted';
+    if (registro.tiempo_total > 0 && registro.tiempo_pausa_total > 0) {
+        const porcentaje = ((tiempoActivoSegundos / registro.tiempo_total) * 100).toFixed(1);
+        eficiencia = `${porcentaje}%`;
+        
+        if (porcentaje >= 90) {
+            eficienciaColor = 'text-success';
+            eficiencia += ' ⭐ Excelente';
+        } else if (porcentaje >= 70) {
+            eficienciaColor = 'text-warning';
+            eficiencia += ' 👍 Bueno';
+        } else {
+            eficienciaColor = 'text-danger';
+            eficiencia += ' 👎 Bajo';
+        }
+    } else if (registro.tiempo_total > 0) {
+        eficiencia = '100% ⭐ Excelente';
+        eficienciaColor = 'text-success';
+    }
+    
+    // Estado con colores e iconos
+    let estadoBadge = '';
+    let estadoIcon = '';
+    switch(registro.estado) {
+        case 'activo':
+            estadoBadge = 'badge-success';
+            estadoIcon = '🔴';
+            break;
+        case 'pausado':
+            estadoBadge = 'badge-warning';
+            estadoIcon = '⏸️';
+            break;
+        case 'completado':
+            estadoBadge = 'badge-primary';
+            estadoIcon = '✅';
+            break;
+        default:
+            estadoBadge = 'badge-secondary';
+            estadoIcon = '❓';
+    }
+    
+    // Construir el contenido HTML completo
+    const contenidoHTML = `
+        <div class="row">
+            <!-- Información Principal -->
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Información del Registro</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td class="font-weight-bold" style="width: 40%">ID Registro:</td>
+                                <td>#${registro.id}</td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Fecha:</td>
+                                <td>${fechaCompleta}</td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Estado:</td>
+                                <td><span class="badge ${estadoBadge}">${estadoIcon} ${registro.estado ? registro.estado.charAt(0).toUpperCase() + registro.estado.slice(1) : 'Desconocido'}</span></td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Duración Total:</td>
+                                <td><span class="font-weight-bold text-primary">${tiempoTotal}</span></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Línea de Tiempo -->
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0"><i class="fas fa-history mr-2"></i>Línea de Tiempo</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td class="font-weight-bold" style="width: 40%">Inicio:</td>
+                                <td>${inicio}</td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Fin:</td>
+                                <td>${fin}</td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Tiempo Activo:</td>
+                                <td><span class="font-weight-bold text-success">${tiempoActivo}</span></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información de Pausas -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card mb-3">
+                    <div class="card-header bg-warning text-white">
+                        <h6 class="mb-0"><i class="fas fa-pause-circle mr-2"></i>Información de Pausas</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td class="font-weight-bold" style="width: 50%">Pausa Inicio:</td>
+                                        <td>${pausaInicio}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">Pausa Fin:</td>
+                                        <td>${pausaFin}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td class="font-weight-bold" style="width: 50%">Tiempo en Pausa:</td>
+                                        <td><span class="text-info font-weight-bold">${tiempoPausa}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">Eficiencia:</td>
+                                        <td><span class="${eficienciaColor} font-weight-bold">${eficiencia}</span></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        ${registro.latitud && registro.longitud ? `
+        <!-- Información de Geolocalización -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card mb-3">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0"><i class="fas fa-map-marker-alt mr-2"></i>Información de Ubicación</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td class="font-weight-bold" style="width: 40%">Dirección:</td>
+                                        <td>${registro.direccion || 'No disponible'}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">Ciudad:</td>
+                                        <td>${registro.ciudad || 'No disponible'}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">País:</td>
+                                        <td>${registro.pais || 'No disponible'}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td class="font-weight-bold" style="width: 40%">Coordenadas:</td>
+                                        <td><small class="text-muted">${registro.latitud || 'N/A'}, ${registro.longitud || 'N/A'}</small></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">Precisión:</td>
+                                        <td><small class="text-muted">${registro.precision_gps ? registro.precision_gps + ' metros' : 'N/A'}</small></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">Dispositivo:</td>
+                                        <td><small class="text-muted">${registro.dispositivo || 'No registrado'}</small></td>
+                                    </tr>
+                                </table>
+                                ${registro.latitud && registro.longitud ? `
+                                <div class="mt-2 text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="verEnMapa(${registro.latitud}, ${registro.longitud})">
+                                        <i class="fas fa-map mr-1"></i>Ver en Google Maps
+                                    </button>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        ` : ''}
+
+        <!-- Estadísticas del Día -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h6 class="mb-0"><i class="fas fa-chart-bar mr-2"></i>Estadísticas del Día ${fechaCorta}</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <div class="stat-item">
+                                    <div class="stat-number text-primary">${estadisticasDia ? estadisticasDia.total_horas_dia + 'h' : '0.00h'}</div>
+                                    <div class="stat-label small">Total del Día</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-item">
+                                    <div class="stat-number text-success">${estadisticasDia ? estadisticasDia.total_registros_dia : '0'}</div>
+                                    <div class="stat-label small">Registros del Día</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-item">
+                                    <div class="stat-number text-info">${estadisticasDia ? estadisticasDia.promedio_por_registro + 'h' : '0.00h'}</div>
+                                    <div class="stat-label small">Promedio por Registro</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-item">
+                                    <div class="stat-number text-warning">${tiempoTotal}</div>
+                                    <div class="stat-label small">Duración Este Registro</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Actualizar el modal
+    $('#modal-content').html(contenidoHTML);
+    $('#modal-loading').hide();
+    $('#modal-content').show();
+    
+    // Actualizar título del modal con ID del registro
+    $('#detailsModalLabel').html(`<i class="fas fa-clock mr-2"></i>Detalles del Registro #${registro.id}`);
+}
+
+// Función para abrir Google Maps
+/*function verEnMapa(latitud, longitud) {
+    const url = `https://www.google.com/maps?q=${latitud},${longitud}`;
+    window.open(url, '_blank');
+}*/
+
     // =============================================
     // INICIALIZACIÓN
     // =============================================
@@ -1801,6 +2055,220 @@ function encontrarMejorUbicacion(resultados) {
     // Solo asegúrate de que las funciones estén definidas antes de ser usadas
 
 });
+
+
+// Función para abrir Google Maps con las coordenadas
+function verEnMapa(latitud, longitud) {
+    console.log('🗺️ Abriendo Google Maps:', { latitud, longitud });
+    
+    // Validar que las coordenadas sean números válidos
+    if (typeof latitud !== 'number' || typeof longitud !== 'number' || 
+        isNaN(latitud) || isNaN(longitud)) {
+        console.error('❌ Coordenadas inválidas:', { latitud, longitud });
+        Swal.fire({
+            icon: 'error',
+            title: 'Coordenadas inválidas',
+            text: 'No se pueden abrir las coordenadas en el mapa'
+        });
+        return;
+    }
+    
+    // Formatear la URL de Google Maps
+    const url = `https://www.google.com/maps?q=${latitud},${longitud}&z=15`;
+    
+    // Abrir en nueva pestaña
+    window.open(url, '_blank', 'noopener,noreferrer');
+    
+    // Opcional: Mostrar confirmación
+    Swal.fire({
+        icon: 'success',
+        title: 'Google Maps abierto',
+        text: 'Se ha abierto Google Maps en una nueva pestaña',
+        timer: 2000,
+        showConfirmButton: false
+    });
+}
+
+
+// Función para imprimir detalles del registro
+function imprimirDetalles() {
+    console.log('🖨️ Iniciando impresión de detalles...');
+    
+    // Obtener el contenido del modal
+    const modalContent = $('#modal-content').html();
+    const registroId = $('#detailsModalLabel').text().match(/#(\d+)/)?.[1] || 'Desconocido';
+    
+    // Crear ventana de impresión
+    const ventanaImpresion = window.open('', '_blank', 'width=800,height=600');
+    
+    if (!ventanaImpresion) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Popup bloqueado',
+            text: 'Por favor permite popups para imprimir los detalles'
+        });
+        return;
+    }
+    
+    const contenido = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Detalles del Registro #${registroId} - Sistema de Control de Tiempos</title>
+            <meta charset="UTF-8">
+            <style>
+                body { 
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                    margin: 20px; 
+                    font-size: 14px; 
+                    line-height: 1.4;
+                    color: #333;
+                }
+                .header { 
+                    text-align: center; 
+                    border-bottom: 3px solid #4361ee; 
+                    padding-bottom: 15px; 
+                    margin-bottom: 25px; 
+                }
+                .header h1 { 
+                    color: #4361ee; 
+                    margin-bottom: 5px; 
+                    font-size: 24px;
+                }
+                .header p { 
+                    color: #666; 
+                    margin: 0; 
+                }
+                .section { 
+                    margin-bottom: 20px; 
+                    border: 1px solid #ddd; 
+                    padding: 15px; 
+                    border-radius: 8px; 
+                    page-break-inside: avoid;
+                }
+                .section-title { 
+                    background: linear-gradient(135deg, #f8f9fa, #e9ecef); 
+                    padding: 10px 15px; 
+                    font-weight: bold; 
+                    border-left: 4px solid #4361ee; 
+                    margin: -15px -15px 15px -15px; 
+                    color: #4361ee;
+                    font-size: 16px;
+                }
+                table { 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                }
+                td { 
+                    padding: 8px 5px; 
+                    border-bottom: 1px solid #eee; 
+                    vertical-align: top;
+                }
+                .badge { 
+                    padding: 4px 8px; 
+                    border-radius: 4px; 
+                    color: white; 
+                    font-size: 12px; 
+                    font-weight: bold;
+                }
+                .badge-success { background: #28a745; }
+                .badge-warning { background: #ffc107; color: black; }
+                .badge-primary { background: #4361ee; }
+                .badge-secondary { background: #6c757d; }
+                .stats { 
+                    display: flex; 
+                    justify-content: space-around; 
+                    text-align: center; 
+                    margin-top: 20px; 
+                }
+                .stat-item { 
+                    padding: 15px; 
+                    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+                    border-radius: 8px;
+                    flex: 1;
+                    margin: 0 5px;
+                }
+                .stat-number { 
+                    font-size: 20px; 
+                    font-weight: bold; 
+                    color: #4361ee;
+                    margin-bottom: 5px;
+                }
+                .stat-label { 
+                    color: #6c757d; 
+                    font-size: 12px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+                .text-primary { color: #4361ee !important; }
+                .text-success { color: #28a745 !important; }
+                .text-info { color: #17a2b8 !important; }
+                .text-warning { color: #ffc107 !important; }
+                .text-danger { color: #dc3545 !important; }
+                .font-weight-bold { font-weight: bold !important; }
+                .ubicacion-info { 
+                    background: #e8f5e8; 
+                    padding: 8px; 
+                    border-radius: 4px; 
+                    border-left: 3px solid #28a745;
+                }
+                @media print {
+                    body { margin: 0; }
+                    .no-print { display: none; }
+                    .section { break-inside: avoid; }
+                    .header { margin-top: 0; }
+                }
+                .footer {
+                    text-align: center;
+                    margin-top: 30px;
+                    padding-top: 15px;
+                    border-top: 1px solid #ddd;
+                    color: #6c757d;
+                    font-size: 12px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Detalles del Registro de Tiempo</h1>
+                <p><strong>Registro #${registroId}</strong> - Sistema de Control de Tiempos</p>
+                <p>Generado el ${new Date().toLocaleString('es-ES', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })}</p>
+            </div>
+            ${modalContent}
+            <div class="footer">
+                <p>Documento generado automáticamente por el Sistema de Control de Tiempos</p>
+            </div>
+        </body>
+        </html>
+    `;
+    
+    ventanaImpresion.document.write(contenido);
+    ventanaImpresion.document.close();
+    
+    // Esperar a que se cargue el contenido antes de imprimir
+    ventanaImpresion.onload = function() {
+        setTimeout(() => {
+            ventanaImpresion.print();
+            // Cerrar la ventana después de imprimir (opcional)
+            // ventanaImpresion.close();
+        }, 500);
+    };
+    
+    // Mostrar confirmación
+    Swal.fire({
+        icon: 'success',
+        title: 'Preparando impresión',
+        text: 'Se abrirá una ventana de impresión',
+        timer: 2000,
+        showConfirmButton: false
+    });
+}
 
 
 </script>
@@ -2175,6 +2643,46 @@ function encontrarMejorUbicacion(resultados) {
     font-size: 0.75rem;
 }
 
+
+/* Estilos para el modal de detalles */
+.stat-item {
+    padding: 15px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    margin: 5px;
+}
+
+.stat-number {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+.table-sm td {
+    padding: 8px 5px;
+    border: none;
+}
+
+.card .card-header {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .modal-xl {
+        margin: 10px;
+    }
+    
+    .stat-number {
+        font-size: 1.4rem;
+    }
+}
 
 </style>
 @endsection
