@@ -140,6 +140,7 @@
                                     <th>Pausa Fin</th>
                                     <th>Tiempo Pausa</th>
                                     <th>Duración</th>
+                                    <th>Dirección</th>
                                     <th>Estado</th>
                                     <th>Acciones</th>
                                 </tr>
@@ -392,8 +393,17 @@ $(document).ready(function() {
 
     // Inicializar DataTable con manejo de estado vacío
     function initializeDataTable() {
+        console.log('🔄 Inicializando DataTable...');
+    
+        // Destruir si ya existe
+        if ($.fn.DataTable.isDataTable('#historial-table')) {
+            dataTable.clear().destroy();
+            $('#historial-table').empty();
+        }
+        
         dataTable = $('#historial-table').DataTable({
             serverSide: true,
+            //processing: true,
             ajax: {
                 url: `/empleado/registro/${empleadoId}/datatable`,
                 type: 'GET',
@@ -408,16 +418,11 @@ $(document).ready(function() {
                         d.month = now.getMonth() + 1;
                         d.year = now.getFullYear();
                     }
+                    console.log('📤 Parámetros DataTable:', d);
                 },
-                error: function(xhr, error, thrown) {
-                    console.error('Error DataTable:', xhr.responseText);
-                    if (xhr.status === 200) return;
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error al cargar datos',
-                        text: 'No se pudieron cargar los registros.',
-                        timer: 3000
-                    });
+                dataSrc: function (json) {
+                    console.log('📥 Datos recibidos DataTable:', json);
+                    return json.data;
                 }
             },
             columns: [
@@ -520,6 +525,51 @@ $(document).ready(function() {
                         const seconds = tiempoPositivo % 60;
                         
                         return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    }
+                },
+                { 
+                    data: 'direccion',
+                    name: 'direccion',
+                    width: '15%',
+                    render: function(data, type, row) {
+                        const ciudad = row.ciudad || '';
+                        const pais = row.pais || '';
+                        
+                        // Mostrar ciudad y país si son válidos
+                        if (ciudad && pais && 
+                            !ciudad.includes('GPS') && 
+                            !ciudad.includes('Coordenadas') &&
+                            !pais.includes('GPS')) {
+                            
+                            return `
+                                <div class="ubicacion-info" title="${data || 'Ubicación registrada'}">
+                                    <i class="fas fa-map-marker-alt text-success mr-1"></i>
+                                    <small>${ciudad}, ${pais}</small>
+                                </div>
+                            `;
+                        }
+                        
+                        // Si tenemos coordenadas pero no ciudad específica
+                        if (data && data.includes('Ubicación GPS')) {
+                            // Intentar mostrar algo más específico
+                            if (ciudad && ciudad !== 'Ubicación GPS') {
+                                return `
+                                    <div class="ubicacion-info" title="${data}">
+                                        <i class="fas fa-map-marker-alt text-info mr-1"></i>
+                                        <small>${ciudad}</small>
+                                    </div>
+                                `;
+                            }
+                            
+                            return `
+                                <div class="ubicacion-info" title="${data}">
+                                    <i class="fas fa-map-marker-alt text-warning mr-1"></i>
+                                    <small>Ubicación por GPS</small>
+                                </div>
+                            `;
+                        }
+                        
+                        return '<span class="text-muted">Sin ubicación</span>';
                     }
                 },
                 { 
@@ -718,69 +768,605 @@ $(document).ready(function() {
     const btnGroupActive = $('#btn-group-active');
     const estadoActual = $('#estado-actual');
     const tiempoTranscurridoElement = $('#tiempo-transcurrido');
+    let intervaloActualizacion = null;
+
+
+    const GOOGLE_MAPS_API_KEY = '{{ $googleMapsApiKey  }}';
 
     // Verificar estado al cargar la página
-    checkEstado();
+    //checkEstado();
 
-    // Evento START
-    btnStart.click(function() {
-        console.log('Iniciando tiempo para empleado:', empleadoId);
-        
-        $.ajax({
-            url: `/empleado/registro/${empleadoId}/start`,
-            method: 'POST',
-            data: {
-                _token: '{{ csrf_token() }}'
-            },
-            success: function(response) {
-                console.log('Respuesta START:', response);
-                if (response.success) {
-                    btnStart.hide();
-                    btnGroupActive.show();
-                    estadoActual.text('Estado: Activo');
+
+    // =============================================
+    // FUNCIONES DE GEOLOCALIZACIÓN
+    // =============================================
+
+    // Función optimizada para obtener ubicación
+    function obtenerUbicacionGoogleMaps() {
+        return new Promise((resolve, reject) => {
+            console.log('🔍 Iniciando geolocalización...');
+            
+            if (!navigator.geolocation) {
+                reject(new Error('Geolocalización no soportada'));
+                return;
+            }
+
+            // Opciones optimizadas para mayor velocidad
+            const opciones = {
+                enableHighAccuracy: true,    // GPS para mejor precisión
+                timeout: 10000,              // 10 segundos máximo
+                maximumAge: 30000            // Cache de 30 segundos
+            };
+
+            const inicioTiempo = Date.now();
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const tiempoTranscurrido = Date.now() - inicioTiempo;
+                    console.log(`✅ Geolocalización exitosa en ${tiempoTranscurrido}ms`);
                     
-                    // Recargar todo automáticamente
-                    recargarDatosCompletos();
-                    checkEstado();
+                    const ubicacion = {
+                        latitud: position.coords.latitude,
+                        longitud: position.coords.longitude,
+                        precision: Math.round(position.coords.accuracy)
+                    };
+                    resolve(ubicacion);
+                },
+                (error) => {
+                    const tiempoTranscurrido = Date.now() - inicioTiempo;
+                    console.error(`❌ Error en geolocalización después de ${tiempoTranscurrido}ms:`, error);
+                    reject(new Error(`GPS: ${obtenerMensajeErrorGeolocalizacion(error)}`));
+                },
+                opciones
+            );
+        });
+    }
+
+   // Función optimizada para obtener dirección
+    function obtenerDireccionGoogle(latitud, longitud) {
+        return new Promise((resolve, reject) => {
+            if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY === 'TU_API_KEY_AQUI') {
+                reject(new Error('API Key de Google Maps no configurada'));
+                return;
+            }
+
+            // URL optimizada - solo pedir los campos necesarios
+            const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitud},${longitud}&key=${GOOGLE_MAPS_API_KEY}&language=es`;
+            
+            console.log('🗺️ Consultando Google Geocoding API...');
+            const inicioTiempo = Date.now();
+            
+            // Usar AbortController para timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segundos máximo
+
+            fetch(url, { signal: controller.signal })
+                .then(response => {
+                    clearTimeout(timeoutId);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const tiempoTranscurrido = Date.now() - inicioTiempo;
+                    console.log(`✅ Google API respondió en ${tiempoTranscurrido}ms`);
                     
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Tiempo iniciado',
-                        text: 'El control de tiempo ha comenzado',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: response.message
-                    });
-                }
-            },
-            error: function(xhr) {
-                console.error('Error START:', xhr);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'No se pudo iniciar el tiempo'
+                    if (data.status === 'OK' && data.results.length > 0) {
+                        // Usar el primer resultado (más relevante)
+                        const address = data.results[0];
+                        const componentes = extraerComponentesDireccion(address.address_components);
+                        
+                        const resultado = {
+                            direccion: address.formatted_address,
+                            ciudad: componentes.ciudad,
+                            pais: componentes.pais
+                        };
+                        
+                        console.log('📍 Dirección obtenida:', resultado);
+                        resolve(resultado);
+                    } else {
+                        reject(new Error('Google API: ' + data.status));
+                    }
+                })
+                .catch(error => {
+                    clearTimeout(timeoutId);
+                    if (error.name === 'AbortError') {
+                        reject(new Error('Timeout en Google API'));
+                    } else {
+                        reject(new Error('Error Google API: ' + error.message));
+                    }
                 });
+        });
+    }
+
+
+    // Función para encontrar la mejor ubicación entre todos los resultados
+function encontrarMejorUbicacion(resultados) {
+    let mejorUbicacion = {
+        direccion: '',
+        ciudad: 'Ubicación GPS',
+        pais: 'GPS'
+    };
+
+    // Buscar en todos los resultados
+    for (const resultado of resultados) {
+        const componentes = extraerComponentesDireccion(resultado.address_components);
+        const tipos = resultado.types;
+        
+        console.log('🔍 Analizando resultado:', { tipos, componentes });
+        
+        // Priorizar resultados que tengan localidad
+        if (tipos.includes('locality') || tipos.includes('sublocality')) {
+            mejorUbicacion = {
+                direccion: resultado.formatted_address,
+                ciudad: componentes.ciudad,
+                pais: componentes.pais
+            };
+            break;
+        }
+        
+        // Si no encontramos localidad, usar el primer resultado con ciudad
+        if (componentes.ciudad !== 'Ciudad desconocida' && !mejorUbicacion.direccion) {
+            mejorUbicacion = {
+                direccion: resultado.formatted_address,
+                ciudad: componentes.ciudad,
+                pais: componentes.pais
+            };
+        }
+    }
+
+    // Si no encontramos buena información, usar el primer resultado
+    if (!mejorUbicacion.direccion && resultados.length > 0) {
+        const componentes = extraerComponentesDireccion(resultados[0].address_components);
+        mejorUbicacion = {
+            direccion: resultados[0].formatted_address,
+            ciudad: componentes.ciudad,
+            pais: componentes.pais
+        };
+    }
+
+    return mejorUbicacion;
+}
+
+    // Función para extraer componentes de la dirección
+    function extraerComponentesDireccion(componentes) {
+        const resultado = {
+            ciudad: 'Ciudad desconocida',
+            pais: 'País desconocido',
+            codigo_postal: '',
+            barrio: '',
+            provincia: ''
+        };
+
+        componentes.forEach(componente => {
+            const tipos = componente.types;
+            
+            if (tipos.includes('locality')) {
+                resultado.ciudad = componente.long_name;
+            } else if (tipos.includes('country')) {
+                resultado.pais = componente.long_name;
+            } else if (tipos.includes('postal_code')) {
+                resultado.codigo_postal = componente.long_name;
+            } else if (tipos.includes('sublocality') || tipos.includes('neighborhood')) {
+                resultado.barrio = componente.long_name;
+            } else if (tipos.includes('administrative_area_level_1')) {
+                resultado.provincia = componente.long_name;
             }
         });
+
+        return resultado;
+    }
+
+    // Función para obtener mensajes de error amigables
+    function obtenerMensajeErrorGeolocalizacion(error) {
+        switch(error.code) {
+            case error.PERMISSION_DENIED:
+                return 'Permiso de ubicación denegado';
+            case error.POSITION_UNAVAILABLE:
+                return 'Ubicación no disponible';
+            case error.TIMEOUT:
+                return 'Tiempo de espera agotado';
+            default:
+                return 'Error desconocido';
+        }
+    }
+
+    // Función para obtener ubicación aproximada por IP
+    function obtenerUbicacionPorIP() {
+        return new Promise((resolve, reject) => {
+            console.log('🌐 Obteniendo ubicación por IP...');
+            
+            fetch('https://ipapi.co/json/')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error en respuesta de ipapi');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('📍 Ubicación por IP obtenida:', data);
+                    resolve({
+                        latitud: data.latitude,
+                        longitud: data.longitude,
+                        direccion: `${data.city || 'Ciudad desconocida'}, ${data.region || 'Región desconocida'}, ${data.country_name || 'País desconocido'}`,
+                        ciudad: data.city || 'Ciudad por IP',
+                        pais: data.country_name || 'País por IP',
+                        precision: 50000,
+                        tipo: 'aproximada_por_IP'
+                    });
+                })
+                .catch(error => {
+                    console.error('❌ Error ubicación por IP:', error);
+                    reject(error);
+                });
+        });
+    }
+
+    // =============================================
+    // FUNCIONES PRINCIPALES DE CONTROL DE TIEMPO
+    // =============================================
+
+    // Función para iniciar registro CON geolocalización
+    function iniciarRegistroTiempo(datosGeolocalizacion) {
+        console.log('🚀 Iniciando registro con datos:', datosGeolocalizacion);
+        
+        // Actualizar mensaje rápidamente
+        Swal.update({
+            title: 'Iniciando tiempo...',
+            text: 'Registrando en el sistema'
+        });
+
+        const datosEnvio = {
+            _token: '{{ csrf_token() }}',
+            latitud: datosGeolocalizacion.latitud,
+            longitud: datosGeolocalizacion.longitud,
+            direccion: datosGeolocalizacion.direccion,
+            ciudad: datosGeolocalizacion.ciudad,
+            pais: datosGeolocalizacion.pais,
+            precision: datosGeolocalizacion.precision || null
+        };
+
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: `/empleado/registro/${empleadoId}/start`,
+                method: 'POST',
+                data: datosEnvio,
+                timeout: 10000, // 10 segundos máximo
+                success: function(response) {
+                    console.log('✅ Servidor respondió:', response);
+                    
+                    Swal.close();
+                    
+                    if (response.success) {
+                        let mensajeUbicacion = `
+                            <div class="text-left">
+                                <strong>✅ Tiempo Iniciado</strong><br>
+                                <small class="text-success">📍 ${datosGeolocalizacion.ciudad}, ${datosGeolocalizacion.pais}</small>
+                        `;
+                        
+                        if (datosGeolocalizacion.precision) {
+                            mensajeUbicacion += `<br><small class="text-info">📊 Precisión: ${datosGeolocalizacion.precision}m</small>`;
+                        }
+                        
+                        mensajeUbicacion += `</div>`;
+
+                        Swal.fire({
+                            title: '¡Listo!',
+                            html: mensajeUbicacion,
+                            icon: 'success',
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
+
+                        // Actualizar interfaz inmediatamente
+                        btnStart.hide();
+                        btnGroupActive.show();
+                        estadoActual.text('Estado: Activo');
+                        
+                        // Recargar datos rápidamente
+                        setTimeout(() => {
+                            recargarDatosCompletos();
+                            checkEstado();
+                        }, 500);
+                        
+                        resolve(response);
+                    } else {
+                        Swal.fire({
+                            title: 'Error',
+                            text: response.message,
+                            icon: 'error'
+                        });
+                        reject(new Error(response.message));
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('❌ Error servidor:', error);
+                    Swal.fire({
+                        title: 'Error de conexión',
+                        text: 'No se pudo conectar con el servidor',
+                        icon: 'error'
+                    });
+                    reject(new Error(error));
+                }
+            });
+        });
+    }
+
+    // Función para iniciar SIN geolocalización
+    function iniciarSinGeolocalizacion() {
+        console.log('⚠️ Iniciando registro SIN geolocalización');
+        
+        Swal.fire({
+            title: 'Iniciando tiempo...',
+            text: 'Sin datos de ubicación',
+            icon: 'info',
+            showConfirmButton: false,
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        obtenerUbicacionPorIP()
+            .then(ubicacionIP => {
+                console.log('✅ Usando ubicación por IP:', ubicacionIP);
+                return iniciarRegistroTiempo(ubicacionIP);
+            })
+            .catch((error) => {
+                console.warn('❌ Falló ubicación por IP, usando datos mínimos:', error);
+                
+                $.ajax({
+                    url: `/empleado/registro/${empleadoId}/start`,
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        latitud: null,
+                        longitud: null,
+                        direccion: 'Ubicación no disponible - Permiso denegado o GPS desactivado',
+                        ciudad: 'Ubicación no registrada',
+                        pais: 'Permiso de ubicación denegado'
+                    },
+                    success: function(response) {
+                        Swal.close();
+                        
+                        if (response.success) {
+                            Swal.fire({
+                                title: '✅ Tiempo Iniciado',
+                                html: `Tiempo registrado correctamente<br>
+                                      <small class="text-warning">⚠️ Ubicación no disponible</small>`,
+                                icon: 'success',
+                                timer: 3000,
+                                showConfirmButton: false
+                            });
+
+                            btnStart.hide();
+                            btnGroupActive.show();
+                            estadoActual.text('Estado: Activo');
+                            
+                            recargarDatosCompletos();
+                            checkEstado();
+                        } else {
+                            Swal.fire({
+                                title: 'Error',
+                                text: response.message,
+                                icon: 'error'
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            title: 'Error de conexión',
+                            text: 'No se pudo iniciar el tiempo',
+                            icon: 'error'
+                        });
+                    }
+                });
+            });
+    }
+
+    // Fallback: Geolocalización del navegador
+    function usarGeolocalizacionNavegador() {
+        console.log('📱 Usando geolocalización del navegador como fallback...');
+        
+        if (!navigator.geolocation) {
+            Swal.fire({
+                title: 'Geolocalización no disponible',
+                text: 'Tu navegador no soporta geolocalización',
+                icon: 'error',
+                confirmButtonText: 'Iniciar sin ubicación'
+            }).then(() => {
+                iniciarSinGeolocalizacion();
+            });
+            return;
+        }
+
+        const opciones = {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0
+        };
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const latitud = position.coords.latitude;
+                const longitud = position.coords.longitude;
+                const precision = Math.round(position.coords.accuracy);
+                
+                console.log('📍 Ubicación navegador obtenida:', { latitud, longitud, precision });
+                
+                Swal.fire({
+                    title: 'Ubicación obtenida!',
+                    text: `Precisión: ${precision} metros`,
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+                obtenerDireccionGoogle(latitud, longitud)
+                    .then(direccion => {
+                        iniciarRegistroTiempo({
+                            latitud: latitud,
+                            longitud: longitud,
+                            direccion: direccion.direccion,
+                            ciudad: direccion.ciudad,
+                            pais: direccion.pais,
+                            precision: precision
+                        });
+                    })
+                    .catch((error) => {
+                        console.warn('Error obteniendo dirección:', error);
+                        iniciarRegistroTiempo({
+                            latitud: latitud,
+                            longitud: longitud,
+                            direccion: `Ubicación GPS: ${latitud.toFixed(6)}, ${longitud.toFixed(6)}`,
+                            ciudad: 'Por coordenadas GPS',
+                            pais: 'Ubicación por GPS',
+                            precision: precision
+                        });
+                    });
+            },
+            (error) => {
+                console.error('❌ Error geolocalización navegador:', error);
+                
+                let mensajeError = obtenerMensajeErrorGeolocalizacion(error);
+                
+                Swal.fire({
+                    title: 'Ubicación no disponible',
+                    html: `
+                        <p>${mensajeError}</p>
+                        <p><strong>¿Deseas iniciar el tiempo sin ubicación?</strong></p>
+                    `,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, iniciar sin ubicación',
+                    cancelButtonText: 'Cancelar',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        iniciarSinGeolocalizacion();
+                    }
+                });
+            },
+            opciones
+        );
+    }
+
+    // =============================================
+    // EVENTOS DE CONTROL DE TIEMPO
+    // =============================================
+
+    // Evento START con Google Maps Geolocation
+    btnStart.click(function() {
+    console.log('=== INICIANDO PROCESO COMPLETO ===');
+    
+    // Deshabilitar botón inmediatamente
+    const originalHtml = btnStart.html();
+    btnStart.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i> OBTENIENDO UBICACIÓN...');
+
+    // Mostrar loading inmediato
+    Swal.fire({
+        title: 'Obteniendo ubicación...',
+        text: 'Buscando tu ubicación precisa con GPS',
+        icon: 'info',
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
     });
+
+    const inicioProceso = Date.now();
+    
+    // Proceso optimizado
+    obtenerUbicacionGoogleMaps()
+        .then(ubicacion => {
+            const tiempoGPS = Date.now() - inicioProceso;
+            console.log(`📍 GPS listo en ${tiempoGPS}ms`);
+            
+            // Actualizar mensaje
+            Swal.update({
+                title: 'Obteniendo dirección...',
+                text: 'Consultando datos de ubicación'
+            });
+            
+            return Promise.all([
+                ubicacion,
+                obtenerDireccionGoogle(ubicacion.latitud, ubicacion.longitud)
+            ]);
+        })
+        .then(([ubicacion, direccionCompleta]) => {
+            const tiempoTotal = Date.now() - inicioProceso;
+            console.log(`✅ Proceso completo en ${tiempoTotal}ms`);
+            
+            const datosFinales = {
+                latitud: ubicacion.latitud,
+                longitud: ubicacion.longitud,
+                direccion: direccionCompleta.direccion,
+                ciudad: direccionCompleta.ciudad,
+                pais: direccionCompleta.pais,
+                precision: ubicacion.precision
+            };
+            
+            console.log('🎯 Datos listos para enviar:', datosFinales);
+            return iniciarRegistroTiempo(datosFinales);
+        })
+        .catch(error => {
+            const tiempoTotal = Date.now() - inicioProceso;
+            console.error(`❌ Error después de ${tiempoTotal}ms:`, error);
+            
+            Swal.fire({
+                title: 'Ubicación no disponible',
+                html: `No se pudo obtener tu ubicación completa.<br>
+                      <strong>¿Deseas iniciar el tiempo con ubicación básica?</strong>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, iniciar igual',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    iniciarSinGeolocalizacion();
+                } else {
+                    // Rehabilitar botón
+                    btnStart.prop('disabled', false).html(originalHtml);
+                }
+            });
+        });
+});
 
     // Evento PAUSE
     btnPause.click(function() {
+        console.log('⏸️ Solicitando pausa...');
+        
+        // Mostrar loading
+        const originalHtml = btnPause.html();
+        btnPause.html('<i class="fas fa-spinner fa-spin mr-2"></i> PAUSANDO...');
+        
         $.ajax({
             url: `/empleado/registro/${empleadoId}/pause`,
             method: 'POST',
             data: {
                 _token: '{{ csrf_token() }}'
             },
+            timeout: 10000,
             success: function(response) {
+                console.log('✅ Respuesta PAUSE:', response);
+                btnPause.html(originalHtml); // Restaurar botón
+                
                 if (response.success) {
-                    // Actualizar estado y recargar datos
-                    checkEstado();
+                    // Actualizar estado localmente inmediatamente
+                    if (response.estado === 'pausado') {
+                        detenerActualizacionTiempoReal();
+                        // Mantener el tiempo actual pero mostrar como pausado
+                        const tiempoActual = tiempoTranscurridoElement.text().replace('Tiempo: ', '').replace(' (Pausado)', '');
+                        tiempoTranscurridoElement.text(`Tiempo: ${tiempoActual} (Pausado)`);
+                        estadoActual.text('Estado: Pausado');
+                    } else if (response.estado === 'activo') {
+                        // Reanudar - obtener el tiempo actual del servidor
+                        checkEstado();
+                    }
+                    
+                    // Recargar datos
                     recargarDatosCompletos();
                     
                     Swal.fire({
@@ -797,129 +1383,116 @@ $(document).ready(function() {
                     });
                 }
             },
-            error: function(xhr) {
-                console.error('Error PAUSE:', xhr);
+            error: function(xhr, status, error) {
+                console.error('❌ Error PAUSE:', error);
+                btnPause.html(originalHtml); // Restaurar botón
+                
                 Swal.fire({
                     icon: 'error',
-                    title: 'Error',
+                    title: 'Error de conexión',
                     text: 'No se pudo pausar el tiempo'
                 });
             }
         });
     });
 
-   // Evento STOP - VERSIÓN QUE CALCULA LA PAUSA MANUALMENTE
-btnStop.click(function() {
-    console.log('=== STOP - CÁLCULO CON PAUSA MANUAL ===');
-    
-    $.ajax({
-        url: `/empleado/registro/${empleadoId}/estado`,
-        method: 'GET',
-        success: function(estadoResponse) {
-            console.log('Respuesta estado:', estadoResponse);
-            
-            if (estadoResponse.activo) {
-                // CÁLCULO COMPLETO MANUAL INCLUYENDO PAUSAS
-                const inicio = new Date(estadoResponse.inicio);
-                const fin = new Date();
+    // Evento STOP
+    btnStop.click(function() {
+        console.log('=== STOP - CÁLCULO CON PAUSA MANUAL ===');
+        
+        $.ajax({
+            url: `/empleado/registro/${empleadoId}/estado`,
+            method: 'GET',
+            success: function(estadoResponse) {
+                console.log('Respuesta estado:', estadoResponse);
                 
-                // 1. Calcular tiempo bruto (fin - inicio)
-                const diferenciaMs = fin - inicio;
-                const segundosBrutos = Math.floor(diferenciaMs / 1000);
-                
-                // 2. CALCULAR PAUSA MANUALMENTE SI HAY DATOS
-                let segundosPausa = 0;
-                
-                // Si hay información de pausa en el debug, calcularla
-                if (estadoResponse.debug && estadoResponse.debug.pausa_inicio_bd) {
-                    const pausaInicio = new Date(estadoResponse.debug.pausa_inicio_bd);
-                    const pausaFin = estadoResponse.debug.pausa_fin_bd ? 
-                        new Date(estadoResponse.debug.pausa_fin_bd) : fin;
+                if (estadoResponse.activo) {
+                    const inicio = new Date(estadoResponse.inicio);
+                    const fin = new Date();
                     
-                    const pausaMs = pausaFin - pausaInicio;
-                    segundosPausa = Math.floor(pausaMs / 1000);
+                    const diferenciaMs = fin - inicio;
+                    const segundosBrutos = Math.floor(diferenciaMs / 1000);
                     
-                    console.log('Pausa calculada manualmente:', {
-                        pausaInicio: estadoResponse.debug.pausa_inicio_bd,
-                        pausaFin: estadoResponse.debug.pausa_fin_bd || 'Ahora',
-                        pausaMs: pausaMs,
-                        segundosPausa: segundosPausa
+                    let segundosPausa = 0;
+                    
+                    if (estadoResponse.debug && estadoResponse.debug.pausa_inicio_bd) {
+                        const pausaInicio = new Date(estadoResponse.debug.pausa_inicio_bd);
+                        const pausaFin = estadoResponse.debug.pausa_fin_bd ? 
+                            new Date(estadoResponse.debug.pausa_fin_bd) : fin;
+                        
+                        const pausaMs = pausaFin - pausaInicio;
+                        segundosPausa = Math.floor(pausaMs / 1000);
+                    } else {
+                        segundosPausa = estadoResponse.tiempo_pausa_total || 0;
+                    }
+                    
+                    const segundosNetos = Math.max(0, segundosBrutos - segundosPausa);
+                    
+                    const tiempoBrutoFormateado = formatTime(segundosBrutos);
+                    const pausaFormateada = formatTime(segundosPausa);
+                    const tiempoNetoFormateado = formatTime(segundosNetos);
+                    
+                    console.log('Cálculo final modal:', {
+                        segundosBrutos,
+                        segundosPausa,
+                        segundosNetos,
+                        tiempoBrutoFormateado,
+                        pausaFormateada,
+                        tiempoNetoFormateado
                     });
-                } else {
-                    // Si no hay datos de pausa, usar el valor del response
-                    segundosPausa = estadoResponse.tiempo_pausa_total || 0;
-                }
-                
-                // 3. Calcular tiempo neto (bruto - pausa)
-                const segundosNetos = Math.max(0, segundosBrutos - segundosPausa);
-                
-                // Formatear tiempos
-                const tiempoBrutoFormateado = formatTime(segundosBrutos);
-                const pausaFormateada = formatTime(segundosPausa);
-                const tiempoNetoFormateado = formatTime(segundosNetos);
-                
-                console.log('Cálculo final modal:', {
-                    segundosBrutos,
-                    segundosPausa,
-                    segundosNetos,
-                    tiempoBrutoFormateado,
-                    pausaFormateada,
-                    tiempoNetoFormateado
-                });
 
-                let contenidoModal = `
-                    <div class="mb-3">
-                        <strong class="h4 text-primary">${tiempoNetoFormateado}</strong>
-                    </div>
-                    <div class="small text-muted mb-3">
-                        <div>🕐 <strong>Inicio:</strong> ${new Date(estadoResponse.inicio).toLocaleTimeString()}</div>
-                        <div>🛑 <strong>Fin:</strong> ${fin.toLocaleTimeString()}</div>
-                        <div>⏱️ <strong>Duración bruta:</strong> ${Math.floor(segundosBrutos / 60)} minutos ${segundosBrutos % 60} segundos</div>
-                    </div>
-                    <div class="small">
-                        <div>⏱️ <strong>Tiempo bruto:</strong> ${tiempoBrutoFormateado}</div>
-                        <div>⏸️ <strong>Tiempo pausa:</strong> ${pausaFormateada}</div>
-                        <div>📊 <strong>Fórmula:</strong> (${tiempoBrutoFormateado} bruto) - (${pausaFormateada} pausa) = ${tiempoNetoFormateado} neto</div>
-                    </div>
-                `;
-                
-                // Mostrar detalles de la pausa
-                if (estadoResponse.debug && estadoResponse.debug.pausa_inicio_bd) {
-                    const pausaInicioTime = new Date(estadoResponse.debug.pausa_inicio_bd).toLocaleTimeString();
-                    const pausaFinTime = estadoResponse.debug.pausa_fin_bd ? 
-                        new Date(estadoResponse.debug.pausa_fin_bd).toLocaleTimeString() : 'En pausa';
-                    
-                    contenidoModal += `
-                        <div class="mt-2 small text-info">
-                            <i class="fas fa-pause-circle"></i> 
-                            Pausa registrada: ${pausaInicioTime} - ${pausaFinTime} (${formatTime(segundosPausa)})
+                    let contenidoModal = `
+                        <div class="mb-3">
+                            <strong class="h4 text-primary">${tiempoNetoFormateado}</strong>
+                        </div>
+                        <div class="small text-muted mb-3">
+                            <div>🕐 <strong>Inicio:</strong> ${new Date(estadoResponse.inicio).toLocaleTimeString()}</div>
+                            <div>🛑 <strong>Fin:</strong> ${fin.toLocaleTimeString()}</div>
+                            <div>⏱️ <strong>Duración bruta:</strong> ${Math.floor(segundosBrutos / 60)} minutos ${segundosBrutos % 60} segundos</div>
+                        </div>
+                        <div class="small">
+                            <div>⏱️ <strong>Tiempo bruto:</strong> ${tiempoBrutoFormateado}</div>
+                            <div>⏸️ <strong>Tiempo pausa:</strong> ${pausaFormateada}</div>
+                            <div>📊 <strong>Fórmula:</strong> (${tiempoBrutoFormateado} bruto) - (${pausaFormateada} pausa) = ${tiempoNetoFormateado} neto</div>
                         </div>
                     `;
+                    
+                    if (estadoResponse.debug && estadoResponse.debug.pausa_inicio_bd) {
+                        const pausaInicioTime = new Date(estadoResponse.debug.pausa_inicio_bd).toLocaleTimeString();
+                        const pausaFinTime = estadoResponse.debug.pausa_fin_bd ? 
+                            new Date(estadoResponse.debug.pausa_fin_bd).toLocaleTimeString() : 'En pausa';
+                        
+                        contenidoModal += `
+                            <div class="mt-2 small text-info">
+                                <i class="fas fa-pause-circle"></i> 
+                                Pausa registrada: ${pausaInicioTime} - ${pausaFinTime} (${formatTime(segundosPausa)})
+                            </div>
+                        `;
+                    }
+                    
+                    $('#tiempo-final').html(contenidoModal);
+                    $('#confirmStopModal').modal('show');
+                    $('#confirm-stop').data('tiempo-total', segundosNetos);
+                    $('#confirm-stop').data('tiempo-formateado', tiempoNetoFormateado);
+                    
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No hay tiempo activo',
+                        text: 'No hay un registro de tiempo activo para detener.'
+                    });
                 }
-                
-                $('#tiempo-final').html(contenidoModal);
-                $('#confirmStopModal').modal('show');
-                $('#confirm-stop').data('tiempo-total', segundosNetos);
-                $('#confirm-stop').data('tiempo-formateado', tiempoNetoFormateado);
-                
-            } else {
+            },
+            error: function(xhr, status, error) {
+                console.error('Error al obtener estado:', error);
                 Swal.fire({
-                    icon: 'warning',
-                    title: 'No hay tiempo activo',
-                    text: 'No hay un registro de tiempo activo para detener.'
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudo obtener el tiempo actual: ' + error
                 });
             }
-        },
-        error: function(xhr, status, error) {
-            console.error('Error al obtener estado:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'No se pudo obtener el tiempo actual: ' + error
-            });
-        }
+        });
     });
-});
 
     // Confirmar STOP
     $('#confirm-stop').click(function() {
@@ -940,14 +1513,12 @@ btnStop.click(function() {
             },
             success: function(response) {
                 if (response.success) {
-                    // Resetear interfaz
                     btnStart.show();
                     btnGroupActive.hide();
                     estadoActual.text('Estado: No iniciado');
                     tiempoTranscurridoElement.text('Tiempo: 00:00:00');
                     detenerActualizacionTiempoReal();
                     
-                    // Recargar todos los datos automáticamente
                     recargarDatosCompletos();
                     
                     $('#confirmStopModal').modal('hide');
@@ -982,140 +1553,197 @@ btnStop.click(function() {
         });
     });
 
+    // =============================================
+    // FUNCIONES DE ESTADO Y ACTUALIZACIÓN
+    // =============================================
+
+
+    // Función para mejorar datos de ubicación cuando Google no da buena información
+    function mejorarDatosUbicacion(datos) {
+        // Si tenemos dirección pero no ciudad/pais, intentar extraerlos
+        if (datos.direccion && datos.direccion.includes(',')) {
+            const partes = datos.direccion.split(',');
+            
+            // La última parte usualmente es el país
+            if (partes.length > 1) {
+                datos.pais = partes[partes.length - 1].trim();
+            }
+            
+            // La penúltima parte usualmente es la ciudad/provincia
+            if (partes.length > 2) {
+                datos.ciudad = partes[partes.length - 2].trim();
+            } else if (partes.length > 1) {
+                datos.ciudad = partes[0].trim();
+            }
+        }
+        
+        // Si aún no tenemos buena información, usar coordenadas formateadas
+        if (datos.ciudad === 'Ciudad desconocida' || datos.ciudad === 'Ubicación GPS') {
+            datos.ciudad = `Coordenadas ${datos.latitud.toFixed(4)}`;
+        }
+        
+        if (datos.pais === 'País desconocido' || datos.pais === 'GPS') {
+            datos.pais = `${datos.longitud.toFixed(4)}`;
+        }
+        
+        return datos;
+    }
+
     // Función para verificar estado
     function checkEstado() {
+        console.log('🔄 Verificando estado del tiempo...');
+        
         $.ajax({
             url: `/empleado/registro/${empleadoId}/estado`,
             method: 'GET',
+            timeout: 8000, // 8 segundos máximo
             success: function(response) {
-                console.log('Estado actual:', response);
-                if (response.activo) {
-                    btnStart.hide();
-                    btnGroupActive.show();
-                    estadoActual.text(`Estado: ${response.estado.charAt(0).toUpperCase() + response.estado.slice(1)}`);
-                    
-                    // CORRECIÓN: Iniciar actualización en tiempo real SIEMPRE que esté activo
-                    if (response.estado === 'activo') {
-                        iniciarActualizacionTiempoReal(response.tiempo_transcurrido || 0);
-                        tiempoTranscurridoElement.text(`Tiempo: ${response.tiempo_formateado || '00:00:00'}`);
-                    } else if (response.estado === 'pausado') {
+                console.log('✅ Estado recibido:', response);
+                
+                if (response && response.activo !== undefined) {
+                    // Respuesta válida del servidor
+                    if (response.activo) {
+                        btnStart.hide();
+                        btnGroupActive.show();
+                        estadoActual.text(`Estado: ${response.estado ? response.estado.charAt(0).toUpperCase() + response.estado.slice(1) : 'Activo'}`);
+                        
+                        // Manejar el contador de tiempo
+                        if (response.estado === 'activo') {
+                            const tiempoInicial = response.tiempo_transcurrido || 0;
+                            console.log(`⏱️ Iniciando contador desde: ${tiempoInicial} segundos`);
+                            iniciarActualizacionTiempoReal(tiempoInicial);
+                        } else if (response.estado === 'pausado') {
+                            detenerActualizacionTiempoReal();
+                            // Mostrar el tiempo pausado
+                            if (response.tiempo_formateado) {
+                                tiempoTranscurridoElement.text(`Tiempo: ${response.tiempo_formateado} (Pausado)`);
+                            } else {
+                                tiempoTranscurridoElement.text('Tiempo: 00:00:00 (Pausado)');
+                            }
+                        }
+                    } else {
+                        // No hay tiempo activo
+                        btnStart.show();
+                        btnGroupActive.hide();
+                        estadoActual.text('Estado: No iniciado');
+                        tiempoTranscurridoElement.text('Tiempo: 00:00:00');
                         detenerActualizacionTiempoReal();
-                        tiempoTranscurridoElement.text(`Tiempo: ${response.tiempo_formateado || '00:00:00'} (Pausado)`);
                     }
                 } else {
-                    btnStart.show();
-                    btnGroupActive.hide();
-                    estadoActual.text('Estado: No iniciado');
-                    tiempoTranscurridoElement.text('Tiempo: 00:00:00');
-                    detenerActualizacionTiempoReal();
+                    // Respuesta inválida del servidor
+                    console.error('❌ Respuesta inválida del servidor:', response);
+                    manejarErrorEstado('Respuesta inválida del servidor');
                 }
             },
-            error: function(xhr) {
-                console.error('Error al verificar estado:', xhr);
+            error: function(xhr, status, error) {
+                console.error('❌ Error al verificar estado:', error);
+                console.log('Status:', status);
+                console.log('XHR:', xhr);
+                
+                if (status === 'timeout') {
+                    manejarErrorEstado('Timeout al verificar estado');
+                } else if (xhr.status === 404) {
+                    manejarErrorEstado('Endpoint no encontrado');
+                } else if (xhr.status === 500) {
+                    manejarErrorEstado('Error interno del servidor');
+                } else {
+                    manejarErrorEstado('Error de conexión: ' + error);
+                }
             }
         });
     }
 
+    // Función para manejar errores de estado
+    function manejarErrorEstado(mensaje) {
+        console.error('🚨 Error de estado:', mensaje);
+        
+        // Mostrar estado de error pero mantener la interfaz actual
+        estadoActual.text('Estado: Error de conexión');
+        tiempoTranscurridoElement.text('Tiempo: --:--:--');
+        
+        // No cambiar los botones para no perder el estado actual
+        // Solo mostrar notificación si es necesario
+        if (!btnStart.is(':visible')) {
+            // Si estaba activo, mostrar advertencia
+            Swal.fire({
+                title: 'Error de conexión',
+                text: 'No se puede verificar el estado actual del tiempo',
+                icon: 'warning',
+                timer: 3000,
+                showConfirmButton: false
+            });
+        }
+    }
 
     // Función para actualización en tiempo real
-    let intervaloActualizacion = null;
-
     function iniciarActualizacionTiempoReal(tiempoInicial) {
+        console.log('▶️ Iniciando actualización en tiempo real. Tiempo inicial:', tiempoInicial);
+        
+        // Detener cualquier intervalo anterior
         detenerActualizacionTiempoReal();
         
-        let segundosTranscurridos = tiempoInicial || 0;
+        let segundosTranscurridos = Math.max(0, parseInt(tiempoInicial) || 0);
         
+        // Actualizar inmediatamente
+        actualizarDisplayTiempo(segundosTranscurridos);
+        
+        // Iniciar intervalo
         intervaloActualizacion = setInterval(function() {
             segundosTranscurridos++;
-            
-            const horas = Math.floor(segundosTranscurridos / 3600);
-            const minutos = Math.floor((segundosTranscurridos % 3600) / 60);
-            const segundos = segundosTranscurridos % 60;
-            
-            const tiempoFormateado = `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
-            tiempoTranscurridoElement.text(`Tiempo: ${tiempoFormateado}`);
+            actualizarDisplayTiempo(segundosTranscurridos);
         }, 1000);
+        
+        console.log('✅ Contador en tiempo real iniciado');
+    }
+
+
+    // Función auxiliar para actualizar el display
+    function actualizarDisplayTiempo(segundos) {
+        const horas = Math.floor(segundos / 3600);
+        const minutos = Math.floor((segundos % 3600) / 60);
+        const segs = segundos % 60;
+        
+        const tiempoFormateado = `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segs.toString().padStart(2, '0')}`;
+        tiempoTranscurridoElement.text(`Tiempo: ${tiempoFormateado}`);
+        
+        // Debug cada 30 segundos
+        if (segundos % 30 === 0) {
+            console.log(`⏱️ Contador activo: ${tiempoFormateado} (${segundos} segundos)`);
+        }
     }
 
     function detenerActualizacionTiempoReal() {
         if (intervaloActualizacion) {
+            console.log('⏹️ Deteniendo contador en tiempo real');
             clearInterval(intervaloActualizacion);
             intervaloActualizacion = null;
         }
     }
 
-
-    // Función para cargar historial
-    function loadHistorial() {
-        $.ajax({
-            url: `/empleado/registro/${empleadoId}/historial`,
-            method: 'GET',
-            success: function(response) {
-                console.log('Historial cargado:', response);
-                if (response.success) {
-                    $('#historial-hoy').html('');
-                    
-                    if (response.historial && response.historial.length > 0) {
-                        response.historial.forEach(registro => {
-                            const inicio = new Date(registro.inicio).toLocaleTimeString();
-                            const fin = registro.fin ? new Date(registro.fin).toLocaleTimeString() : null;
-                            const tiempoTotal = registro.tiempo_total ? formatTime(registro.tiempo_total) : null;
-                            
-                            $('#historial-hoy').append(`
-                                <div class="historial-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                                    <div>
-                                        <strong>Inicio:</strong> ${inicio}
-                                        ${fin ? `<strong class="ml-3">Fin:</strong> ${fin}` : '<span class="badge badge-warning ml-3">En progreso</span>'}
-                                    </div>
-                                    <div>
-                                        ${tiempoTotal ? `<span class="badge badge-info">${tiempoTotal}</span>` : ''}
-                                    </div>
-                                </div>
-                            `);
-                        });
-                    } else {
-                        $('#historial-hoy').html('<p class="text-muted text-center">No hay registros para hoy.</p>');
-                    }
-                }
-            },
-            error: function(xhr) {
-                console.error('Error al cargar historial:', xhr);
-            }
-        });
-    }
-
-    // Función mejorada para recargar datos
-    function recargarDatosCompletos() {
-        // Recargar DataTable
-        dataTable.ajax.reload(null, false); // false = mantener la página actual
+    // Función para manejar estado pausado
+    function manejarEstadoPausado(tiempoFormateado) {
+        console.log('⏸️ Cambiando a estado pausado');
+        detenerActualizacionTiempoReal();
         
-        // Actualizar resumen
-        updatePeriodSummary();
+        if (tiempoFormateado) {
+            tiempoTranscurridoElement.text(`Tiempo: ${tiempoFormateado} (Pausado)`);
+        } else {
+            // Mantener el tiempo actual y agregar (Pausado)
+            const tiempoActual = tiempoTranscurridoElement.text()
+                .replace('Tiempo: ', '')
+                .replace(' (Pausado)', '');
+            tiempoTranscurridoElement.text(`Tiempo: ${tiempoActual} (Pausado)`);
+        }
         
-        // Actualizar estadísticas del perfil
-        actualizarEstadisticasPerfil();
+        estadoActual.text('Estado: Pausado');
+        btnPause.html('<i class="fas fa-play mr-2"></i>REANUDAR');
     }
 
-    // Función para actualizar estadísticas del perfil
-    function actualizarEstadisticasPerfil() {
-        $.ajax({
-            url: `/empleado/registro/${empleadoId}/estadisticas-mes`,
-            method: 'GET',
-            success: function(response) {
-                // Actualizar las estadísticas en la tarjeta de perfil
-                $('.stats-number').first().text(response.total_registros || '0');
-                $('.stats-number').last().text((response.total_horas || '0.00') + 'h');
-                $('.text-muted small').text('Promedio diario: ' + (response.promedio_horas || '0.00') + 'h');
-            },
-            error: function(xhr) {
-                console.error('Error al actualizar estadísticas:', xhr);
-            }
-        });
-    }
+    // =============================================
+    // FUNCIONES UTILITARIAS
+    // =============================================
 
-
-
-    // Función para formatear tiempo en segundos a HH:MM:SS o MM:SS
+    // Función para formatear tiempo
     function formatTime(seconds) {
         seconds = Math.max(0, parseInt(seconds));
         
@@ -1130,321 +1758,49 @@ btnStop.click(function() {
         }
     }
 
-    // Inicializar
-    initializeDataTable();
-    checkEstado();
-    loadHistorial();
+    // Función para recargar datos completos
+    function recargarDatosCompletos() {
+        // Recargar DataTable de manera forzada
+        if (dataTable && typeof dataTable.ajax !== 'undefined') {
+            dataTable.ajax.reload();
+        }
+        
+        // Actualizar resumen
+        updatePeriodSummary();
+        
+        // Actualizar estadísticas del perfil
+        actualizarEstadisticasPerfil();
+    }
 
-    // Función para ver detalles del registro - VERSIÓN MEJORADA CON MANEJO DE ERRORES
-    window.viewDetails = function(registroId) {
-        console.log('Cargando detalles del registro:', registroId);
-        
-        // Mostrar loading en el modal
-        $('#detailsModal .modal-body').html(`
-            <div class="text-center py-4">
-                <div class="spinner-border text-primary mb-3" role="status">
-                    <span class="sr-only">Cargando...</span>
-                </div>
-                <p class="text-muted">Cargando detalles del registro...</p>
-            </div>
-        `);
-        
-
-        const url = `/empleado/registro/${empleadoId}/detalles/${registroId}`;
-        // Mostrar el modal inmediatamente
-        $('#detailsModal').modal('show');
-        
-        // Obtener datos del registro via AJAX
+    // Función para actualizar estadísticas del perfil
+    function actualizarEstadisticasPerfil() {
         $.ajax({
-            url: url,
+            url: `/empleado/registro/${empleadoId}/estadisticas-mes`,
             method: 'GET',
-            timeout: 10000, // 10 segundos timeout
             success: function(response) {
-                console.log('Respuesta detalles:', response);
-                
-                if (response.success && response.registro) {
-                    mostrarDetallesEnModal(response.registro, response.estadisticasDia);
-                } else {
-                    $('#detailsModal .modal-body').html(`
-                        <div class="text-center py-4">
-                            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
-                            <h5>Error al cargar detalles</h5>
-                            <p class="text-muted">${response.message || 'No se pudieron cargar los detalles del registro.'}</p>
-                            <button class="btn btn-secondary mt-2" onclick="$('#detailsModal').modal('hide')">Cerrar</button>
-                        </div>
-                    `);
-                }
+                $('.stats-number').first().text(response.total_registros || '0');
+                $('.stats-number').last().text((response.total_horas || '0.00') + 'h');
+                $('.text-muted small').text('Promedio diario: ' + (response.promedio_horas || '0.00') + 'h');
             },
-            error: function(xhr, status, error) {
-                console.error('Error al cargar detalles:', xhr);
-                
-                let mensajeError = 'Error de conexión';
-                if (xhr.status === 404) {
-                    mensajeError = 'Registro no encontrado';
-                } else if (xhr.status === 403) {
-                    mensajeError = 'No tienes permiso para ver este registro';
-                } else if (xhr.status === 500) {
-                    mensajeError = 'Error interno del servidor';
-                } else if (status === 'timeout') {
-                    mensajeError = 'Tiempo de espera agotado';
-                }
-                
-                $('#detailsModal .modal-body').html(`
-                    <div class="text-center py-4">
-                        <i class="fas fa-exclamation-circle fa-3x text-danger mb-3"></i>
-                        <h5>${mensajeError}</h5>
-                        <p class="text-muted">No se pudo cargar la información del registro.</p>
-                        <p class="small text-muted">Código de error: ${xhr.status || 'N/A'}</p>
-                        <button class="btn btn-secondary mt-2" onclick="$('#detailsModal').modal('hide')">Cerrar</button>
-                    </div>
-                `);
+            error: function(xhr) {
+                console.error('Error al actualizar estadísticas:', xhr);
             }
         });
-    };
-
-    // Función para mostrar detalles en el modal - VERSIÓN CORREGIDA
-function mostrarDetallesEnModal(registro, estadisticasDia) {
-    console.log('Mostrando detalles:', registro);
-    
-    // Formatear fechas y tiempos
-    const fecha = registro.created_at ? new Date(registro.created_at).toLocaleDateString('es-ES', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    }) : '-';
-    
-    const inicio = registro.inicio ? new Date(registro.inicio).toLocaleTimeString('es-ES') : '-';
-    const fin = registro.fin ? new Date(registro.fin).toLocaleTimeString('es-ES') : 'En progreso';
-    const pausaInicio = registro.pausa_inicio ? new Date(registro.pausa_inicio).toLocaleTimeString('es-ES') : 'Sin pausas';
-    const pausaFin = registro.pausa_fin ? new Date(registro.pausa_fin).toLocaleTimeString('es-ES') : (registro.pausa_inicio ? 'Pausa activa' : 'Sin pausas');
-    
-    // Calcular tiempos
-    const tiempoTotal = registro.tiempo_total ? formatTime(registro.tiempo_total) : '00:00:00';
-    const tiempoPausa = registro.tiempo_pausa_total ? formatTime(registro.tiempo_pausa_total) : '00:00:00';
-    
-    // Calcular tiempo activo (tiempo total - tiempo pausa)
-    const tiempoActivoSegundos = Math.max(0, (registro.tiempo_total || 0) - (registro.tiempo_pausa_total || 0));
-    const tiempoActivo = formatTime(tiempoActivoSegundos);
-    
-    // Calcular eficiencia
-    let eficiencia = '-';
-    if (registro.tiempo_total > 0 && registro.tiempo_pausa_total > 0) {
-        const porcentaje = ((tiempoActivoSegundos / registro.tiempo_total) * 100).toFixed(1);
-        eficiencia = `${porcentaje}%`;
-        
-        // Color según eficiencia
-        if (porcentaje >= 90) eficiencia = `<span class="text-success">${eficiencia} ⭐</span>`;
-        else if (porcentaje >= 70) eficiencia = `<span class="text-warning">${eficiencia} 👍</span>`;
-        else eficiencia = `<span class="text-danger">${eficiencia} 👎</span>`;
-    } else if (registro.tiempo_total > 0) {
-        eficiencia = `<span class="text-success">100% ⭐</span>`;
     }
-    
-    // Estado con colores
-    let estadoBadge = '';
-    switch(registro.estado) {
-        case 'activo':
-            estadoBadge = '<span class="badge badge-active">🟢 Activo</span>';
-            break;
-        case 'pausado':
-            estadoBadge = '<span class="badge badge-paused">🟡 Pausado</span>';
-            break;
-        case 'completado':
-            estadoBadge = '<span class="badge badge-completed">🔵 Completado</span>';
-            break;
-        default:
-            estadoBadge = '<span class="badge badge-secondary">⚫ Desconocido</span>';
-    }
-    
-    // Construir el contenido HTML completo
-    const contenidoHTML = `
-        <div class="row">
-            <!-- Información Básica -->
-            <div class="col-md-6">
-                <div class="card mb-3">
-                    <div class="card-header bg-primary text-white py-2">
-                        <h6 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Información Básica</h6>
-                    </div>
-                    <div class="card-body">
-                        <table class="table table-sm table-borderless">
-                            <tr>
-                                <td><strong>Fecha:</strong></td>
-                                <td>${fecha}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Estado:</strong></td>
-                                <td>${estadoBadge}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Duración Total:</strong></td>
-                                <td><span class="font-weight-bold text-primary">${tiempoTotal}</span></td>
-                            </tr>
-                            <tr>
-                                <td><strong>ID Registro:</strong></td>
-                                <td><small class="text-muted">#${registro.id}</small></td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Tiempos -->
-            <div class="col-md-6">
-                <div class="card mb-3">
-                    <div class="card-header bg-info text-white py-2">
-                        <h6 class="mb-0"><i class="fas fa-history mr-2"></i>Línea de Tiempo</h6>
-                    </div>
-                    <div class="card-body">
-                        <table class="table table-sm table-borderless">
-                            <tr>
-                                <td><strong>Inicio:</strong></td>
-                                <td>${inicio}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Fin:</strong></td>
-                                <td>${fin}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Tiempo Activo:</strong></td>
-                                <td><span class="font-weight-bold text-success">${tiempoActivo}</span></td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Información de Pausas -->
-        <div class="row">
-            <div class="col-12">
-                <div class="card mb-3">
-                    <div class="card-header bg-warning text-white py-2">
-                        <h6 class="mb-0"><i class="fas fa-pause-circle mr-2"></i>Información de Pausas</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <table class="table table-sm table-borderless">
-                                    <tr>
-                                        <td><strong>Pausa Inicio:</strong></td>
-                                        <td>${pausaInicio}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Pausa Fin:</strong></td>
-                                        <td>${pausaFin}</td>
-                                    </tr>
-                                </table>
-                            </div>
-                            <div class="col-md-6">
-                                <table class="table table-sm table-borderless">
-                                    <tr>
-                                        <td><strong>Tiempo en Pausa:</strong></td>
-                                        <td><span class="text-info font-weight-bold">${tiempoPausa}</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Eficiencia:</strong></td>
-                                        <td>${eficiencia}</td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    // =============================================
+    // INICIALIZACIÓN
+    // =============================================
 
-        <!-- Información Adicional -->
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header bg-secondary text-white py-2">
-                        <h6 class="mb-0"><i class="fas fa-chart-bar mr-2"></i>Estadísticas del Día</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="row text-center">
-                            <div class="col-md-4">
-                                <div class="stat-item">
-                                    <div class="stat-number text-primary">${estadisticasDia ? estadisticasDia.total_horas_dia + 'h' : '0.00h'}</div>
-                                    <div class="stat-label small">Total del Día</div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="stat-item">
-                                    <div class="stat-number text-success">${estadisticasDia ? estadisticasDia.total_registros_dia : '0'}</div>
-                                    <div class="stat-label small">Registros del Día</div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="stat-item">
-                                    <div class="stat-number text-info">${estadisticasDia ? estadisticasDia.promedio_por_registro + 'h' : '0.00h'}</div>
-                                    <div class="stat-label small">Promedio por Registro</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Reemplazar todo el contenido del modal-body
-    $('#detailsModal .modal-body').html(contenidoHTML);
-}
+    // Verificar estado al cargar la página
+    initializeDataTable();
 
-    // Función para imprimir detalles - VERSIÓN CORREGIDA
-    function imprimirDetalles() {
-        const modalBody = $('#detailsModal .modal-body');
-        const ventanaImpresion = window.open('', '_blank');
-        
-        const contenido = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Detalles del Registro</title>
-                <style>
-                    body { font-family: Arial, sans-serif; margin: 20px; }
-                    .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
-                    .section { margin-bottom: 20px; }
-                    .section-title { background: #f8f9fa; padding: 10px; font-weight: bold; border-left: 4px solid #007bff; }
-                    table { width: 100%; border-collapse: collapse; }
-                    td { padding: 8px; border-bottom: 1px solid #ddd; }
-                    .badge { padding: 4px 8px; border-radius: 4px; color: white; }
-                    .badge-active { background: #28a745; }
-                    .badge-paused { background: #ffc107; color: black; }
-                    .badge-completed { background: #007bff; }
-                    .stats { display: flex; justify-content: space-around; text-align: center; margin-top: 20px; }
-                    .stat-item { padding: 10px; }
-                    .stat-number { font-size: 24px; font-weight: bold; }
-                    @media print {
-                        body { margin: 0; }
-                        .no-print { display: none; }
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <h1>Detalles del Registro de Tiempo</h1>
-                    <p>Generado el: ${new Date().toLocaleString('es-ES')}</p>
-                </div>
-                
-                ${modalBody.html()}
-            </body>
-            </html>
-        `;
-        
-        ventanaImpresion.document.write(contenido);
-        ventanaImpresion.document.close();
-        ventanaImpresion.focus();
-        
-        // Esperar a que se cargue el contenido antes de imprimir
-        setTimeout(() => {
-            ventanaImpresion.print();
-            // ventanaImpresion.close(); // Opcional: cerrar después de imprimir
-        }, 500);
-    }
+    checkEstado();
+
+    // ... (el resto de tu código para DataTable, filtros, etc. permanece igual)
+    // Solo asegúrate de que las funciones estén definidas antes de ser usadas
+
 });
-
 
 
 </script>
@@ -1809,6 +2165,16 @@ function mostrarDetallesEnModal(registro, estadisticasDia) {
     width: 3rem;
     height: 3rem;
 }
+
+/* Badge para indicar ubicación registrada */
+.badge-location {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+}
+
 
 </style>
 @endsection

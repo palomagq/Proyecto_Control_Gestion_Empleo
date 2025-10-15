@@ -48,13 +48,17 @@ class EmpleadoController extends Controller
 
         // Obtener estadísticas del mes
         $estadisticasMes = $this->obtenerEstadisticasMes($empleado->id);
+        // Pasar la API Key a la vista
+        $googleMapsApiKey = env('GOOGLE_MAPS_API_KEY');
 
         // Pasar el empleado a la vista
         return view('empleado.sections.perfil', compact(
             'empleado', 
             'registroActivo', 
             'historialHoy',
-            'estadisticasMes'
+            'estadisticasMes',
+            'googleMapsApiKey' // Agregar esta variable
+
         ));
     }
     
@@ -85,6 +89,8 @@ public function startTiempo(Request $request, $id)
                     'message' => 'Ya tienes un tiempo activo'
                 ]);
             }
+            // Obtener datos de geolocalización del request
+            $geolocalizacion = $this->procesarGeolocalizacion($request);
 
             // Insertar con campos NULLABLE
             $now = Carbon::now();
@@ -93,18 +99,35 @@ public function startTiempo(Request $request, $id)
                 'empleado_id' => $id,
                 'inicio' => $now,
                 'estado' => 'activo',
+                'latitud' => $geolocalizacion['latitud'],
+                'longitud' => $geolocalizacion['longitud'],
+                'direccion' => $geolocalizacion['direccion'],
+                'ciudad' => $geolocalizacion['ciudad'],
+                'pais' => $geolocalizacion['pais'],
+                'precision_gps' => $geolocalizacion['precision'] ?? null,
+                'dispositivo' => $request->userAgent(),
+                'ip_address' => $request->ip(),
                 'created_at' => $now,
                 'updated_at' => $now
                 // 'fin' y 'tiempo_total' serán NULL automáticamente
             ]);
 
+            Log::info('Nuevo registro iniciado con geolocalización', [
+                'empleado_id' => $id,
+                'registro_id' => $registroId,
+                'geolocalizacion' => $geolocalizacion
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Tiempo iniciado correctamente',
-                'registro_id' => $registroId
+                'registro_id' => $registroId,
+                'geolocalizacion' => $geolocalizacion
+
             ]);
 
         } catch (\Exception $e) {
+            Log::error('Error al iniciar tiempo con geolocalización: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error: ' . $e->getMessage()
@@ -551,7 +574,12 @@ public function getDataTable(Request $request, $id)
                 'pausa_fin', 
                 'tiempo_pausa_total',
                 'estado', 
-                'created_at'
+                'created_at',
+                'latitud',      // Asegúrate de incluir estas columnas
+                'longitud',     // en el select
+                'direccion',    //
+                'ciudad',       //
+                'pais'
             ]);
 
         // Aplicar filtros de mes y año
@@ -588,7 +616,12 @@ public function getDataTable(Request $request, $id)
                 'pausa_fin' => $registro->pausa_fin,
                 'tiempo_pausa_total' => $tiempoPausaTotal,
                 'estado' => $registro->estado,
-                'created_at' => $registro->created_at
+                'created_at' => $registro->created_at,
+                'latitud' => $registro->latitud,        // ← AGREGAR ESTAS
+                'longitud' => $registro->longitud,      // ←
+                'direccion' => $registro->direccion,    // ←
+                'ciudad' => $registro->ciudad,          // ←
+                'pais' => $registro->pais               // ←
             ];
         });
 
@@ -825,18 +858,18 @@ public function getDetallesRegistro($empleadoId, $registroId)
             ], 403);
         }
 
-        // Obtener el registro específico
-        $registro = DB::table('tabla_registros_tiempo')
-            ->where('id', $registroId)
-            ->where('empleado_id', $empleado->id)
-            ->first();
+        // Obtener el registro específico con datos de geolocalización
+            $registro = DB::table('tabla_registros_tiempo')
+                ->where('id', $registroId)
+                ->where('empleado_id', $empleado->id)
+                ->first();
 
-        if (!$registro) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Registro no encontrado'
-            ]);
-        }
+            if (!$registro) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Registro no encontrado'
+                ]);
+            }
 
         // Obtener estadísticas del día del registro
         $fechaRegistro = Carbon::parse($registro->created_at)->format('Y-m-d');
@@ -916,5 +949,149 @@ public function repararFechasFuturas($empleadoId)
         return "Error: " . $e->getMessage();
     }
 }
+
+
+ /**
+     * Procesar datos de geolocalización
+     */
+    private function procesarGeolocalizacion(Request $request)
+    {
+         // Obtener datos directamente del request
+        $latitud = $request->input('latitud');
+        $longitud = $request->input('longitud');
+        $direccion = $request->input('direccion');
+        $ciudad = $request->input('ciudad');
+        $pais = $request->input('pais');
+        $precision = $request->input('precision');
+
+        Log::info('Datos de geolocalización recibidos en el request:', [
+            'latitud' => $latitud,
+            'longitud' => $longitud,
+            'direccion' => $direccion,
+            'ciudad' => $ciudad,
+            'pais' => $pais,
+            'precision' => $precision
+        ]);
+
+        // Validar que tengamos al menos coordenadas
+        // Si tenemos datos válidos de Google Maps, usarlos directamente
+         // SI TENEMOS COORDENADAS DEL GPS, USARLAS DIRECTAMENTE
+        if ($latitud && $longitud) {
+            Log::info('✅ Usando datos de GPS del frontend');
+            
+            // Si la ciudad o país son los valores por defecto, usar coordenadas
+            $valoresNoDeseados = [
+                'Por coordenadas GPS',
+                'Ubicación por GPS', 
+                'Ciudad no disponible',
+                'País no disponible',
+                'Ciudad no especificada',
+                'País no especificado',
+                'Local', // ← QUITAR ESTE
+                'Entorno local/desarrollo' // ← Y ESTE
+            ];
+            
+            $ciudadValida = $ciudad && !in_array($ciudad, $valoresNoDeseados);
+            $paisValido = $pais && !in_array($pais, $valoresNoDeseados);
+            
+            if ($ciudadValida && $paisValido) {
+                // Tenemos ciudad y país válidos
+                return [
+                    'latitud' => $latitud,
+                    'longitud' => $longitud,
+                    'direccion' => $direccion,
+                    'ciudad' => $ciudad,
+                    'pais' => $pais,
+                    'precision' => $precision
+                ];
+            } else {
+                // Tenemos coordenadas pero no ciudad/pais válidos
+                // Crear una descripción basada en coordenadas
+                $coordenadasFormateadas = number_format($latitud, 6) . ', ' . number_format($longitud, 6);
+                
+                return [
+                    'latitud' => $latitud,
+                    'longitud' => $longitud,
+                    'direccion' => "Ubicación GPS: $coordenadasFormateadas",
+                    'ciudad' => 'Ubicación por GPS',
+                    'pais' => 'GPS',
+                    'precision' => $precision
+                ];
+            }
+        }
+
+        // Fallback: obtener ubicación por IP
+        Log::warning('❌ No se recibieron coordenadas GPS');
+        return [
+            'latitud' => null,
+            'longitud' => null,
+            'direccion' => 'Geolocalización no disponible',
+            'ciudad' => 'GPS no disponible',
+            'pais' => 'Sin ubicación',
+            'precision' => null
+        ];
+    }
+
+
+
+    /**
+     * Validar coordenadas geográficas
+     */
+    private function validarCoordenadas($latitud, $longitud)
+    {
+        return is_numeric($latitud) && 
+               is_numeric($longitud) &&
+               $latitud >= -90 && $latitud <= 90 &&
+               $longitud >= -180 && $longitud <= 180;
+    }
+
+    /**
+ * Obtener ubicación aproximada por IP
+ */
+    /*private function obtenerUbicacionPorIP($ip)
+    {
+        try {
+            // Para IPs locales, usar datos por defecto
+            if ($ip === '127.0.0.1' || $ip === '::1') {
+                return [
+                    'latitud' => null,
+                    'longitud' => null,
+                    'direccion' => 'Entorno local/desarrollo',
+                    'ciudad' => 'Local',
+                    'pais' => 'Local',
+                    'precision' => null
+                ];
+            }
+
+            // Usar servicio de geolocalización por IP
+            $url = "http://ipapi.co/{$ip}/json/";
+            
+            $response = file_get_contents($url);
+            $data = json_decode($response, true);
+
+            if (isset($data['latitude']) && isset($data['longitude'])) {
+                return [
+                    'latitud' => $data['latitude'],
+                    'longitud' => $data['longitude'],
+                    'direccion' => ($data['city'] ?? '') . ', ' . ($data['region'] ?? ''),
+                    'ciudad' => $data['city'] ?? 'Ciudad desconocida',
+                    'pais' => $data['country_name'] ?? 'País desconocido',
+                    'precision' => 50000 // Baja precisión por IP
+                ];
+            }
+
+        } catch (\Exception $e) {
+            Log::warning('Error al obtener ubicación por IP: ' . $e->getMessage());
+        }
+
+        return [
+            'latitud' => null,
+            'longitud' => null,
+            'direccion' => 'Ubicación no disponible',
+            'ciudad' => 'Ubicación no disponible',
+            'pais' => 'Ubicación no disponible',
+            'precision' => null
+        ];
+    }*/
 
 }
