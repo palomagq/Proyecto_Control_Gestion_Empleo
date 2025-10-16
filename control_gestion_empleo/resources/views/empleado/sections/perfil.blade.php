@@ -33,7 +33,7 @@
                     </div>
                     
                     <div class="mt-3">
-                        <small class="text-muted">Promedio diario: {{ $estadisticasMes['promedio_horas_formateado'] }}h</small>
+                        <small class="text-muted">Promedio diario: {{ $estadisticasMes['promedio_horas_formateado'] }}</small>
                     </div>
                 </div>
             </div>
@@ -1398,7 +1398,7 @@ function encontrarMejorUbicacion(resultados) {
                     let contenidoModal = `
                         <div class="mb-3">
                             <strong class="h4 text-primary">${tiempoConEtiquetas}</strong>
-                            <div class="small text-muted">${tiempoNetoFormateado}</div>
+                            <div class="small text-muted">${formatTime(segundosNetos)}</div>
                         </div>
                         <div class="small text-muted mb-3">
                             <div>🕐 <strong>Inicio:</strong> ${new Date(estadoResponse.inicio).toLocaleTimeString()}</div>
@@ -1693,30 +1693,31 @@ function encontrarMejorUbicacion(resultados) {
     // FUNCIONES UTILITARIAS
     // =============================================
 
-    // Función para formatear tiempo (SOLO HORAS Y MINUTOS)
-    function formatTime(seconds) {
-        seconds = Math.max(0, parseInt(seconds));
-        
-        if (seconds === 0) return '00:00';
-        
-        // Calcular días, horas, minutos
-        const dias = Math.floor(seconds / 86400);
-        const horas = Math.floor((seconds % 86400) / 3600);
-        const minutos = Math.floor((seconds % 3600) / 60);
-        
-        // Si hay días, mostrar formato extendido
-        if (dias > 0) {
-            return `${dias}d ${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`;
-        }
-        
-        // Si solo hay horas, mostrar formato normal (sin segundos)
-        if (horas > 0) {
-            return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`;
-        }
-        
-        // Si son solo minutos
-        return `${minutos.toString().padStart(2, '0')}:00`;
+// Función para formatear tiempo (DÍAS, HORAS Y MINUTOS) - MEJORADA
+function formatTime(seconds) {
+    seconds = Math.max(0, parseInt(seconds));
+    
+    if (seconds === 0) return '00:00';
+    
+    // Calcular días, horas, minutos
+    const dias = Math.floor(seconds / 86400);
+    const horasRestantes = seconds % 86400;
+    const horas = Math.floor(horasRestantes / 3600);
+    const minutos = Math.floor((horasRestantes % 3600) / 60);
+    
+    // Si hay días, mostrar formato con días
+    if (dias > 0) {
+        return `${dias}d ${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`;
     }
+    
+    // Si solo hay horas, mostrar formato normal
+    if (horas > 0) {
+        return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`;
+    }
+    
+    // Si son solo minutos
+    return `${minutos.toString().padStart(2, '0')}:00`;
+}
 
     // Función para recargar datos completos
     function recargarDatosCompletos() {
@@ -1781,22 +1782,32 @@ function mostrarErrorModal(mensaje) {
         return `${minutos.toString().padStart(2, '0')}:00`;
     }
 
-// Función para mostrar tiempo con etiquetas (en el modal de confirmación STOP)
+// Función para mostrar tiempo con etiquetas (días, horas, minutos) - MEJORADA
 function formatTimeWithLabels(seconds) {
     seconds = Math.max(0, parseInt(seconds));
     
-    const horas = Math.floor(seconds / 3600);
-    const minutos = Math.floor((seconds % 3600) / 60);
+    // Calcular días, horas y minutos
+    const dias = Math.floor(seconds / 86400); // 86400 segundos en un día
+    const horasRestantes = seconds % 86400;
+    const horas = Math.floor(horasRestantes / 3600);
+    const minutos = Math.floor((horasRestantes % 3600) / 60);
     
     let resultado = '';
+    
+    // Si hay días, mostrarlos
+    if (dias > 0) {
+        resultado += `${dias} día${dias !== 1 ? 's' : ''} `;
+    }
+    
+    // Si hay horas, mostrarlas
     if (horas > 0) {
         resultado += `${horas} hora${horas !== 1 ? 's' : ''} `;
     }
-    if (minutos > 0) {
-        resultado += `${minutos} minuto${minutos !== 1 ? 's' : ''}`;
-    }
     
-    return resultado || '0 minutos';
+    // Siempre mostrar minutos (aunque sean 0)
+    resultado += `${minutos} minuto${minutos !== 1 ? 's' : ''}`;
+    
+    return resultado.trim() || '0 minutos';
 }
 
 // Función para formatear horas decimales a horas:minutos
@@ -1847,12 +1858,13 @@ function formatDecimalHoursToHM(decimalHoursStr) {
     return `${horas}h ${minutos.toString().padStart(2, '0')}m`;
 }
 
-// Función para formatear horas totales con días si es necesario
+// Función para formatear horas totales con días si es necesario - MEJORADA
 function formatTotalHoursWithDays(decimalHoursStr) {
     const decimalHours = safeParseFloat(decimalHoursStr);
     
     if (decimalHours === 0) return '0h 00m';
     
+    // Si supera las 24 horas, convertir a días
     if (decimalHours >= 24) {
         const dias = Math.floor(decimalHours / 24);
         const horasRestantes = decimalHours % 24;
@@ -1869,7 +1881,6 @@ function formatTotalHoursWithDays(decimalHoursStr) {
         return formatDecimalHoursToHM(decimalHoursStr);
     }
 }
-
 
 // Función mejorada para parsear números decimales de formato "1.18h"
 function safeParseFloat(value) {
