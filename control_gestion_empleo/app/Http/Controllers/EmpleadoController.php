@@ -425,7 +425,10 @@ public function getEstado(Request $request, $id)
     /**
      * Obtener estadísticas del mes
      */
-    private function obtenerEstadisticasMes($empleadoId)
+    /**
+ * Obtener estadísticas del mes
+ */
+private function obtenerEstadisticasMes($empleadoId)
 {
     $inicioMes = Carbon::now()->startOfMonth();
     $finMes = Carbon::now()->endOfMonth();
@@ -476,10 +479,13 @@ public function getEstado(Request $request, $id)
     // Promedio diario basado en días trabajados
     $promedioDiario = $diasTrabajados > 0 ? $totalHoras / $diasTrabajados : 0;
 
+    // AGREGAR VERSIONES FORMATEADAS
     return [
         'total_horas' => number_format($totalHoras, 2),
+        'total_horas_formateado' => $this->formatDecimalHoursToHM($totalHoras),
         'total_registros' => $totalRegistros,
         'promedio_horas' => number_format($promedioDiario, 2),
+        'promedio_horas_formateado' => $this->formatDecimalHoursToHM($promedioDiario),
         'dias_trabajados' => $diasTrabajados
     ];
 }
@@ -675,8 +681,10 @@ public function getResumenPeriodo(Request $request, $id)
         if (!$empleado) {
             return response()->json([
                 'total_horas' => '0.00',
+                'total_horas_formateado' => '0h 00m',
                 'total_registros' => 0,
                 'promedio_diario' => '0.00',
+                'promedio_diario_formateado' => '0h 00m',
                 'dias_trabajados' => 0
             ]);
         }
@@ -813,10 +821,13 @@ public function getResumenPeriodo(Request $request, $id)
             'promedio_diario' => $promedioDiario
         ]);
 
+       // AGREGAR VERSIONES FORMATEADAS EN LA RESPUESTA
         return response()->json([
             'total_horas' => number_format($totalHoras, 2),
+            'total_horas_formateado' => $this->formatDecimalHoursToHM($totalHoras),
             'total_registros' => $totalRegistros,
             'promedio_diario' => number_format($promedioDiario, 2),
+            'promedio_diario_formateado' => $this->formatDecimalHoursToHM($promedioDiario),
             'dias_trabajados' => $diasTrabajados
         ]);
 
@@ -827,8 +838,10 @@ public function getResumenPeriodo(Request $request, $id)
         ]);
         return response()->json([
             'total_horas' => '0.00',
+            'total_horas_formateado' => '0h 00m',
             'total_registros' => 0,
             'promedio_diario' => '0.00',
+            'promedio_diario_formateado' => '0h 00m',
             'dias_trabajados' => 0
         ]);
     }
@@ -849,8 +862,10 @@ public function getEstadisticasMes($id)
         if (!$empleado) {
             return response()->json([
                 'total_horas' => '0.00',
+                'total_horas_formateado' => '0h 00m',
                 'total_registros' => 0,
                 'promedio_horas' => '0.00',
+                'promedio_horas_formateado' => '0h 00m',
                 'dias_trabajados' => 0
             ]);
         }
@@ -863,8 +878,10 @@ public function getEstadisticasMes($id)
         \Log::error('Error en getEstadisticasMes: ' . $e->getMessage());
         return response()->json([
             'total_horas' => '0.00',
+            'total_horas_formateado' => '0h 00m',
             'total_registros' => 0,
             'promedio_horas' => '0.00',
+            'promedio_horas_formateado' => '0h 00m',
             'dias_trabajados' => 0
         ]);
     }
@@ -1076,6 +1093,32 @@ public function repararFechasFuturas($empleadoId)
                is_numeric($longitud) &&
                $latitud >= -90 && $latitud <= 90 &&
                $longitud >= -180 && $longitud <= 180;
+    }
+
+    /**
+     * Formatear horas decimales a formato "Xh Xm"
+     */
+    private function formatDecimalHoursToHM($decimalHours)
+    {
+        if (!$decimalHours || $decimalHours == 0) {
+            return '0h 00m';
+        }
+
+        // Si es string, convertir a float
+        if (is_string($decimalHours)) {
+            $decimalHours = floatval($decimalHours);
+        }
+
+        $horas = floor($decimalHours);
+        $minutosDecimal = ($decimalHours - $horas) * 60;
+        $minutos = round($minutosDecimal);
+
+        // Si los minutos son 60, sumar una hora
+        if ($minutos == 60) {
+            return ($horas + 1) . 'h 00m';
+        }
+
+        return $horas . 'h ' . str_pad($minutos, 2, '0', STR_PAD_LEFT) . 'm';
     }
 
     /**

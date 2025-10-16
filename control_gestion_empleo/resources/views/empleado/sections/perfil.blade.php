@@ -33,7 +33,7 @@
                     </div>
                     
                     <div class="mt-3">
-                        <small class="text-muted">Promedio diario: {{ $estadisticasMes['promedio_horas'] }}h</small>
+                        <small class="text-muted">Promedio diario: {{ $estadisticasMes['promedio_horas_formateado'] }}h</small>
                     </div>
                 </div>
             </div>
@@ -633,9 +633,10 @@ $(document).ready(function() {
             // Formatear promedio diario
             const promedioFormateado = formatDecimalHoursToHM(response.promedio_diario);
             
-            $('#total-horas-periodo').html(totalHorasFormateadas);
+           // Usar las versiones formateadas del backend
+            $('#total-horas-periodo').html(response.total_horas_formateado);
             $('#total-registros-periodo').text(response.total_registros);
-            $('#promedio-diario-periodo').html(promedioFormateado);
+            $('#promedio-diario-periodo').html(response.promedio_diario_formateado);
             $('#dias-trabajados-periodo').text(response.dias_trabajados);
             
             const periodTitle = selectedDate ? 
@@ -1770,23 +1771,18 @@ function mostrarErrorModal(mensaje) {
 function formatTimeWithLabels(seconds) {
     seconds = Math.max(0, parseInt(seconds));
     
-    if (seconds === 0) return '0h 00m';
-    
     const horas = Math.floor(seconds / 3600);
     const minutos = Math.floor((seconds % 3600) / 60);
     
-    // Si hay horas y minutos
-    if (horas > 0 && minutos > 0) {
-        return `${horas}h ${minutos.toString().padStart(2, '0')}m`;
+    let resultado = '';
+    if (horas > 0) {
+        resultado += `${horas} hora${horas !== 1 ? 's' : ''} `;
     }
-    // Si solo hay horas
-    else if (horas > 0) {
-        return `${horas}h 00m`;
+    if (minutos > 0) {
+        resultado += `${minutos} minuto${minutos !== 1 ? 's' : ''}`;
     }
-    // Si solo hay minutos
-    else {
-        return `0h ${minutos.toString().padStart(2, '0')}m`;
-    }
+    
+    return resultado || '0 minutos';
 }
 
 // Función para formatear horas decimales a horas:minutos
