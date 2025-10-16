@@ -579,6 +579,18 @@ public function getDataTable(Request $request, $id)
             ]);
         }
 
+        // OBTENER PARÁMETROS DE PAGINACIÓN DE DATATABLES
+        $start = $request->input('start', 0);
+        $length = $request->input('length', 5); // ← ESTO ES CLAVE: usar el parámetro 'length'
+        $draw = $request->input('draw', 1);
+
+        \Log::info("📊 Parámetros DataTable recibidos:", [
+            'start' => $start,
+            'length' => $length,
+            'draw' => $draw,
+            'empleado_id' => $id
+        ]);
+
         $query = DB::table('tabla_registros_tiempo')
             ->where('empleado_id', $empleado->id)
             ->select([
@@ -591,10 +603,10 @@ public function getDataTable(Request $request, $id)
                 'tiempo_pausa_total',
                 'estado', 
                 'created_at',
-                'latitud',      // Asegúrate de incluir estas columnas
-                'longitud',     // en el select
-                'direccion',    //
-                'ciudad',       //
+                'latitud',
+                'longitud',
+                'direccion',
+                'ciudad',
                 'pais'
             ]);
 
@@ -611,17 +623,21 @@ public function getDataTable(Request $request, $id)
                   ->whereMonth('created_at', date('m'));
         }
 
-        // Obtener datos y procesar tiempos
-        $data = $query->orderBy('created_at', 'desc')->get()->map(function($registro) {
+        // 1. OBTENER TOTAL DE REGISTROS (sin paginación)
+        $recordsTotal = $query->count();
+
+        // 2. APLICAR PAGINACIÓN ← ESTO ES LO QUE FALTABA
+        $query->orderBy('created_at', 'desc')
+              ->skip($start)  // ← Saltar registros
+              ->take($length); // ← Tomar solo X registros
+
+        // 3. OBTENER DATOS PAGINADOS
+        $data = $query->get()->map(function($registro) {
             // Asegurar que los tiempos no sean negativos
             $tiempoTotal = max(0, $registro->tiempo_total ?? 0);
             $tiempoPausaTotal = max(0, $registro->tiempo_pausa_total ?? 0);
             
-            // DEBUG para verificar datos
-            \Log::info("Registro ID {$registro->id}:");
-            \Log::info("  - Inicio: {$registro->inicio}, Fin: {$registro->fin}");
-            \Log::info("  - Pausa inicio: {$registro->pausa_inicio}, Pausa fin: {$registro->pausa_fin}");
-            \Log::info("  - Tiempo total: {$tiempoTotal}, Tiempo pausa: {$tiempoPausaTotal}");
+            \Log::info("Procesando registro ID {$registro->id}: {$tiempoTotal}s total, {$tiempoPausaTotal}s pausa");
             
             return [
                 'id' => $registro->id,
@@ -633,18 +649,25 @@ public function getDataTable(Request $request, $id)
                 'tiempo_pausa_total' => $tiempoPausaTotal,
                 'estado' => $registro->estado,
                 'created_at' => $registro->created_at,
-                'latitud' => $registro->latitud,        // ← AGREGAR ESTAS
-                'longitud' => $registro->longitud,      // ←
-                'direccion' => $registro->direccion,    // ←
-                'ciudad' => $registro->ciudad,          // ←
-                'pais' => $registro->pais               // ←
+                'latitud' => $registro->latitud,
+                'longitud' => $registro->longitud,
+                'direccion' => $registro->direccion,
+                'ciudad' => $registro->ciudad,
+                'pais' => $registro->pais
             ];
         });
 
-        $recordsTotal = $data->count();
+        \Log::info("📦 Respuesta DataTable:", [
+            'draw' => $draw,
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsTotal,
+            'data_count' => $data->count(),
+            'start' => $start,
+            'length' => $length
+        ]);
 
         return response()->json([
-            'draw' => intval($request->input('draw', 1)),
+            'draw' => intval($draw),
             'recordsTotal' => $recordsTotal,
             'recordsFiltered' => $recordsTotal,
             'data' => $data
@@ -653,7 +676,8 @@ public function getDataTable(Request $request, $id)
     } catch (\Exception $e) {
         \Log::error('Error en DataTable', [
             'empleado_id' => $id,
-            'error' => $e->getMessage()
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
         ]);
         
         return response()->json([
@@ -664,7 +688,6 @@ public function getDataTable(Request $request, $id)
         ]);
     }
 }
-
 
 /**
  * Obtener resumen del período - VERSIÓN CORREGIDA (días con registros)

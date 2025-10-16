@@ -314,10 +314,24 @@ $(document).ready(function() {
                         d.month = now.getMonth() + 1;
                         d.year = now.getFullYear();
                     }
-                    console.log('📤 Parámetros DataTable:', d);
+            // DEBUG: Verificar parámetros de paginación
+                    console.log('🔍 Parámetros DataTable:', {
+                        start: d.start,
+                        length: d.length,
+                        pageLength: d.length,
+                        draw: d.draw,
+                        month: d.month,
+                        year: d.year
+                    });
+                    
+                    return d;                
                 },
                 dataSrc: function (json) {
                     console.log('📥 Datos recibidos DataTable:', json);
+                    // Verificar que el servidor esté respetando la paginación
+                    if (json && json.data) {
+                        console.log(`📊 Mostrando ${json.data.length} registros de ${json.recordsTotal} totales`);
+                    }
                     return json.data;
                 }
             },

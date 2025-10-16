@@ -195,6 +195,18 @@
         .progress-bar-custom {
             background: linear-gradient(135deg, var(--primary), var(--secondary));
         }
+
+        /* Solución definitiva */
+        /* Agrega body para más especificidad */
+        @media (min-width: 1200px) {
+            body .container, 
+            body .container-lg, 
+            body .container-md, 
+            body .container-sm, 
+            body .container-xl {
+                max-width: 1600px !important;
+            }
+        }
     </style>
 
 </head>
