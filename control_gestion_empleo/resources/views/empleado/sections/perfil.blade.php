@@ -298,6 +298,8 @@ $(document).ready(function() {
         dataTable = $('#historial-table').DataTable({
             serverSide: true,
             //processing: true,
+            pageLength: 5,
+            lengthMenu: [5, 10, 25, 50], // ✅ SIN ARRAYS ANIDADOS
             ajax: {
                 url: `/empleado/registro/${empleadoId}/datatable`,
                 type: 'GET',
@@ -372,32 +374,23 @@ $(document).ready(function() {
                     render: function(data, type, row) {
                         console.log('Render tiempo pausa:', { data, row });
                         
-                        // Si hay pausa_inicio y pausa_fin pero tiempo_pausa_total es 0, calcular manualmente
                         let tiempoPausa = Math.max(0, parseInt(data || 0));
                         
                         if (tiempoPausa === 0 && row.pausa_inicio && row.pausa_fin) {
-                            // Calcular manualmente la diferencia
                             const inicio = new Date(row.pausa_inicio);
                             const fin = new Date(row.pausa_fin);
                             const diferenciaMs = fin - inicio;
                             tiempoPausa = Math.max(0, Math.floor(diferenciaMs / 1000));
-                            
-                            console.log('Cálculo manual pausa:', {
-                                inicio: row.pausa_inicio,
-                                fin: row.pausa_fin,
-                                diferenciaMs: diferenciaMs,
-                                tiempoPausa: tiempoPausa
-                            });
                         }
                         
                         if (tiempoPausa === 0) {
                             if (row.pausa_inicio || row.pausa_fin) {
-                                return '<span class="text-warning" title="Hubo pausas pero tiempo calculado es 0">0:00:00</span>';
+                                return '<span class="text-warning" title="Hubo pausas pero tiempo calculado es 0">00:00</span>';
                             }
                             return '<span class="text-muted">Sin pausas</span>';
                         }
                         
-                        return `<span class="text-info font-weight-bold">${formatTime(tiempoPausa)}</span>`;
+                        return `<span class="text-info font-weight-bold">${formatTimeForTable(tiempoPausa)}</span>`;
                     }
                 },
                 { 
@@ -410,7 +403,7 @@ $(document).ready(function() {
                         }
                         
                         const tiempoPositivo = Math.max(0, parseInt(data));
-                         return formatTime(tiempoPositivo);
+                         return formatTimeWithLabels(tiempoPositivo);
                     }
                 },
                 { 
@@ -495,7 +488,7 @@ $(document).ready(function() {
             order: [[0, 'desc']],
             scrollX: true,
             autoWidth: false,
-            responsive: false,
+            responsive: true,
             drawCallback: function(settings) {
                 updatePeriodSummary();
                 
@@ -624,38 +617,36 @@ $(document).ready(function() {
             year = now.getFullYear();
         }
 
-        $.ajax({
-            url: `/empleado/registro/${empleadoId}/resumen-periodo`,
-            method: 'GET',
-            data: {
-                month: month,
-                year: year
-            },
-            success: function(response) {
-                // Convertir horas totales a formato extendido si es necesario
-                const totalHoras = parseFloat(response.total_horas);
-                let horasFormateadas = response.total_horas + 'h';
+         $.ajax({
+        url: `/empleado/registro/${empleadoId}/resumen-periodo`,
+        method: 'GET',
+        data: {
+            month: month,
+            year: year
+        },
+        success: function(response) {
+            console.log('Respuesta resumen:', response);
+            
+            // Formatear horas totales de "1.18h" a "1h 11m"
+            const totalHorasFormateadas = formatTotalHoursWithDays(response.total_horas);
+            
+            // Formatear promedio diario
+            const promedioFormateado = formatDecimalHoursToHM(response.promedio_diario);
+            
+            $('#total-horas-periodo').html(totalHorasFormateadas);
+            $('#total-registros-periodo').text(response.total_registros);
+            $('#promedio-diario-periodo').html(promedioFormateado);
+            $('#dias-trabajados-periodo').text(response.dias_trabajados);
+            
+            const periodTitle = selectedDate ? 
+                `Resumen de ${formatMonthYear(selectedDate)}` : 
+                'Resumen del Mes Actual';
                 
-                if (totalHoras >= 24) {
-                    const dias = Math.floor(totalHoras / 24);
-                    const horasRestantes = (totalHoras % 24).toFixed(2);
-                    horasFormateadas = `${dias}d ${horasRestantes}h`;
-                }
-                
-                $('#total-horas-periodo').text(horasFormateadas);
-                $('#total-registros-periodo').text(response.total_registros);
-                $('#promedio-diario-periodo').text(response.promedio_diario + 'h');
-                $('#dias-trabajados-periodo').text(response.dias_trabajados);
-                
-                const periodTitle = selectedDate ? 
-                    `Resumen de ${formatMonthYear(selectedDate)}` : 
-                    'Resumen del Mes Actual';
-                    
-                $('.card-header h5').last().html(`<i class="fas fa-chart-bar mr-2"></i>${periodTitle}`);
-            },
-            error: function(xhr) {
-                console.error('Error al cargar resumen:', xhr);
-            }
+            $('.card-header h5').last().html(`<i class="fas fa-chart-bar mr-2"></i>${periodTitle}`);
+        },
+        error: function(xhr) {
+            console.error('Error al cargar resumen:', xhr);
+        }
         });
     }
 
@@ -1343,7 +1334,7 @@ function encontrarMejorUbicacion(resultados) {
 
     // Evento STOP
     btnStop.click(function() {
-        console.log('=== STOP - CÁLCULO CON PAUSA MANUAL ===');
+        console.log('=== STOP - MOSTRANDO SOLO HORAS Y MINUTOS ===');
         
         $.ajax({
             url: `/empleado/registro/${empleadoId}/estado`,
@@ -1373,9 +1364,11 @@ function encontrarMejorUbicacion(resultados) {
                     
                     const segundosNetos = Math.max(0, segundosBrutos - segundosPausa);
                     
+                    // USAR EL NUEVO FORMATEO (solo horas y minutos)
                     const tiempoBrutoFormateado = formatTime(segundosBrutos);
                     const pausaFormateada = formatTime(segundosPausa);
                     const tiempoNetoFormateado = formatTime(segundosNetos);
+                    const tiempoConEtiquetas = formatTimeWithLabels(segundosNetos);
                     
                     console.log('Cálculo final modal:', {
                         segundosBrutos,
@@ -1383,17 +1376,18 @@ function encontrarMejorUbicacion(resultados) {
                         segundosNetos,
                         tiempoBrutoFormateado,
                         pausaFormateada,
-                        tiempoNetoFormateado
+                        tiempoNetoFormateado,
+                        tiempoConEtiquetas
                     });
 
                     let contenidoModal = `
                         <div class="mb-3">
-                            <strong class="h4 text-primary">${tiempoNetoFormateado}</strong>
+                            <strong class="h4 text-primary">${tiempoConEtiquetas}</strong>
+                            <div class="small text-muted">${tiempoNetoFormateado}</div>
                         </div>
                         <div class="small text-muted mb-3">
                             <div>🕐 <strong>Inicio:</strong> ${new Date(estadoResponse.inicio).toLocaleTimeString()}</div>
                             <div>🛑 <strong>Fin:</strong> ${fin.toLocaleTimeString()}</div>
-                            <div>⏱️ <strong>Duración bruta:</strong> ${Math.floor(segundosBrutos / 60)} minutos ${segundosBrutos % 60} segundos</div>
                         </div>
                         <div class="small">
                             <div>⏱️ <strong>Tiempo bruto:</strong> ${tiempoBrutoFormateado}</div>
@@ -1684,30 +1678,29 @@ function encontrarMejorUbicacion(resultados) {
     // FUNCIONES UTILITARIAS
     // =============================================
 
-    // Función para formatear tiempo
+    // Función para formatear tiempo (SOLO HORAS Y MINUTOS)
     function formatTime(seconds) {
         seconds = Math.max(0, parseInt(seconds));
         
-        if (seconds === 0) return '00:00:00';
+        if (seconds === 0) return '00:00';
         
-        // Calcular días, horas, minutos y segundos
-        const dias = Math.floor(seconds / 86400); // 24 * 60 * 60
+        // Calcular días, horas, minutos
+        const dias = Math.floor(seconds / 86400);
         const horas = Math.floor((seconds % 86400) / 3600);
         const minutos = Math.floor((seconds % 3600) / 60);
-        const segundos = seconds % 60;
         
         // Si hay días, mostrar formato extendido
         if (dias > 0) {
-            return `${dias}d ${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+            return `${dias}d ${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`;
         }
         
-        // Si solo hay horas, mostrar formato normal
+        // Si solo hay horas, mostrar formato normal (sin segundos)
         if (horas > 0) {
-            return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+            return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`;
         }
         
-        // Si son solo minutos y segundos
-        return `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+        // Si son solo minutos
+        return `${minutos.toString().padStart(2, '0')}:00`;
     }
 
     // Función para recargar datos completos
@@ -1730,9 +1723,18 @@ function encontrarMejorUbicacion(resultados) {
             url: `/empleado/registro/${empleadoId}/estadisticas-mes`,
             method: 'GET',
             success: function(response) {
+                console.log('Estadísticas perfil:', response);
+                
+                // Actualizar total de registros
                 $('.stats-number').first().text(response.total_registros || '0');
-                $('.stats-number').last().text((response.total_horas || '0.00') + 'h');
-                $('.text-muted small').text('Promedio diario: ' + (response.promedio_horas || '0.00') + 'h');
+                
+                // Formatear horas totales de "1.18h" a "1h 11m"
+                const horasFormateadas = formatDecimalHoursToHM(response.total_horas);
+                $('.stats-number').last().html(horasFormateadas);
+                
+                // Formatear promedio diario
+                const promedioFormateado = formatDecimalHoursToHM(response.promedio_horas);
+                $('.text-muted small').html('Promedio diario: ' + promedioFormateado);
             },
             error: function(xhr) {
                 console.error('Error al actualizar estadísticas:', xhr);
@@ -1748,24 +1750,130 @@ function mostrarErrorModal(mensaje) {
     $('#modal-error').show();
 }
 
-// Función para formatear tiempo en formato tabla (HH:MM:SS)
-function formatTimeForTable(seconds) {
+// Función para formatear tiempo en formato tabla (HH:MM)
+    function formatTimeForTable(seconds) {
+        seconds = Math.max(0, parseInt(seconds));
+        
+        if (seconds === 0) return '00:00';
+        
+        const horas = Math.floor(seconds / 3600);
+        const minutos = Math.floor((seconds % 3600) / 60);
+        
+        if (horas > 0) {
+            return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`;
+        }
+        
+        return `${minutos.toString().padStart(2, '0')}:00`;
+    }
+
+// Función para mostrar tiempo con etiquetas (en el modal de confirmación STOP)
+function formatTimeWithLabels(seconds) {
     seconds = Math.max(0, parseInt(seconds));
     
-    if (seconds === 0) return '00:00:00';
+    if (seconds === 0) return '0h 00m';
     
     const horas = Math.floor(seconds / 3600);
     const minutos = Math.floor((seconds % 3600) / 60);
-    const segundos = seconds % 60;
     
-    if (horas > 0) {
-        return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+    // Si hay horas y minutos
+    if (horas > 0 && minutos > 0) {
+        return `${horas}h ${minutos.toString().padStart(2, '0')}m`;
     }
-    
-    return `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+    // Si solo hay horas
+    else if (horas > 0) {
+        return `${horas}h 00m`;
+    }
+    // Si solo hay minutos
+    else {
+        return `0h ${minutos.toString().padStart(2, '0')}m`;
+    }
 }
 
-// Función para mostrar detalles completos en el modal
+// Función para formatear horas decimales a horas:minutos
+function formatDecimalHours(decimalHours) {
+    if (!decimalHours || decimalHours === 0) return '0:00';
+    
+    const horas = Math.floor(decimalHours);
+    const minutos = Math.round((decimalHours - horas) * 60);
+    
+    return `${horas}:${minutos.toString().padStart(2, '0')}`;
+}
+
+// Función para formatear horas totales con días si es necesario
+function formatTotalHours(decimalHours) {
+    if (!decimalHours || decimalHours === 0) return '0:00';
+    
+    if (decimalHours >= 24) {
+        const dias = Math.floor(decimalHours / 24);
+        const horasRestantes = decimalHours % 24;
+        const horas = Math.floor(horasRestantes);
+        const minutos = Math.round((horasRestantes - horas) * 60);
+        
+        return `${dias}d ${horas}:${minutos.toString().padStart(2, '0')}`;
+    } else {
+        const horas = Math.floor(decimalHours);
+        const minutos = Math.round((decimalHours - horas) * 60);
+        
+        return `${horas}:${minutos.toString().padStart(2, '0')}`;
+    }
+}
+
+// Función específica para convertir formato decimal "1.18h" a "1h 11m"
+function formatDecimalHoursToHM(decimalHoursStr) {
+    // Extraer el número decimal del string (quitando la 'h')
+    const decimalHours = safeParseFloat(decimalHoursStr);
+    
+    if (decimalHours === 0) return '0h 00m';
+    
+    const horas = Math.floor(decimalHours);
+    const minutosDecimal = (decimalHours - horas) * 60;
+    const minutos = Math.round(minutosDecimal);
+    
+    // Si los minutos son 60, sumar una hora
+    if (minutos === 60) {
+        return `${horas + 1}h 00m`;
+    }
+    
+    return `${horas}h ${minutos.toString().padStart(2, '0')}m`;
+}
+
+// Función para formatear horas totales con días si es necesario
+function formatTotalHoursWithDays(decimalHoursStr) {
+    const decimalHours = safeParseFloat(decimalHoursStr);
+    
+    if (decimalHours === 0) return '0h 00m';
+    
+    if (decimalHours >= 24) {
+        const dias = Math.floor(decimalHours / 24);
+        const horasRestantes = decimalHours % 24;
+        const horas = Math.floor(horasRestantes);
+        const minutosDecimal = (horasRestantes - horas) * 60;
+        const minutos = Math.round(minutosDecimal);
+        
+        if (minutos === 60) {
+            return `${dias}d ${horas + 1}h 00m`;
+        }
+        
+        return `${dias}d ${horas}h ${minutos.toString().padStart(2, '0')}m`;
+    } else {
+        return formatDecimalHoursToHM(decimalHoursStr);
+    }
+}
+
+
+// Función mejorada para parsear números decimales de formato "1.18h"
+function safeParseFloat(value) {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+        // Remover 'h' y cualquier caracter no numérico excepto punto decimal
+        const cleaned = value.replace(/[^\d.,]/g, '').replace(',', '.');
+        const parsed = parseFloat(cleaned);
+        return isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
+}
+
+// Función para mostrar detalles completos en el modal - CORREGIDA
 function mostrarDetallesCompletos(registro, estadisticasDia) {
     console.log('📊 Mostrando detalles completos:', registro);
     
@@ -1783,19 +1891,26 @@ function mostrarDetallesCompletos(registro, estadisticasDia) {
     const pausaInicio = registro.pausa_inicio ? new Date(registro.pausa_inicio).toLocaleTimeString('es-ES') : 'No hubo pausas';
     const pausaFin = registro.pausa_fin ? new Date(registro.pausa_fin).toLocaleTimeString('es-ES') : (registro.pausa_inicio ? 'Pausa activa' : 'No hubo pausas');
     
-    // Calcular tiempos
-    const tiempoTotal = registro.tiempo_total ? formatTimeForTable(registro.tiempo_total) : '00:00:00';
-    const tiempoPausa = registro.tiempo_pausa_total ? formatTimeForTable(registro.tiempo_pausa_total) : '00:00:00';
+    // CORREGIDO: Usar formatDecimalHoursToHM para todas las horas
+    const totalHorasDia = formatDecimalHoursToHM(estadisticasDia.total_horas_dia);
+    const promedioPorRegistro = formatDecimalHoursToHM(estadisticasDia.promedio_por_registro);
+
+    // CORREGIDO: Calcular duración en formato x h x m
+    const tiempoTotalSegundos = registro.tiempo_total || 0;
+    const tiempoTotalFormateado = formatTimeWithLabels(tiempoTotalSegundos);
+    
+    const tiempoPausaSegundos = registro.tiempo_pausa_total || 0;
+    const tiempoPausaFormateado = formatTimeWithLabels(tiempoPausaSegundos);
     
     // Calcular tiempo activo (tiempo total - tiempo pausa)
-    const tiempoActivoSegundos = Math.max(0, (registro.tiempo_total || 0) - (registro.tiempo_pausa_total || 0));
-    const tiempoActivo = formatTimeForTable(tiempoActivoSegundos);
+    const tiempoActivoSegundos = Math.max(0, tiempoTotalSegundos - tiempoPausaSegundos);
+    const tiempoActivoFormateado = formatTimeWithLabels(tiempoActivoSegundos);
     
     // Calcular eficiencia
     let eficiencia = '-';
     let eficienciaColor = 'text-muted';
-    if (registro.tiempo_total > 0 && registro.tiempo_pausa_total > 0) {
-        const porcentaje = ((tiempoActivoSegundos / registro.tiempo_total) * 100).toFixed(1);
+    if (tiempoTotalSegundos > 0 && tiempoPausaSegundos > 0) {
+        const porcentaje = ((tiempoActivoSegundos / tiempoTotalSegundos) * 100).toFixed(1);
         eficiencia = `${porcentaje}%`;
         
         if (porcentaje >= 90) {
@@ -1808,7 +1923,7 @@ function mostrarDetallesCompletos(registro, estadisticasDia) {
             eficienciaColor = 'text-danger';
             eficiencia += ' 👎 Bajo';
         }
-    } else if (registro.tiempo_total > 0) {
+    } else if (tiempoTotalSegundos > 0) {
         eficiencia = '100% ⭐ Excelente';
         eficienciaColor = 'text-success';
     }
@@ -1859,7 +1974,8 @@ function mostrarDetallesCompletos(registro, estadisticasDia) {
                             </tr>
                             <tr>
                                 <td class="font-weight-bold">Duración Total:</td>
-                                <td><span class="font-weight-bold text-primary">${tiempoTotal}</span></td>
+                                <!-- CORREGIDO: Usar formato x h x m -->
+                                <td><span class="font-weight-bold text-primary">${tiempoTotalFormateado}</span></td>
                             </tr>
                         </table>
                     </div>
@@ -1884,7 +2000,8 @@ function mostrarDetallesCompletos(registro, estadisticasDia) {
                             </tr>
                             <tr>
                                 <td class="font-weight-bold">Tiempo Activo:</td>
-                                <td><span class="font-weight-bold text-success">${tiempoActivo}</span></td>
+                                <!-- CORREGIDO: Usar formato x h x m -->
+                                <td><span class="font-weight-bold text-success">${tiempoActivoFormateado}</span></td>
                             </tr>
                         </table>
                     </div>
@@ -1917,7 +2034,8 @@ function mostrarDetallesCompletos(registro, estadisticasDia) {
                                 <table class="table table-sm table-borderless">
                                     <tr>
                                         <td class="font-weight-bold" style="width: 50%">Tiempo en Pausa:</td>
-                                        <td><span class="text-info font-weight-bold">${tiempoPausa}</span></td>
+                                        <!-- CORREGIDO: Usar formato x h x m -->
+                                        <td><span class="text-info font-weight-bold">${tiempoPausaFormateado}</span></td>
                                     </tr>
                                     <tr>
                                         <td class="font-weight-bold">Eficiencia:</td>
@@ -1998,7 +2116,7 @@ function mostrarDetallesCompletos(registro, estadisticasDia) {
                         <div class="row text-center">
                             <div class="col-md-3">
                                 <div class="stat-item">
-                                    <div class="stat-number text-primary">${estadisticasDia ? estadisticasDia.total_horas_dia + 'h' : '0.00h'}</div>
+                                    <div class="stat-number text-primary">${estadisticasDia ? totalHorasDia : '0h 00m'}</div>
                                     <div class="stat-label small">Total del Día</div>
                                 </div>
                             </div>
@@ -2010,13 +2128,14 @@ function mostrarDetallesCompletos(registro, estadisticasDia) {
                             </div>
                             <div class="col-md-3">
                                 <div class="stat-item">
-                                    <div class="stat-number text-info">${estadisticasDia ? estadisticasDia.promedio_por_registro + 'h' : '0.00h'}</div>
+                                    <div class="stat-number text-info">${estadisticasDia ? promedioPorRegistro : '0h 00m'}</div>
                                     <div class="stat-label small">Promedio por Registro</div>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="stat-item">
-                                    <div class="stat-number text-warning">${tiempoTotal}</div>
+                                    <!-- CORREGIDO: Usar formato x h x m -->
+                                    <div class="stat-number text-warning">${tiempoTotalFormateado}</div>
                                     <div class="stat-label small">Duración Este Registro</div>
                                 </div>
                             </div>
@@ -2049,11 +2168,26 @@ function mostrarDetallesCompletos(registro, estadisticasDia) {
     // Verificar estado al cargar la página
     initializeDataTable();
 
+
+
+ // Formatear valores iniciales del perfil (desde Blade)
+    const totalHorasInicial = '{{ $estadisticasMes["total_horas"] ?? "0" }}';
+    const promedioInicial = '{{ $estadisticasMes["promedio_horas"] ?? "0" }}';
+
+    $('.stats-number').first().text('{{ $estadisticasMes["total_registros"] ?? 0 }}');
+    $('.stats-number').last().html(formatDecimalHoursToHM(totalHorasInicial));
+    $('.text-muted small').html('Promedio diario: ' + formatDecimalHoursToHM(promedioInicial));
+
+    // También formatear el resumen inicial
+    setTimeout(() => {
+        updatePeriodSummary();
+    }, 100);
+
+    // =============================================
+    // VERIFICAR ESTADO Y CONTINUAR
+    // =============================================
+
     checkEstado();
-
-    // ... (el resto de tu código para DataTable, filtros, etc. permanece igual)
-    // Solo asegúrate de que las funciones estén definidas antes de ser usadas
-
 });
 
 

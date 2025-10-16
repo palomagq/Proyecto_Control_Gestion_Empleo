@@ -780,8 +780,11 @@
                                                 <th>Fecha</th>
                                                 <th>Hora Inicio</th>
                                                 <th>Hora Fin</th>
-                                                <th>Duración</th>
+                                                <th>Pausa Inicio</th>
+                                                <th>Pausa Fin</th>
                                                 <th>Tiempo Pausa</th>
+                                                <th>Duración</th>
+                                                <th>Dirección</th>
                                                 <th>Estado</th>
                                                 <th>Acciones</th>
                                             </tr>
@@ -838,7 +841,48 @@
     </div>
 </div>
 
-
+<!-- Modal de Detalles del Registro (PARA USAR DENTRO DEL MODAL DE EMPLEADO) -->
+<div class="modal fade" id="detailsModal" tabindex="-1" role="dialog" aria-labelledby="detailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="detailsModalLabel">
+                    <i class="fas fa-clock mr-2"></i>Detalles Completos del Registro
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="modal-loading" class="text-center py-4">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="sr-only">Cargando...</span>
+                    </div>
+                    <p class="text-muted">Cargando detalles del registro...</p>
+                </div>
+                
+                <div id="modal-content" style="display: none;">
+                    <!-- El contenido se cargará aquí dinámicamente -->
+                </div>
+                
+                <div id="modal-error" class="text-center py-4" style="display: none;">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h5>Error al cargar detalles</h5>
+                    <p class="text-muted" id="error-message">No se pudieron cargar los detalles del registro.</p>
+                    <button class="btn btn-secondary mt-2" data-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-2"></i>Cerrar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="imprimirDetalles()">
+                    <i class="fas fa-print mr-2"></i>Imprimir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Modal para Exportar Excel -->
 <div class="modal fade" id="exportExcelModal" tabindex="-1" role="dialog" aria-labelledby="exportExcelModalLabel" aria-hidden="true">
@@ -3199,6 +3243,7 @@ $('#deleteEmployeeModal').on('hidden.bs.modal', function () {
 let viewMap = null;
 let viewMarker = null;
 let currentEmployeeId = null;
+let viewRegistrosTable = null;
 
 // Función para abrir el modal de vista
 function verEmpleado(id) {
@@ -3243,6 +3288,7 @@ function verEmpleado(id) {
         });
 }
 
+
 // Función para llenar el modal de vista
 function populateViewModal(empleado) {
     // Información Personal
@@ -3258,7 +3304,7 @@ function populateViewModal(empleado) {
     document.getElementById('view_created_at').textContent = formatDateTime(empleado.created_at);
     document.getElementById('view_updated_at').textContent = formatDateTime(empleado.updated_at);
 
-    // ✅ NUEVO CAMPO: Teléfono
+    // Teléfono
     const telefono = empleado.telefono || 'N/A';
     document.getElementById('view_telefono').textContent = telefono;
     
@@ -3291,7 +3337,7 @@ function populateViewModal(empleado) {
     initializeViewMap(empleado);
 
     // Guardar el ID del empleado para usar en la tabla de registros
-    currentViewEmpleadoId = empleado.id;
+    currentEmployeeId = empleado.id;
     
     // Inicializar datepicker y cargar registros
     initializeViewDatepicker();
@@ -3670,6 +3716,12 @@ function imprimirDetalles() {
 // Limpiar cuando se cierre el modal
 $('#viewEmployeeModal').on('hidden.bs.modal', function () {
     currentEmployeeId = null;
+    
+    // Destruir DataTable si existe
+    if (viewRegistrosTable) {
+        viewRegistrosTable.destroy();
+        viewRegistrosTable = null;
+    }
     
     // Limpiar mapa
     if (viewMap) {
@@ -5046,7 +5098,7 @@ function descargarQR(empleadoId) {
 
 
 // Variables globales para el modal de vista
-let viewRegistrosTable = null;
+//let viewRegistrosTable = null;
 let currentViewEmpleadoId = null;
 
 // Función para inicializar el datepicker del filtro de mes
@@ -5055,21 +5107,27 @@ function initializeViewDatepicker() {
         plugins: [
             new monthSelectPlugin({
                 shorthand: true,
-                dateFormat: "Y-m",
-                altFormat: "F Y",
+                dateFormat: "Y-m",  // Formato YYYY-MM
+                altFormat: "F Y",   // Formato visual: Mes Año
                 theme: "material_blue"
             })
         ],
         locale: "es",
-        defaultDate: "today"
+        defaultDate: "today",
+        onChange: function(selectedDates, dateStr, instance) {
+            console.log('📅 Mes seleccionado:', dateStr);
+            // Recargar automáticamente al cambiar el mes
+            setTimeout(() => {
+                cargarRegistrosEmpleado();
+            }, 300);
+        }
     });
 }
 
 // Función para cargar los registros del empleado - VERSIÓN CORREGIDA
 function cargarRegistrosEmpleado() {
-    if (!currentViewEmpleadoId) {
+    if (!currentEmployeeId) {
         console.error('No hay ID de empleado seleccionado');
-        Swal.fire('Error', 'No se ha seleccionado un empleado', 'error');
         return;
     }
 
@@ -5090,73 +5148,59 @@ function cargarRegistrosEmpleado() {
     }
 
     console.log('🔄 Cargando registros para empleado:', {
-        empleadoId: currentViewEmpleadoId,
+        empleadoId: currentEmployeeId,
         mes: mes,
         año: año
     });
 
-    // Mostrar loading
-    $('#view_empleado_registros_table tbody').html(`
-        <tr>
-            <td colspan="7" class="text-center">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="sr-only">Cargando...</span>
-                </div>
-                <p class="mt-2 text-muted">Cargando registros...</p>
-            </td>
-        </tr>
-    `);
-
     // Destruir DataTable si existe
     if (viewRegistrosTable && $.fn.DataTable.isDataTable('#view_empleado_registros_table')) {
         viewRegistrosTable.destroy();
-        $('#view_empleado_registros_table').empty();
     }
 
-    // Inicializar DataTable
+    // Inicializar DataTable CORREGIDO
     viewRegistrosTable = $('#view_empleado_registros_table').DataTable({
-        //processing: true,
-        serverSide: false, // Cambiar a false para simplificar
+        serverSide: true,
+        processing: true,
+        pageLength: 5,
+        lengthMenu: [5, 10, 25, 50],
         ajax: {
-            url: `/admin/empleados/${currentViewEmpleadoId}/registros/datatable`,
+            url: `/empleado/registro/${currentEmployeeId}/datatable`,
             type: 'GET',
-            data: function(d) {
-                d.mes = mes;
-                d.año = año;
+            data: function (d) {
+                // CORRECCIÓN: Usar los nombres de parámetro correctos
+                d.month = mes;
+                d.year = año;
+                console.log('📤 Enviando parámetros al servidor:', d);
+            },
+            dataSrc: function (json) {
+                console.log('📥 Respuesta del servidor:', json);
+                return json.data;
             },
             error: function(xhr, error, thrown) {
-                console.error('❌ Error Ajax DataTable:', error);
-                console.error('Response:', xhr.responseText);
-                
-                let errorMessage = 'Error al cargar los registros';
-                if (xhr.responseJSON && xhr.responseJSON.error) {
-                    errorMessage = xhr.responseJSON.error;
-                }
-                
-                $('#view_empleado_registros_table tbody').html(`
-                    <tr>
-                        <td colspan="7" class="text-center text-danger">
-                            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-                            <p>${errorMessage}</p>
-                            <button class="btn btn-sm btn-primary" onclick="cargarRegistrosEmpleado()">
-                                <i class="fas fa-redo"></i> Reintentar
-                            </button>
-                        </td>
-                    </tr>
-                `);
+                console.error('❌ Error cargando registros:', error);
+                console.log('Status:', xhr.status);
+                console.log('Response:', xhr.responseText);
             }
         },
         columns: [
             { 
                 data: 'created_at',
                 name: 'created_at',
+                width: '12%',
                 render: function(data) {
-                    return data ? new Date(data).toLocaleDateString('es-ES') : '-';
+                    return data ? new Date(data).toLocaleDateString('es-ES', {
+                        weekday: 'short',
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    }) : '-';
                 }
             },
             { 
                 data: 'inicio',
                 name: 'inicio',
+                width: '10%',
                 render: function(data) {
                     return data ? new Date(data).toLocaleTimeString('es-ES') : '-';
                 }
@@ -5164,59 +5208,133 @@ function cargarRegistrosEmpleado() {
             { 
                 data: 'fin',
                 name: 'fin',
+                width: '10%',
                 render: function(data) {
-                    return data ? new Date(data).toLocaleTimeString('es-ES') : '<span class="text-warning">En progreso</span>';
+                    return data ? new Date(data).toLocaleTimeString('es-ES') : 'En progreso';
                 }
             },
             { 
-                data: 'tiempo_total',
-                name: 'tiempo_total',
+                data: 'pausa_inicio',
+                name: 'pausa_inicio',
+                width: '10%',
                 render: function(data) {
-                    if (!data || data === 0) return '00:00:00';
-                    const segundos = Math.max(0, parseInt(data));
-                    const horas = Math.floor(segundos / 3600);
-                    const minutos = Math.floor((segundos % 3600) / 60);
-                    const segs = segundos % 60;
-                    return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segs.toString().padStart(2, '0')}`;
+                    return data ? new Date(data).toLocaleTimeString('es-ES') : '-';
+                }
+            },
+            { 
+                data: 'pausa_fin',
+                name: 'pausa_fin',
+                width: '10%',
+                render: function(data) {
+                    return data ? new Date(data).toLocaleTimeString('es-ES') : '-';
                 }
             },
             { 
                 data: 'tiempo_pausa_total',
                 name: 'tiempo_pausa_total',
-                render: function(data) {
-                    if (!data || data === 0) return '00:00:00';
-                    const segundos = Math.max(0, parseInt(data));
-                    const horas = Math.floor(segundos / 3600);
-                    const minutos = Math.floor((segundos % 3600) / 60);
-                    const segs = segundos % 60;
-                    return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segs.toString().padStart(2, '0')}`;
+                width: '10%',
+                render: function(data, type, row) {
+                    let tiempoPausa = Math.max(0, parseInt(data || 0));
+                    
+                    if (tiempoPausa === 0 && row.pausa_inicio && row.pausa_fin) {
+                        const inicio = new Date(row.pausa_inicio);
+                        const fin = new Date(row.pausa_fin);
+                        const diferenciaMs = fin - inicio;
+                        tiempoPausa = Math.max(0, Math.floor(diferenciaMs / 1000));
+                    }
+                    
+                    if (tiempoPausa === 0) {
+                        if (row.pausa_inicio || row.pausa_fin) {
+                            return '<span class="text-warning">00:00</span>';
+                        }
+                        return '<span class="text-muted">Sin pausas</span>';
+                    }
+                    
+                    return `<span class="text-info font-weight-bold">${formatTimeForTable(tiempoPausa)}</span>`;
+                }
+            },
+            { 
+                data: 'tiempo_total',
+                name: 'tiempo_total',
+                width: '10%',
+                render: function(data, type, row) {
+                    if (!data || data === 0) {
+                        return row.fin ? '00:00:00' : '-';
+                    }
+                    
+                    const tiempoPositivo = Math.max(0, parseInt(data));
+                    return formatTimeWithLabels(tiempoPositivo);
+                }
+            },
+            { 
+                data: 'direccion',
+                name: 'direccion',
+                width: '15%',
+                render: function(data, type, row) {
+                    const ciudad = row.ciudad || '';
+                    const pais = row.pais || '';
+                    
+                    if (ciudad && pais && 
+                        !ciudad.includes('GPS') && 
+                        !ciudad.includes('Coordenadas') &&
+                        !pais.includes('GPS')) {
+                        
+                        return `
+                            <div class="ubicacion-info">
+                                <i class="fas fa-map-marker-alt text-success mr-1"></i>
+                                <small>${ciudad}, ${pais}</small>
+                            </div>
+                        `;
+                    }
+                    
+                    if (data && data.includes('Ubicación GPS')) {
+                        if (ciudad && ciudad !== 'Ubicación GPS') {
+                            return `
+                                <div class="ubicacion-info">
+                                    <i class="fas fa-map-marker-alt text-info mr-1"></i>
+                                    <small>${ciudad}</small>
+                                </div>
+                            `;
+                        }
+                        
+                        return `
+                            <div class="ubicacion-info">
+                                <i class="fas fa-map-marker-alt text-warning mr-1"></i>
+                                <small>Ubicación por GPS</small>
+                            </div>
+                        `;
+                    }
+                    
+                    return '<span class="text-muted">Sin ubicación</span>';
                 }
             },
             { 
                 data: 'estado',
                 name: 'estado',
+                width: '10%',
                 render: function(data) {
-                    const estados = {
-                        'activo': '<span class="badge badge-success">Activo</span>',
-                        'pausado': '<span class="badge badge-warning">Pausado</span>',
-                        'completado': '<span class="badge badge-info">Completado</span>'
+                    const statusMap = {
+                        'activo': 'badge-active',
+                        'pausado': 'badge-paused',
+                        'completado': 'badge-completed'
                     };
-                    return estados[data] || '<span class="badge badge-secondary">' + (data || 'Desconocido') + '</span>';
+                    const statusText = data ? data.charAt(0).toUpperCase() + data.slice(1) : 'Desconocido';
+                    return `<span class="badge badge-status ${statusMap[data] || 'badge-secondary'}">${statusText}</span>`;
                 }
             },
             {
                 data: 'id',
-                name: 'acciones',
-                orderable: false,
-                searchable: false,
-                render: function(data, type, row) {
-                    if (!data) return '';
-                    return `
-                        <button class="btn btn-sm btn-outline-primary" onclick="verDetallesRegistro(${data})" title="Ver detalles">
+                name: 'actions',
+                width: '8%',
+                render: function(data) {
+                    return data ? `
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewDetailsFromAdmin(${data}, ${currentEmployeeId})" title="Ver detalles">
                             <i class="fas fa-eye"></i>
                         </button>
-                    `;
-                }
+                    ` : '';
+                },
+                orderable: false,
+                searchable: false
             }
         ],
         language: {
@@ -5225,40 +5343,631 @@ function cargarRegistrosEmpleado() {
             zeroRecords: 'No se encontraron registros que coincidan'
         },
         order: [[0, 'desc']],
-        pageLength: 5,
-        lengthMenu: [5, 10, 25, 50],
+        scrollX: true,
+        autoWidth: false,
+        responsive: true,
         drawCallback: function(settings) {
             // Cargar resumen después de cargar los datos
-            cargarResumenRegistros(currentViewEmpleadoId, mes, año);
+            cargarResumenRegistros(currentEmployeeId, mes, año);
+            
+            // Manejar estado vacío
+            if (settings.json && settings.json.recordsTotal === 0) {
+                const api = this.api();
+                const $table = $(api.table().node());
+                const periodText = mesSeleccionado ? `para ${formatMonthYear(mesSeleccionado)}` : 'para el período seleccionado';
+                
+                $table.find('.dataTables_empty').html(
+                    '<div class="text-center py-4">' +
+                    '<i class="fas fa-clock fa-3x text-muted mb-3"></i>' +
+                    `<h5 class="text-muted">No hay registros ${periodText}</h5>` +
+                    '<p class="text-muted">Cuando el empleado trabaje durante este mes, aparecerán aquí sus registros.</p>' +
+                    '</div>'
+                );
+            }
         },
         initComplete: function(settings, json) {
-            console.log('✅ DataTable de registros inicializado correctamente');
+            console.log('✅ DataTable inicializado correctamente');
+            console.log('Datos recibidos:', json);
         }
     });
 }
 
-// Función para cargar el resumen de registros
-function cargarResumenRegistros(empleadoId, mes, año) {
+// Función para ver detalles desde el modal de admin - USA EL MISMO MODAL
+function viewDetailsFromAdmin(registroId, empleadoId) {
+    console.log('🔍 Cargando detalles del registro desde admin:', registroId, empleadoId);
+    
+    // Resetear modal (igual que en el perfil)
+    $('#modal-loading').show();
+    $('#modal-content').hide();
+    $('#modal-error').hide();
+    
+    // Mostrar modal inmediatamente
+    $('#detailsModal').modal('show');
+    
+    // Obtener datos del registro via AJAX (misma ruta que en el perfil)
     $.ajax({
-        url: `/admin/empleados/${empleadoId}/registros/resumen`,
+        url: `/empleado/registro/${empleadoId}/detalles/${registroId}`,
         method: 'GET',
-        data: {
-            mes: mes,
-            año: año
-        },
+        timeout: 10000,
         success: function(response) {
-            if (response.success) {
-                $('#view_total_horas_mes').text(response.total_horas + 'h');
-                $('#view_total_registros_mes').text(response.total_registros);
-                $('#view_promedio_diario_mes').text(response.promedio_diario + 'h');
-                $('#view_dias_trabajados_mes').text(response.dias_trabajados);
-                $('#view_registros_resumen').show();
+            console.log('✅ Respuesta detalles:', response);
+            
+            if (response.success && response.registro) {
+                mostrarDetallesCompletos(response.registro, response.estadisticasDia);
+            } else {
+                mostrarErrorModal(response.message || 'No se pudieron cargar los detalles del registro.');
             }
         },
-        error: function(xhr) {
-            console.error('Error cargando resumen:', xhr);
+        error: function(xhr, status, error) {
+            console.error('❌ Error al cargar detalles:', error);
+            
+            let mensajeError = 'Error de conexión';
+            if (xhr.status === 404) {
+                mensajeError = 'Registro no encontrado';
+            } else if (xhr.status === 403) {
+                mensajeError = 'No tienes permiso para ver este registro';
+            } else if (xhr.status === 500) {
+                mensajeError = 'Error interno del servidor';
+            } else if (status === 'timeout') {
+                mensajeError = 'Tiempo de espera agotado';
+            }
+            
+            mostrarErrorModal(mensajeError);
         }
     });
+}
+
+// Función para mostrar detalles completos (COPIADA DEL PERFIL DEL EMPLEADO)
+function mostrarDetallesCompletos(registro, estadisticasDia) {
+    console.log('📊 Mostrando detalles completos:', registro);
+    
+    // Formatear fechas y tiempos
+    const fechaCompleta = registro.created_at ? new Date(registro.created_at).toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    }) : '-';
+    
+    const fechaCorta = registro.created_at ? new Date(registro.created_at).toLocaleDateString('es-ES') : '-';
+    const inicio = registro.inicio ? new Date(registro.inicio).toLocaleTimeString('es-ES') : '-';
+    const fin = registro.fin ? new Date(registro.fin).toLocaleTimeString('es-ES') : 'En progreso';
+    const pausaInicio = registro.pausa_inicio ? new Date(registro.pausa_inicio).toLocaleTimeString('es-ES') : 'No hubo pausas';
+    const pausaFin = registro.pausa_fin ? new Date(registro.pausa_fin).toLocaleTimeString('es-ES') : (registro.pausa_inicio ? 'Pausa activa' : 'No hubo pausas');
+    
+    // Formatear horas
+    const totalHorasDia = formatDecimalHoursToHM(estadisticasDia.total_horas_dia);
+    const promedioPorRegistro = formatDecimalHoursToHM(estadisticasDia.promedio_por_registro);
+
+    // Calcular duración
+    const tiempoTotalSegundos = registro.tiempo_total || 0;
+    const tiempoTotalFormateado = formatTimeWithLabels(tiempoTotalSegundos);
+    
+    const tiempoPausaSegundos = registro.tiempo_pausa_total || 0;
+    const tiempoPausaFormateado = formatTimeWithLabels(tiempoPausaSegundos);
+    
+    const tiempoActivoSegundos = Math.max(0, tiempoTotalSegundos - tiempoPausaSegundos);
+    const tiempoActivoFormateado = formatTimeWithLabels(tiempoActivoSegundos);
+    
+    // Calcular eficiencia
+    let eficiencia = '-';
+    let eficienciaColor = 'text-muted';
+    if (tiempoTotalSegundos > 0 && tiempoPausaSegundos > 0) {
+        const porcentaje = ((tiempoActivoSegundos / tiempoTotalSegundos) * 100).toFixed(1);
+        eficiencia = `${porcentaje}%`;
+        
+        if (porcentaje >= 90) {
+            eficienciaColor = 'text-success';
+            eficiencia += ' ⭐ Excelente';
+        } else if (porcentaje >= 70) {
+            eficienciaColor = 'text-warning';
+            eficiencia += ' 👍 Bueno';
+        } else {
+            eficienciaColor = 'text-danger';
+            eficiencia += ' 👎 Bajo';
+        }
+    } else if (tiempoTotalSegundos > 0) {
+        eficiencia = '100% ⭐ Excelente';
+        eficienciaColor = 'text-success';
+    }
+    
+    // Estado con colores e iconos
+    let estadoBadge = '';
+    let estadoIcon = '';
+    switch(registro.estado) {
+        case 'activo':
+            estadoBadge = 'badge-success';
+            estadoIcon = '🔴';
+            break;
+        case 'pausado':
+            estadoBadge = 'badge-warning';
+            estadoIcon = '⏸️';
+            break;
+        case 'completado':
+            estadoBadge = 'badge-primary';
+            estadoIcon = '✅';
+            break;
+        default:
+            estadoBadge = 'badge-secondary';
+            estadoIcon = '❓';
+    }
+    
+    // Construir el contenido HTML completo
+    const contenidoHTML = `
+        <div class="row">
+            <!-- Información Principal -->
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Información del Registro</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td class="font-weight-bold" style="width: 40%">ID Registro:</td>
+                                <td>#${registro.id}</td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Fecha:</td>
+                                <td>${fechaCompleta}</td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Estado:</td>
+                                <td><span class="badge ${estadoBadge}">${estadoIcon} ${registro.estado ? registro.estado.charAt(0).toUpperCase() + registro.estado.slice(1) : 'Desconocido'}</span></td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Duración Total:</td>
+                                <td><span class="font-weight-bold text-primary">${tiempoTotalFormateado}</span></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Línea de Tiempo -->
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0"><i class="fas fa-history mr-2"></i>Línea de Tiempo</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td class="font-weight-bold" style="width: 40%">Inicio:</td>
+                                <td>${inicio}</td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Fin:</td>
+                                <td>${fin}</td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Tiempo Activo:</td>
+                                <td><span class="font-weight-bold text-success">${tiempoActivoFormateado}</span></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información de Pausas -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card mb-3">
+                    <div class="card-header bg-warning text-white">
+                        <h6 class="mb-0"><i class="fas fa-pause-circle mr-2"></i>Información de Pausas</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td class="font-weight-bold" style="width: 50%">Pausa Inicio:</td>
+                                        <td>${pausaInicio}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">Pausa Fin:</td>
+                                        <td>${pausaFin}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td class="font-weight-bold" style="width: 50%">Tiempo en Pausa:</td>
+                                        <td><span class="text-info font-weight-bold">${tiempoPausaFormateado}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">Eficiencia:</td>
+                                        <td><span class="${eficienciaColor} font-weight-bold">${eficiencia}</span></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        ${registro.latitud && registro.longitud ? `
+        <!-- Información de Geolocalización -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card mb-3">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0"><i class="fas fa-map-marker-alt mr-2"></i>Información de Ubicación</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td class="font-weight-bold" style="width: 40%">Dirección:</td>
+                                        <td>${registro.direccion || 'No disponible'}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">Ciudad:</td>
+                                        <td>${registro.ciudad || 'No disponible'}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">País:</td>
+                                        <td>${registro.pais || 'No disponible'}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td class="font-weight-bold" style="width: 40%">Coordenadas:</td>
+                                        <td><small class="text-muted">${registro.latitud || 'N/A'}, ${registro.longitud || 'N/A'}</small></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">Precisión:</td>
+                                        <td><small class="text-muted">${registro.precision_gps ? registro.precision_gps + ' metros' : 'N/A'}</small></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">Dispositivo:</td>
+                                        <td><small class="text-muted">${registro.dispositivo || 'No registrado'}</small></td>
+                                    </tr>
+                                </table>
+                                ${registro.latitud && registro.longitud ? `
+                                <div class="mt-2 text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="verEnMapa(${registro.latitud}, ${registro.longitud})">
+                                        <i class="fas fa-map mr-1"></i>Ver en Google Maps
+                                    </button>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        ` : ''}
+
+        <!-- Estadísticas del Día -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h6 class="mb-0"><i class="fas fa-chart-bar mr-2"></i>Estadísticas del Día ${fechaCorta}</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <div class="stat-item">
+                                    <div class="stat-number text-primary">${estadisticasDia ? totalHorasDia : '0h 00m'}</div>
+                                    <div class="stat-label small">Total del Día</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-item">
+                                    <div class="stat-number text-success">${estadisticasDia ? estadisticasDia.total_registros_dia : '0'}</div>
+                                    <div class="stat-label small">Registros del Día</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-item">
+                                    <div class="stat-number text-info">${estadisticasDia ? promedioPorRegistro : '0h 00m'}</div>
+                                    <div class="stat-label small">Promedio por Registro</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-item">
+                                    <div class="stat-number text-warning">${tiempoTotalFormateado}</div>
+                                    <div class="stat-label small">Duración Este Registro</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Actualizar el modal
+    $('#modal-content').html(contenidoHTML);
+    $('#modal-loading').hide();
+    $('#modal-content').show();
+    
+    // Actualizar título del modal con ID del registro
+    $('#detailsModalLabel').html(`<i class="fas fa-clock mr-2"></i>Detalles del Registro #${registro.id}`);
+}
+
+// Función para mostrar error en el modal
+function mostrarErrorModal(mensaje) {
+    $('#modal-loading').hide();
+    $('#error-message').text(mensaje);
+    $('#modal-error').show();
+}
+
+// Función para abrir Google Maps
+function verEnMapa(latitud, longitud) {
+    console.log('🗺️ Abriendo Google Maps:', { latitud, longitud });
+    
+    if (typeof latitud !== 'number' || typeof longitud !== 'number' || 
+        isNaN(latitud) || isNaN(longitud)) {
+        console.error('❌ Coordenadas inválidas:', { latitud, longitud });
+        Swal.fire({
+            icon: 'error',
+            title: 'Coordenadas inválidas',
+            text: 'No se pueden abrir las coordenadas en el mapa'
+        });
+        return;
+    }
+    
+    const url = `https://www.google.com/maps?q=${latitud},${longitud}&z=15`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+    
+    Swal.fire({
+        icon: 'success',
+        title: 'Google Maps abierto',
+        text: 'Se ha abierto Google Maps en una nueva pestaña',
+        timer: 2000,
+        showConfirmButton: false
+    });
+}
+
+// Funciones auxiliares para formateo (similares a las del perfil)
+function formatTimeForTable(seconds) {
+    seconds = Math.max(0, parseInt(seconds));
+    
+    if (seconds === 0) return '00:00';
+    
+    const horas = Math.floor(seconds / 3600);
+    const minutos = Math.floor((seconds % 3600) / 60);
+    
+    if (horas > 0) {
+        return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`;
+    }
+    
+    return `${minutos.toString().padStart(2, '0')}:00`;
+}
+
+function formatTimeWithLabels(seconds) {
+    seconds = Math.max(0, parseInt(seconds));
+    
+    if (seconds === 0) return '0h 00m';
+    
+    const horas = Math.floor(seconds / 3600);
+    const minutos = Math.floor((seconds % 3600) / 60);
+    
+    if (horas > 0 && minutos > 0) {
+        return `${horas}h ${minutos.toString().padStart(2, '0')}m`;
+    } else if (horas > 0) {
+        return `${horas}h 00m`;
+    } else {
+        return `0h ${minutos.toString().padStart(2, '0')}m`;
+    }
+}
+
+function formatMonthYear(dateString) {
+    const partes = dateString.split('-');
+    const año = partes[0];
+    const mesNumero = parseInt(partes[1]);
+    
+    const meses = {
+        1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril',
+        5: 'mayo', 6: 'junio', 7: 'julio', 8: 'agosto',
+        9: 'septiembre', 10: 'octubre', 11: 'noviembre', 12: 'diciembre'
+    };
+    
+    return meses[mesNumero] ? `${meses[mesNumero]} de ${año}` : dateString;
+}
+
+
+// Función alternativa para abrir modal de detalles
+function abrirModalDetallesRegistro(registroId, empleadoId) {
+    Swal.fire({
+        title: 'Cargando detalles...',
+        text: 'Obteniendo información del registro',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    fetch(`/empleado/registro/${empleadoId}/detalles/${registroId}`)
+        .then(response => response.json())
+        .then(data => {
+            Swal.close();
+            
+            if (data.success) {
+                mostrarDetallesEnModal(data.registro, data.estadisticasDia);
+            } else {
+                throw new Error(data.message || 'No se pudieron cargar los detalles');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error cargando detalles:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudieron cargar los detalles del registro: ' + error.message
+            });
+        });
+}
+
+// Función para mostrar detalles en modal
+function mostrarDetallesEnModal(registro, estadisticasDia) {
+    // Crear modal temporal para mostrar los detalles
+    const modalHtml = `
+        <div class="modal fade" id="detallesRegistroModal" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-xl" role="document">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-clock mr-2"></i>Detalles del Registro #${registro.id}
+                        </h5>
+                        <button type="button" class="close text-white" data-dismiss="modal">
+                            <span>&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        ${generarContenidoDetalles(registro, estadisticasDia)}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remover modal anterior si existe
+    $('#detallesRegistroModal').remove();
+    
+    // Añadir nuevo modal al body
+    $('body').append(modalHtml);
+    
+    // Mostrar modal
+    $('#detallesRegistroModal').modal('show');
+}
+
+// Función para generar el contenido de detalles (similar a la del perfil)
+function generarContenidoDetalles(registro, estadisticasDia) {
+    // Esta función debe ser similar a mostrarDetallesCompletos() del perfil del empleado
+    // Puedes copiar y adaptar esa función aquí
+    const fechaCompleta = registro.created_at ? new Date(registro.created_at).toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    }) : '-';
+    
+    const inicio = registro.inicio ? new Date(registro.inicio).toLocaleTimeString('es-ES') : '-';
+    const fin = registro.fin ? new Date(registro.fin).toLocaleTimeString('es-ES') : 'En progreso';
+    
+    // ... resto del código similar a mostrarDetallesCompletos() ...
+    
+    return `
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Información del Registro</h6>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Fecha:</strong> ${fechaCompleta}</p>
+                        <p><strong>Inicio:</strong> ${inicio}</p>
+                        <p><strong>Fin:</strong> ${fin}</p>
+                        <p><strong>Estado:</strong> <span class="badge badge-success">${registro.estado || 'N/A'}</span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0"><i class="fas fa-chart-bar mr-2"></i>Estadísticas</h6>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Duración:</strong> ${formatTimeWithLabels(registro.tiempo_total || 0)}</p>
+                        <p><strong>Tiempo en pausa:</strong> ${formatTimeWithLabels(registro.tiempo_pausa_total || 0)}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Función para cargar el resumen de registros - CORREGIDA
+function cargarResumenRegistros(empleadoId, mes, año) {
+    console.log('📊 Cargando resumen para:', { empleadoId, mes, año });
+    
+    $.ajax({
+        url: `/empleado/registro/${empleadoId}/resumen-periodo`,
+        method: 'GET',
+        data: {
+            month: mes,  // CORRECCIÓN: 'month' en lugar de 'mes'
+            year: año    // CORRECCIÓN: 'year' en lugar de 'año'
+        },
+        success: function(response) {
+            console.log('✅ Respuesta resumen:', response);
+            if (response.success) {
+                $('#view_total_horas_mes').html(formatTotalHoursWithDays(response.total_horas));
+                $('#view_total_registros_mes').text(response.total_registros);
+                $('#view_promedio_diario_mes').html(formatDecimalHoursToHM(response.promedio_diario));
+                $('#view_dias_trabajados_mes').text(response.dias_trabajados);
+                $('#view_registros_resumen').show();
+            } else {
+                console.error('❌ Error en respuesta de resumen:', response);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('❌ Error cargando resumen:', error);
+            console.log('Status:', status);
+            console.log('Response:', xhr.responseText);
+        }
+    });
+}
+
+// Funciones adicionales de formateo
+function formatTotalHoursWithDays(decimalHoursStr) {
+    const decimalHours = safeParseFloat(decimalHoursStr);
+    
+    if (decimalHours === 0) return '0h 00m';
+    
+    if (decimalHours >= 24) {
+        const dias = Math.floor(decimalHours / 24);
+        const horasRestantes = decimalHours % 24;
+        const horas = Math.floor(horasRestantes);
+        const minutosDecimal = (horasRestantes - horas) * 60;
+        const minutos = Math.round(minutosDecimal);
+        
+        if (minutos === 60) {
+            return `${dias}d ${horas + 1}h 00m`;
+        }
+        
+        return `${dias}d ${horas}h ${minutos.toString().padStart(2, '0')}m`;
+    } else {
+        return formatDecimalHoursToHM(decimalHoursStr);
+    }
+}
+
+function formatDecimalHoursToHM(decimalHoursStr) {
+    const decimalHours = safeParseFloat(decimalHoursStr);
+    
+    if (decimalHours === 0) return '0h 00m';
+    
+    const horas = Math.floor(decimalHours);
+    const minutosDecimal = (decimalHours - horas) * 60;
+    const minutos = Math.round(minutosDecimal);
+    
+    if (minutos === 60) {
+        return `${horas + 1}h 00m`;
+    }
+    
+    return `${horas}h ${minutos.toString().padStart(2, '0')}m`;
+}
+
+function safeParseFloat(value) {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+        const cleaned = value.replace(/[^\d.,]/g, '').replace(',', '.');
+        const parsed = parseFloat(cleaned);
+        return isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
 }
 
 // Función para ver detalles de un registro específico
@@ -5285,6 +5994,68 @@ $('#viewEmployeeModal').on('hidden.bs.modal', function () {
     // Limpiar otros datos existentes...
 });
 
+// Función para imprimir detalles del empleado
+function imprimirDetallesEmpleado() {
+    const ventanaImpresion = window.open('', '_blank');
+    const contenido = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Detalles del Empleado - ${document.getElementById('view_nombre').textContent}</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+                .section { margin-bottom: 20px; }
+                .section h3 { background: #f0f0f0; padding: 10px; border-left: 4px solid #007bff; }
+                .info-row { display: flex; margin-bottom: 5px; }
+                .label { font-weight: bold; width: 150px; }
+                @media print {
+                    .no-print { display: none; }
+                    body { margin: 0; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Detalles del Empleado</h1>
+                <p>Generado el ${new Date().toLocaleDateString('es-ES')}</p>
+            </div>
+            
+            <div class="section">
+                <h3>Información Personal</h3>
+                <div class="info-row"><div class="label">ID:</div><div>${document.getElementById('view_id').textContent}</div></div>
+                <div class="info-row"><div class="label">Nombre:</div><div>${document.getElementById('view_nombre').textContent}</div></div>
+                <div class="info-row"><div class="label">Apellidos:</div><div>${document.getElementById('view_apellidos').textContent}</div></div>
+                <div class="info-row"><div class="label">DNI:</div><div>${document.getElementById('view_dni').textContent}</div></div>
+                <div class="info-row"><div class="label">Fecha Nacimiento:</div><div>${document.getElementById('view_fecha_nacimiento').textContent}</div></div>
+                <div class="info-row"><div class="label">Edad:</div><div>${document.getElementById('view_edad').textContent}</div></div>
+                <div class="info-row"><div class="label">Teléfono:</div><div>${document.getElementById('view_telefono').textContent}</div></div>
+            </div>
+            
+            <div class="section">
+                <h3>Información de Cuenta</h3>
+                <div class="info-row"><div class="label">Username:</div><div>${document.getElementById('view_username').textContent}</div></div>
+                <div class="info-row"><div class="label">Registrado:</div><div>${document.getElementById('view_created_at').textContent}</div></div>
+                <div class="info-row"><div class="label">Actualizado:</div><div>${document.getElementById('view_updated_at').textContent}</div></div>
+            </div>
+            
+            <div class="section">
+                <h3>Domicilio</h3>
+                <div class="info-row"><div class="label">Dirección:</div><div>${document.getElementById('view_domicilio').textContent}</div></div>
+                <div class="info-row"><div class="label">Coordenadas:</div><div>${document.getElementById('view_coordenadas').textContent}</div></div>
+            </div>
+            
+            <div class="no-print" style="margin-top: 30px; text-align: center;">
+                <button onclick="window.print()">Imprimir</button>
+                <button onclick="window.close()">Cerrar</button>
+            </div>
+        </body>
+        </html>
+    `;
+    
+    ventanaImpresion.document.write(contenido);
+    ventanaImpresion.document.close();
+}
 
 </script>
 
@@ -6515,36 +7286,51 @@ code {
     transition: all 0.3s ease;
 }
 
-/* Estilos para la tabla de registros en el modal de vista */
-#view_empleado_registros_table_wrapper {
-    font-size: 0.85rem;
+/* Estilos para la tabla de registros en modal de vista */
+.table-custom {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-#view_empleado_registros_table th {
-    background-color: #4e73df;
+.badge-status {
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.badge-active {
+    background: linear-gradient(135deg, #00b09b, #96c93d);
     color: white;
+}
+
+.badge-paused {
+    background: linear-gradient(135deg, #ff9a00, #ff6a00);
+    color: white;
+}
+
+.badge-completed {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.ubicacion-info {
     font-size: 0.8rem;
-    padding: 8px 10px;
 }
 
-#view_empleado_registros_table td {
-    padding: 6px 10px;
-    vertical-align: middle;
+/* Asegurar que la tabla sea responsive */
+#view_empleado_registros_table {
+    width: 100% !important;
+    min-width: 1000px;
 }
 
-#view_filter_mes {
-    font-size: 0.8rem;
-}
-
-/* Responsive para la tabla en modal */
 @media (max-width: 768px) {
-    #view_empleado_registros_table_wrapper {
-        font-size: 0.75rem;
+    .table-responsive {
+        font-size: 0.8rem;
     }
     
-    .dataTables_wrapper .dataTables_length,
-    .dataTables_wrapper .dataTables_filter {
-        font-size: 0.75rem;
+    #view_empleado_registros_table {
+        min-width: 1200px;
     }
 }
 

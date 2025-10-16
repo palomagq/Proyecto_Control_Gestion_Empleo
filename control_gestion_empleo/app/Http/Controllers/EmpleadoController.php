@@ -426,53 +426,63 @@ public function getEstado(Request $request, $id)
      * Obtener estadísticas del mes
      */
     private function obtenerEstadisticasMes($empleadoId)
-    {
-        $inicioMes = Carbon::now()->startOfMonth();
-        $finMes = Carbon::now()->endOfMonth();
+{
+    $inicioMes = Carbon::now()->startOfMonth();
+    $finMes = Carbon::now()->endOfMonth();
 
-        // Obtener todos los registros del mes
-        $registrosMes = DB::table('tabla_registros_tiempo')
-            ->where('empleado_id', $empleadoId)
-            ->whereBetween('created_at', [$inicioMes, $finMes])
-            ->get();
+    // Obtener todos los registros del mes
+    $registrosMes = DB::table('tabla_registros_tiempo')
+        ->where('empleado_id', $empleadoId)
+        ->whereBetween('created_at', [$inicioMes, $finMes])
+        ->get();
 
-        // Calcular horas totales CORRECTAMENTE
-        $totalSegundos = 0;
-        foreach ($registrosMes as $registro) {
-            if ($registro->tiempo_total && $registro->tiempo_total > 0) {
-                // Registro completado con tiempo positivo
-                $totalSegundos += $registro->tiempo_total;
-            } else if ($registro->fin === null && $registro->inicio) {
-                // Registro activo - calcular tiempo hasta ahora
-                $inicio = Carbon::parse($registro->inicio);
-                $now = Carbon::now();
-                $tiempoActivo = $now->diffInSeconds($inicio);
-                
-                // Asegurar que no sea negativo
-                $totalSegundos += max(0, $tiempoActivo);
-            }
+    // Calcular horas totales CORRECTAMENTE
+    $totalSegundos = 0;
+    foreach ($registrosMes as $registro) {
+        if ($registro->tiempo_total && $registro->tiempo_total > 0) {
+            // Registro completado con tiempo positivo
+            $totalSegundos += $registro->tiempo_total;
+        } else if ($registro->fin === null && $registro->inicio) {
+            // Registro activo - calcular tiempo hasta ahora
+            $inicio = Carbon::parse($registro->inicio);
+            $now = Carbon::now();
+            $tiempoActivo = $now->diffInSeconds($inicio);
+            
+            // Asegurar que no sea negativo
+            $totalSegundos += max(0, $tiempoActivo);
         }
-
-        // Asegurar que el total no sea negativo
-        $totalSegundos = max(0, $totalSegundos);
-        $totalHoras = $totalSegundos / 3600;
-        $totalRegistros = $registrosMes->count();
-        
-        // Días trabajados = días distintos con registros
-        $diasTrabajados = $registrosMes->unique(function($registro) {
-            return Carbon::parse($registro->created_at)->format('Y-m-d');
-        })->count();
-
-        // Promedio diario basado en días trabajados
-        $promedioDiario = $diasTrabajados > 0 ? $totalHoras / $diasTrabajados : 0;
-
-        return [
-            'total_horas' => number_format($totalHoras, 2),
-            'total_registros' => $totalRegistros,
-            'promedio_horas' => number_format($promedioDiario, 2),
-            'dias_trabajados' => $diasTrabajados
-        ];
     }
+
+    // Asegurar que el total no sea negativo
+    $totalSegundos = max(0, $totalSegundos);
+    $totalHoras = $totalSegundos / 3600;
+    $totalRegistros = $registrosMes->count();
+    
+    // CORREGIDO: Días trabajados = días distintos con AL MENOS UN registro
+    $diasTrabajados = DB::table('tabla_registros_tiempo')
+        ->where('empleado_id', $empleadoId)
+        ->whereBetween('created_at', [$inicioMes, $finMes])
+        ->where(function($query) {
+            $query->whereNotNull('inicio')
+                  ->orWhere('estado', 'activo')
+                  ->orWhere('estado', 'pausado')
+                  ->orWhere('estado', 'completado');
+        })
+        ->distinct()
+        ->select(DB::raw('DATE(created_at) as fecha'))
+        ->get()
+        ->count();
+
+    // Promedio diario basado en días trabajados
+    $promedioDiario = $diasTrabajados > 0 ? $totalHoras / $diasTrabajados : 0;
+
+    return [
+        'total_horas' => number_format($totalHoras, 2),
+        'total_registros' => $totalRegistros,
+        'promedio_horas' => number_format($promedioDiario, 2),
+        'dias_trabajados' => $diasTrabajados
+    ];
+}
 
 
 
@@ -651,7 +661,7 @@ public function getDataTable(Request $request, $id)
 
 
 /**
- * Obtener resumen del período - VERSIÓN CORREGIDA
+ * Obtener resumen del período - VERSIÓN CORREGIDA (días con registros)
  */
 public function getResumenPeriodo(Request $request, $id)
 {
@@ -760,13 +770,36 @@ public function getResumenPeriodo(Request $request, $id)
         $totalHoras = $totalSegundos / 3600;
         $totalRegistros = $registros->count();
         
-        // Días trabajados = días distintos con registros válidos
-        $diasTrabajados = $registros->filter(function($registro) {
-            return ($registro->tiempo_total && $registro->tiempo_total > 0) || 
-                   ($registro->fin === null && $registro->inicio);
-        })->unique(function($registro) {
-            return Carbon::parse($registro->created_at)->format('Y-m-d');
-        })->count();
+        // CORREGIDO: Días trabajados = días distintos con AL MENOS UN registro (iniciado)
+        $diasTrabajados = DB::table('tabla_registros_tiempo')
+            ->where('empleado_id', $empleado->id)
+            ->where(function($query) {
+                $query->whereNotNull('inicio')
+                      ->orWhere('estado', 'activo')
+                      ->orWhere('estado', 'pausado')
+                      ->orWhere('estado', 'completado');
+            });
+
+        // Aplicar mismos filtros de fecha
+        if ($month && $year) {
+            $diasTrabajados->whereYear('created_at', $year)
+                          ->whereMonth('created_at', $month);
+        } else {
+            $now = Carbon::now();
+            $diasTrabajados->whereYear('created_at', $now->year)
+                          ->whereMonth('created_at', $now->month);
+        }
+
+        $diasTrabajados = $diasTrabajados
+            ->distinct()
+            ->select(DB::raw('DATE(created_at) as fecha'))
+            ->get()
+            ->count();
+
+        \Log::info('Días trabajados calculados:', [
+            'dias' => $diasTrabajados,
+            'empleado_id' => $empleado->id
+        ]);
 
         // Promedio diario basado en días trabajados
         $promedioDiario = $diasTrabajados > 0 ? $totalHoras / $diasTrabajados : 0;
