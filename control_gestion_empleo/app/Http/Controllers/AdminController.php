@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use App\Exports\EmpleadosMesExport;
+use App\Exports\EmpleadosPdfExport;
 
 class AdminController extends Controller
 {
@@ -307,20 +308,20 @@ public function storeEmployee(Request $request)
 // En el método getEmpleadosDataTable, agrega logs:
 public function getEmpleadosDataTable(Request $request)
 {
-    \Log::info('📊 Datatable request recibida:', $request->all());
+    Log::info('📊 Datatable request recibida:', $request->all());
     
     try {
         // Consulta base con todos los empleados
         $query = Empleado::with('credencial')->select('*');
 
-        \Log::info('🔍 Consulta base creada');
+        Log::info('🔍 Consulta base creada');
 
         // **OBTENER FILTROS**
         $filterDni = $request->get('filterDni', '');
         $filterNombre = $request->get('filterNombre', '');
         $filterMes = $request->get('filterMes', '');
 
-        \Log::info('🎯 Filtros recibidos:', [
+        Log::info('🎯 Filtros recibidos:', [
             'dni' => $filterDni,
             'nombre' => $filterNombre,
             'mes' => $filterMes
@@ -329,7 +330,7 @@ public function getEmpleadosDataTable(Request $request)
         // ✅ APLICAR FILTROS SI ESTÁN PRESENTES
         if (!empty($filterDni)) {
             $query->where('dni', 'like', '%' . $filterDni . '%');
-            \Log::info('🔍 Filtro DNI aplicado:', ['dni' => $filterDni]);
+            Log::info('🔍 Filtro DNI aplicado:', ['dni' => $filterDni]);
         }
 
         if (!empty($filterNombre)) {
@@ -337,7 +338,7 @@ public function getEmpleadosDataTable(Request $request)
                 $q->where('nombre', 'like', '%' . $filterNombre . '%')
                   ->orWhere('apellidos', 'like', '%' . $filterNombre . '%');
             });
-            \Log::info('🔍 Filtro Nombre aplicado:', ['nombre' => $filterNombre]);
+            Log::info('🔍 Filtro Nombre aplicado:', ['nombre' => $filterNombre]);
         }
 
         if (!empty($filterMes)) {
@@ -349,16 +350,16 @@ public function getEmpleadosDataTable(Request $request)
                     
                     $query->whereBetween('created_at', [$fechaInicio, $fechaFin]);
                     
-                    \Log::info('📅 Filtro Mes aplicado:', [
+                    Log::info('📅 Filtro Mes aplicado:', [
                         'mes' => $filterMes,
                         'fecha_inicio' => $fechaInicio->format('Y-m-d H:i:s'),
                         'fecha_fin' => $fechaFin->format('Y-m-d H:i:s')
                     ]);
                 } else {
-                    \Log::warning('⚠️ Formato de mes inválido:', ['mes' => $filterMes]);
+                    Log::warning('⚠️ Formato de mes inválido:', ['mes' => $filterMes]);
                 }
             } catch (\Exception $e) {
-                \Log::error('❌ Error procesando filtro de mes:', [
+                Log::error('❌ Error procesando filtro de mes:', [
                     'mes' => $filterMes,
                     'error' => $e->getMessage()
                 ]);
@@ -368,7 +369,7 @@ public function getEmpleadosDataTable(Request $request)
         // Obtener TODOS los registros (sin paginación para client-side)
         $empleados = $query->orderBy('id', 'asc')->get();
 
-        \Log::info('📋 Total de empleados encontrados:', ['count' => $empleados->count()]);
+        Log::info('📋 Total de empleados encontrados:', ['count' => $empleados->count()]);
 
         $data = $empleados->map(function($empleado) {
             // ✅ CALCULAR EDAD COMO ENTERO
@@ -376,6 +377,27 @@ public function getEmpleadosDataTable(Request $request)
             
             // ✅ Asegurar que sea entero
             $edadEntero = (int) $edad;
+
+            // ✅ CORREGIDO: Usar comillas simples y escapar correctamente
+            $accionesHtml = '
+            <div class="btn-group btn-group-sm">
+                <button class="btn btn-info" onclick="verEmpleado(' . $empleado->id . ')" title="Ver">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn btn-warning" onclick="editarEmpleado(' . $empleado->id . ')" title="Editar">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-danger" onclick="eliminarEmpleado(' . $empleado->id . ')" title="Eliminar">
+                    <i class="fas fa-trash"></i>
+                </button>
+                <button class="btn btn-success" onclick="imprimirQR(' . $empleado->id . ')" title="Visualizar QR">
+                    <i class="fas fa-qrcode"></i>
+                </button>
+                <button class="btn btn-secondary" onclick="exportarRegistroHorario(' . $empleado->id . ')" title="Exportar Registro Horario">
+                    <i class="fas fa-file-contract"></i>
+                </button>
+            </div>
+            ';
 
             return [
                 'id' => $empleado->id,
@@ -387,22 +409,7 @@ public function getEmpleadosDataTable(Request $request)
                 'domicilio' => $empleado->domicilio,
                 'telefono' => $empleado->telefono,
                 'username' => $empleado->credencial->username ?? 'N/A',
-                'acciones' => '
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-info" onclick="verEmpleado(' . $empleado->id . ')" title="Ver">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-warning" onclick="editarEmpleado(' . $empleado->id . ')" title="Editar">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-danger" onclick="eliminarEmpleado(' . $empleado->id . ')" title="Eliminar">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                        <button class="btn btn-success" onclick="imprimirQR(' . $empleado->id . ')" title="Visualizar QR">
-                            <i class="fas fa-qrcode"></i>
-                        </button>
-                    </div>
-                '
+                'acciones' => $accionesHtml
             ];
         });
 
@@ -413,7 +420,7 @@ public function getEmpleadosDataTable(Request $request)
             'data' => $data
         ];
 
-        \Log::info('✅ Respuesta DataTable generada', [
+        Log::info('✅ Respuesta DataTable generada', [
             'draw' => $response['draw'],
             'recordsTotal' => $response['recordsTotal'],
             'recordsFiltered' => $response['recordsFiltered'],
@@ -423,7 +430,7 @@ public function getEmpleadosDataTable(Request $request)
         return response()->json($response);
 
     } catch (\Exception $e) {
-        \Log::error('❌ Error en datatable empleados:', [
+        Log::error('❌ Error en datatable empleados:', [
             'error' => $e->getMessage(), 
             'trace' => $e->getTraceAsString()
         ]);
@@ -458,7 +465,7 @@ public function getEmpleadosDataTable(Request $request)
                 ] : null
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error buscando empleado por DNI:', ['dni' => $dni, 'error' => $e->getMessage()]);
+            Log::error('Error buscando empleado por DNI:', ['dni' => $dni, 'error' => $e->getMessage()]);
             return response()->json([
                 'exists' => false,
                 'error' => $e->getMessage()
@@ -476,7 +483,7 @@ public function getEmpleadosDataTable(Request $request)
                 'exists' => $exists
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error verificando username:', ['username' => $username, 'error' => $e->getMessage()]);
+            Log::error('Error verificando username:', ['username' => $username, 'error' => $e->getMessage()]);
             return response()->json([
                 'exists' => false,
                 'error' => $e->getMessage()
@@ -509,7 +516,7 @@ public function getStats()
         
         $promedioEdad = $contador > 0 ? round($sumaEdades / $contador, 1) : 0;
 
-        \Log::info('📊 Estadísticas calculadas:', [
+        Log::info('📊 Estadísticas calculadas:', [
             'total' => $total,
             'registros_mes' => $registrosMes,
             'promedio_edad' => $promedioEdad
@@ -525,7 +532,7 @@ public function getStats()
         ]);
         
     } catch (\Exception $e) {
-        \Log::error('❌ Error obteniendo estadísticas:', ['error' => $e->getMessage()]);
+        Log::error('❌ Error obteniendo estadísticas:', ['error' => $e->getMessage()]);
         return response()->json([
             'success' => false,
             'data' => [
@@ -565,7 +572,7 @@ public function editEmployee($id)
         ]);
 
     } catch (\Exception $e) {
-        \Log::error('Error editando empleado:', ['id' => $id, 'error' => $e->getMessage()]);
+        Log::error('Error editando empleado:', ['id' => $id, 'error' => $e->getMessage()]);
         return response()->json([
             'success' => false,
             'message' => 'Empleado no encontrado'
@@ -592,7 +599,7 @@ public function updateEmployee(Request $request, $id)
 
         $empleado->update($validated);
 
-        \Log::info('Empleado actualizado:', [
+        Log::info('Empleado actualizado:', [
             'id' => $id, 
             'telefono' => $validated['telefono'],
             'domicilio' => $validated['domicilio']
@@ -604,7 +611,7 @@ public function updateEmployee(Request $request, $id)
         ]);
 
     } catch (\Exception $e) {
-        \Log::error('Error actualizando empleado:', ['id' => $id, 'error' => $e->getMessage()]);
+        Log::error('Error actualizando empleado:', ['id' => $id, 'error' => $e->getMessage()]);
         return response()->json([
             'success' => false,
             'message' => 'Error al actualizar empleado: ' . $e->getMessage()
@@ -663,7 +670,7 @@ public function destroyEmployee($id)
 
         DB::commit();
 
-        \Log::info('Empleado eliminado:', ['id' => $id, 'nombre' => $empleado->nombre]);
+        Log::info('Empleado eliminado:', ['id' => $id, 'nombre' => $empleado->nombre]);
 
         return response()->json([
             'success' => true,
@@ -672,7 +679,7 @@ public function destroyEmployee($id)
 
     } catch (\Exception $e) {
         DB::rollBack();
-        \Log::error('Error eliminando empleado:', ['id' => $id, 'error' => $e->getMessage()]);
+        Log::error('Error eliminando empleado:', ['id' => $id, 'error' => $e->getMessage()]);
         return response()->json([
             'success' => false,
             'message' => 'Error al eliminar empleado: ' . $e->getMessage()
@@ -1448,5 +1455,99 @@ public function getResumenRegistros(Request $request, $id)
     }
 }
 
-    
+
+/**
+ * Exportar empleados a PDF (solo descarga)
+ */
+public function exportarPdfMes(Request $request)
+{
+    try {
+        logger('📤 Solicitud exportar PDF recibida:', $request->all());
+
+        // Validar los parámetros
+        $request->validate([
+            'mes' => 'required|integer|between:1,12',
+            'año' => 'required|integer|min:2020|max:' . (date('Y') + 1)
+        ]);
+
+        $mes = $request->mes;
+        $año = $request->año;
+
+        logger('🔍 Buscando empleados para PDF:', [
+            'mes' => $mes, 
+            'año' => $año
+        ]);
+
+        // Verificar si hay datos para el mes seleccionado
+        $fechaInicio = Carbon::create($año, $mes, 1)->startOfMonth();
+        $fechaFin = Carbon::create($año, $mes, 1)->endOfMonth();
+        
+        $existenDatos = Empleado::whereBetween('created_at', [$fechaInicio, $fechaFin])->exists();
+
+        if (!$existenDatos) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No hay empleados registrados en ' . $this->getNombreMes($mes) . ' de ' . $año
+            ], 404);
+        }
+
+        // Generar PDF para descarga directa
+        $export = new EmpleadosPdfExport($mes, $año);
+        return $export->download();
+
+    } catch (\Exception $e) {
+        logger()->error('❌ Error exportando PDF:', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al generar el archivo PDF: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Exportar registro horario individual en formato PDF oficial
+ */
+public function exportarRegistroHorarioIndividual(Request $request, $id)
+{
+    try {
+        $request->validate([
+            'mes' => 'required|integer|between:1,12',
+            'año' => 'required|integer|min:2020|max:' . (date('Y') + 1)
+        ]);
+
+        $mes = $request->mes;
+        $año = $request->año;
+
+        // Verificar que el empleado existe
+        $empleado = Empleado::find($id);
+        if (!$empleado) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Empleado no encontrado'
+            ], 404);
+        }
+
+        // Generar PDF individual
+        $export = new \App\Exports\RegistroHorarioIndividualExport($id, $mes, $año);
+        return $export->download();
+
+    } catch (\Exception $e) {
+        Log::error('Error exportando registro horario individual:', [
+            'empleado_id' => $id,
+            'mes' => $request->mes,
+            'año' => $request->año,
+            'error' => $e->getMessage()
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al generar el registro horario: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
 }

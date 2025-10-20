@@ -8,6 +8,7 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class EmpleadosMesExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize
 {
@@ -31,7 +32,7 @@ class EmpleadosMesExport implements FromCollection, WithHeadings, WithMapping, S
             ->get();
 
         // Log para verificar el orden
-        \Log::info('📋 Empleados para exportar (ordenados por ID):', [
+        Log::info('📋 Empleados para exportar (ordenados por ID):', [
             'mes' => $this->mes,
             'año' => $this->año,
             'total' => $empleados->count(),

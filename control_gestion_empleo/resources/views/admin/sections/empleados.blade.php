@@ -89,6 +89,12 @@
                             <span class="d-none d-md-inline">Exportar Excel</span>
                             <span class="d-md-none">Excel</span>
                         </button>
+                        <button type="button" class="btn btn-outline-danger btn-sm btn-lg-md w-100 w-md-auto ml-0 ml-md-2" 
+                            data-toggle="modal" data-target="#exportPdfModal">
+                        <i class="fas fa-file-pdf mr-1"></i> 
+                        <span class="d-none d-md-inline">Exportar PDF</span>
+                        <span class="d-md-none">PDF</span>
+                    </button>
                     </div>
                 </div>
             </div>
@@ -552,7 +558,7 @@
 
 <!-- Modal para Ver Empleado -->
 <div class="modal fade" id="viewEmployeeModal" tabindex="-1" role="dialog" aria-labelledby="viewEmployeeModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header bg-gradient-info text-white">
                 <h5 class="modal-title" id="viewEmployeeModalLabel">
@@ -931,6 +937,60 @@
     </div>
 </div>
 
+<!-- Modal para Exportar PDF -->
+<div class="modal fade" id="exportPdfModal" tabindex="-1" role="dialog" aria-labelledby="exportPdfModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-danger text-white">
+                <h5 class="modal-title" id="exportPdfModalLabel">
+                    <i class="fas fa-file-pdf mr-2"></i> Exportar a PDF
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="exportPdfForm">
+                    @csrf
+                    <div class="form-group">
+                        <label for="export_pdf_mes" class="font-weight-bold">
+                            <i class="fas fa-calendar-alt mr-1"></i> Seleccionar Mes y Año *
+                        </label>
+                        <input type="text" class="form-control" id="export_pdf_mes" name="export_pdf_mes" 
+                               placeholder="Seleccione el mes a exportar" required>
+                        <small class="form-text text-muted">
+                            Seleccione el mes y año para generar el documento PDF oficial
+                        </small>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <small>
+                            <i class="fas fa-info-circle"></i> 
+                            Se generará un documento PDF oficial con todos los empleados registrados en el mes seleccionado, 
+                            para archivo digital del registro de control horario.
+                        </small>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <small>
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            <strong>Documento de archivo digital:</strong> Este PDF es para conservación digital. No imprimir.
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-danger" onclick="confirmarExportacionPdf()">
+                    <i class="fas fa-file-pdf mr-1"></i> Descargar PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
@@ -977,6 +1037,187 @@ $(document).ready(function() {
     loadStats(); // Cargar estadísticas al inicio
 
 });
+
+
+// ✅ FUNCIÓN: Exportar registro horario individual - DEBE ESTAR DEFINIDA ANTES DEL DATATABLE
+function exportarRegistroHorario(empleadoId) {
+    console.log('📋 Exportando registro horario para empleado:', empleadoId);
+    
+    Swal.fire({
+        title: 'Exportar Registro Horario',
+        html: `
+            <div class="text-left">
+                <p>Seleccione el mes y año para generar el registro horario oficial:</p>
+                <div class="form-group">
+                    <label for="individual_export_mes" class="font-weight-bold">
+                        <i class="fas fa-calendar-alt mr-1"></i> Mes y Año *
+                    </label>
+                    <input type="text" class="form-control" id="individual_export_mes" 
+                           placeholder="Seleccione el mes" required>
+                </div>
+                <div class="alert alert-info small">
+                    <i class="fas fa-info-circle"></i>
+                    Se generará el documento oficial de registro horario según el formato legal.
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Generar PDF',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#6c757d',
+        width: '500px',
+        didOpen: () => {
+            // Inicializar datepicker
+            flatpickr("#individual_export_mes", {
+                plugins: [
+                    new monthSelectPlugin({
+                        shorthand: true,
+                        dateFormat: "Y-m",
+                        altFormat: "F Y",
+                        theme: "material_blue"
+                    })
+                ],
+                locale: "es",
+                defaultDate: "today"
+            });
+        },
+        preConfirm: () => {
+            const mesSeleccionado = document.getElementById('individual_export_mes').value;
+            if (!mesSeleccionado) {
+                Swal.showValidationMessage('Por favor, seleccione un mes y año');
+                return false;
+            }
+            return mesSeleccionado;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const mesSeleccionado = result.value;
+            const partes = mesSeleccionado.split('-');
+            const año = parseInt(partes[0]);
+            const mes = parseInt(partes[1]);
+
+            ejecutarExportacionRegistroHorario(empleadoId, mes, año);
+        }
+    });
+}
+
+// ✅ FUNCIÓN: Ejecutar exportación del registro horario
+function ejecutarExportacionRegistroHorario(empleadoId, mes, año) {
+    const nombreMes = getNombreMesCompleto(mes);
+    
+    Swal.fire({
+        title: 'Generando Registro Horario...',
+        html: `
+            <div class="text-center">
+                <div class="spinner-border text-secondary mb-3" role="status">
+                    <span class="sr-only">Generando...</span>
+                </div>
+                <p>Preparando registro horario para <strong>${nombreMes} de ${año}</strong></p>
+                <p class="small text-muted">Generando documento PDF oficial...</p>
+            </div>
+        `,
+        allowOutsideClick: false,
+        showConfirmButton: false
+    });
+
+    // Hacer la petición
+    fetch(`/admin/empleados/${empleadoId}/exportar-registro-horario?mes=${mes}&año=${año}`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            if (response.headers.get('content-type')?.includes('application/json')) {
+                return response.json().then(errorData => {
+                    throw new Error(errorData.message || `Error ${response.status}`);
+                });
+            } else {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+        }
+        
+        // Verificar que sea un PDF
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/pdf')) {
+            throw new Error('La respuesta no es un archivo PDF válido');
+        }
+        
+        return response.blob();
+    })
+    .then(blob => {
+        Swal.close();
+        
+        // Verificar que el blob sea un PDF
+        if (blob.size === 0) {
+            throw new Error('El archivo PDF está vacío');
+        }
+
+        if (blob.type !== 'application/pdf') {
+            throw new Error('El archivo generado no es un PDF válido');
+        }
+
+        // Crear URL para descargar
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        
+        const nombreArchivo = `registro_horario_${empleadoId}_${getNombreMesCorto(mes)}_${año}.pdf`;
+        a.download = nombreArchivo;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        // Mensaje de éxito
+        Swal.fire({
+            icon: 'success',
+            title: '¡Registro Horario Generado!',
+            html: `
+                <div class="text-left">
+                    <p>El registro horario oficial se ha descargado correctamente:</p>
+                    <div class="alert alert-success">
+                        <strong>${nombreArchivo}</strong>
+                    </div>
+                    <div class="alert alert-info small">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Documento oficial:</strong> Formato legal para registro de control horario.
+                    </div>
+                </div>
+            `,
+            confirmButtonText: 'Entendido',
+            width: '500px'
+        });
+    })
+    .catch(error => {
+        Swal.close();
+        
+        console.error('❌ Error descargando registro horario:', error);
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'Error al Generar Registro',
+            html: `
+                <div class="text-left">
+                    <p><strong>No se pudo generar el registro horario</strong></p>
+                    <p class="text-danger">${error.message}</p>
+                    <div class="alert alert-warning mt-2">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        <strong>Posibles soluciones:</strong>
+                        <ul class="small mt-1">
+                            <li>Verifique que el empleado tenga registros en ${nombreMes} de ${año}</li>
+                            <li>Intente nuevamente en unos momentos</li>
+                            <li>Contacte al administrador si el problema persiste</li>
+                        </ul>
+                    </div>
+                </div>
+            `,
+            confirmButtonText: 'Entendido',
+            width: '550px'
+        });
+    });
+}
 
 function initializeDataTable() {
     console.log('🔄 Inicializando DataTable...');
@@ -5161,17 +5402,21 @@ function cargarRegistrosEmpleado() {
     // Inicializar DataTable CORREGIDO
     viewRegistrosTable = $('#view_empleado_registros_table').DataTable({
         serverSide: true,
-        processing: true,
-        pageLength: 5,
-        lengthMenu: [5, 10, 25, 50],
+        //processing: true,
+        
         ajax: {
-            url: `/empleado/registro/${currentEmployeeId}/datatable`,
+            url: `/admin/empleados/registros/${currentEmployeeId}/datatable`,
             type: 'GET',
             data: function (d) {
                 // CORRECCIÓN: Usar los nombres de parámetro correctos
-                d.month = mes;
-                d.year = año;
-                console.log('📤 Enviando parámetros al servidor:', d);
+                return {
+                    mes: mes,
+                    año: año,
+                    draw: d.draw,
+                    start: d.start,
+                    length: d.length,
+                    search: { value: d.search.value }
+                };
             },
             dataSrc: function (json) {
                 console.log('📥 Respuesta del servidor:', json);
@@ -5233,37 +5478,17 @@ function cargarRegistrosEmpleado() {
                 data: 'tiempo_pausa_total',
                 name: 'tiempo_pausa_total',
                 width: '10%',
-                render: function(data, type, row) {
-                    let tiempoPausa = Math.max(0, parseInt(data || 0));
-                    
-                    if (tiempoPausa === 0 && row.pausa_inicio && row.pausa_fin) {
-                        const inicio = new Date(row.pausa_inicio);
-                        const fin = new Date(row.pausa_fin);
-                        const diferenciaMs = fin - inicio;
-                        tiempoPausa = Math.max(0, Math.floor(diferenciaMs / 1000));
-                    }
-                    
-                    if (tiempoPausa === 0) {
-                        if (row.pausa_inicio || row.pausa_fin) {
-                            return '<span class="text-warning">00:00</span>';
-                        }
-                        return '<span class="text-muted">Sin pausas</span>';
-                    }
-                    
-                    return `<span class="text-info font-weight-bold">${formatTimeForTable(tiempoPausa)}</span>`;
+                render: function(data) {
+                    return formatSecondsToTime(data);
                 }
             },
             { 
                 data: 'tiempo_total',
                 name: 'tiempo_total',
                 width: '10%',
-                render: function(data, type, row) {
-                    if (!data || data === 0) {
-                        return row.fin ? '00:00:00' : '-';
-                    }
-                    
-                    const tiempoPositivo = Math.max(0, parseInt(data));
-                    return formatTimeWithLabels(tiempoPositivo);
+                render: function(data) {
+                    // ✅ CORREGIDO: Usar la nueva función de formateo
+                    return `<span class="font-weight-bold text-primary">${formatDuration(data)}</span>`;
                 }
             },
             { 
@@ -5274,38 +5499,17 @@ function cargarRegistrosEmpleado() {
                     const ciudad = row.ciudad || '';
                     const pais = row.pais || '';
                     
-                    if (ciudad && pais && 
-                        !ciudad.includes('GPS') && 
-                        !ciudad.includes('Coordenadas') &&
-                        !pais.includes('GPS')) {
-                        
-                        return `
-                            <div class="ubicacion-info">
-                                <i class="fas fa-map-marker-alt text-success mr-1"></i>
-                                <small>${ciudad}, ${pais}</small>
-                            </div>
-                        `;
-                    }
-                    
-                    if (data && data.includes('Ubicación GPS')) {
-                        if (ciudad && ciudad !== 'Ubicación GPS') {
-                            return `
-                                <div class="ubicacion-info">
-                                    <i class="fas fa-map-marker-alt text-info mr-1"></i>
-                                    <small>${ciudad}</small>
-                                </div>
-                            `;
+                    if (!data || data === 'Sin ubicación') {
+                            return '<span class="text-muted">Sin ubicación</span>';
                         }
                         
                         return `
-                            <div class="ubicacion-info">
-                                <i class="fas fa-map-marker-alt text-warning mr-1"></i>
-                                <small>Ubicación por GPS</small>
+                            <div class="ubicacion-info" title="${data}">
+                                <i class="fas fa-map-marker-alt text-success mr-1"></i>
+                                <small>${data.length > 25 ? data.substring(0, 25) + '...' : data}</small>
                             </div>
                         `;
-                    }
-                    
-                    return '<span class="text-muted">Sin ubicación</span>';
+ 
                 }
             },
             { 
@@ -5313,13 +5517,25 @@ function cargarRegistrosEmpleado() {
                 name: 'estado',
                 width: '10%',
                 render: function(data) {
-                    const statusMap = {
-                        'activo': 'badge-active',
-                        'pausado': 'badge-paused',
-                        'completado': 'badge-completed'
-                    };
-                    const statusText = data ? data.charAt(0).toUpperCase() + data.slice(1) : 'Desconocido';
-                    return `<span class="badge badge-status ${statusMap[data] || 'badge-secondary'}">${statusText}</span>`;
+                    let badgeClass = 'secondary';
+                    let texto = 'Desconocido';
+                    let icon = '❓';
+                    
+                    if (data === 'activo') {
+                        badgeClass = 'success';
+                        texto = 'Activo';
+                        icon = '🔴';
+                    } else if (data === 'pausado') {
+                        badgeClass = 'warning';
+                        texto = 'Pausado';
+                        icon = '⏸️';
+                    } else if (data === 'completado') {
+                        badgeClass = 'primary';
+                        texto = 'Completado';
+                        icon = '✅';
+                    }
+                    
+                    return `<span class="badge badge-${badgeClass}">${icon} ${texto}</span>`;
                 }
             },
             {
@@ -5895,7 +6111,7 @@ function cargarResumenRegistros(empleadoId, mes, año) {
     console.log('📊 Cargando resumen para:', { empleadoId, mes, año });
     
     $.ajax({
-        url: `/empleado/registro/${empleadoId}/resumen-periodo`,
+        url: `/admin/empleados/registros/${empleadoId}/resumen`,
         method: 'GET',
         data: {
             month: mes,  // CORRECCIÓN: 'month' en lugar de 'mes'
@@ -5969,6 +6185,408 @@ function safeParseFloat(value) {
     }
     return 0;
 }
+
+
+function formatSecondsToTime(seconds) {
+    if (!seconds || seconds === 0 || seconds === '0') {
+        return 'Sin pausas';
+    }
+    
+    // Asegurar que seconds sea un número
+    const secs = parseInt(seconds);
+    if (isNaN(secs)) return 'Sin pausas';
+    
+    const horas = Math.floor(secs / 3600);
+    const minutos = Math.floor((secs % 3600) / 60);
+    
+    if (horas > 0) {
+        return `${horas}h ${minutos.toString().padStart(2, '0')}m`;
+    } else {
+        return `${minutos} minuto${minutos !== 1 ? 's' : ''}`;
+    }
+}
+
+
+function formatDuration(seconds) {
+    if (!seconds || seconds === 0 || seconds === '0') {
+        return '-';
+    }
+    
+    const secs = parseInt(seconds);
+    if (isNaN(secs)) return '-';
+    
+    const horas = Math.floor(secs / 3600);
+    const minutos = Math.floor((secs % 3600) / 60);
+    
+    if (horas > 0) {
+        return `${horas}h ${minutos.toString().padStart(2, '0')}m`;
+    } else {
+        return `${minutos} minuto${minutos !== 1 ? 's' : ''}`;
+    }
+}
+
+// ✅ FUNCIONES MEJORADAS de formateo
+function formatTimeForDisplay(timeString) {
+    if (!timeString || timeString === '-' || timeString === 'null') {
+        return '-';
+    }
+    try {
+        const date = new Date(timeString);
+        if (isNaN(date.getTime())) {
+            return '-';
+        }
+        return date.toLocaleTimeString('es-ES', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+    } catch (e) {
+        console.warn('Error formateando tiempo:', timeString, e);
+        return '-';
+    }
+}
+
+
+// ✅ FUNCIÓN MEJORADA: Ver detalles del registro en modal
+function verDetallesRegistroModal(registroId, empleadoId) {
+    console.log('🔍 Abriendo detalles del registro:', { registroId, empleadoId });
+    
+    Swal.fire({
+        title: 'Cargando detalles...',
+        text: 'Obteniendo información del registro',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    // Usar la misma ruta que el perfil del empleado
+    fetch(`/empleado/registro/${empleadoId}/detalles/${registroId}`)
+        .then(response => response.json())
+        .then(data => {
+            Swal.close();
+            
+            if (data.success) {
+                mostrarDetallesCompletosEnModal(data.registro, data.estadisticasDia);
+            } else {
+                throw new Error(data.message || 'No se pudieron cargar los detalles');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error cargando detalles:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudieron cargar los detalles del registro: ' + error.message
+            });
+        });
+}
+
+// ✅ FUNCIÓN: Mostrar detalles en modal
+function mostrarDetallesCompletosEnModal(registro, estadisticasDia) {
+    const fechaCompleta = registro.created_at ? 
+        new Date(registro.created_at).toLocaleDateString('es-ES', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        }) : '-';
+    
+    const inicio = formatTimeForDisplay(registro.inicio);
+    const fin = registro.fin ? formatTimeForDisplay(registro.fin) : 'En progreso';
+    const pausaInicio = formatTimeForDisplay(registro.pausa_inicio);
+    const pausaFin = formatTimeForDisplay(registro.pausa_fin);
+    
+    const tiempoPausa = formatSecondsToTime(registro.tiempo_pausa_total);
+    const duracion = formatDuration(registro.tiempo_total);
+
+    Swal.fire({
+        title: `Detalles del Registro #${registro.id}`,
+        html: `
+            <div class="text-left">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-calendar text-primary mr-2"></i>Información General</h6>
+                        <p><strong>Fecha:</strong> ${fechaCompleta}</p>
+                        <p><strong>Inicio:</strong> ${inicio}</p>
+                        <p><strong>Fin:</strong> ${fin}</p>
+                        <p><strong>Duración:</strong> <span class="text-primary font-weight-bold">${duracion}</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-pause-circle text-warning mr-2"></i>Pausas</h6>
+                        <p><strong>Pausa Inicio:</strong> ${pausaInicio}</p>
+                        <p><strong>Pausa Fin:</strong> ${pausaFin}</p>
+                        <p><strong>Tiempo en Pausa:</strong> <span class="text-info">${tiempoPausa}</span></p>
+                    </div>
+                </div>
+                ${registro.direccion && registro.direccion !== 'Sin ubicación' ? `
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6><i class="fas fa-map-marker-alt text-success mr-2"></i>Ubicación</h6>
+                        <p class="mb-0">${registro.direccion}</p>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        `,
+        width: '600px',
+        confirmButtonText: 'Cerrar',
+        customClass: {
+            popup: 'rounded-lg'
+        }
+    });
+}
+
+
+// ✅ FUNCIÓN MEJORADA: Inicializar Flatpickr para PDF
+function initializePdfDatepicker() {
+    flatpickr("#export_pdf_mes", {
+        plugins: [
+            new monthSelectPlugin({
+                shorthand: true,
+                dateFormat: "Y-m",
+                altFormat: "F Y",
+                theme: "material_blue"
+            })
+        ],
+        locale: "es"
+    });
+}
+
+// ✅ FUNCIÓN MEJORADA: Confirmar exportación PDF
+function confirmarExportacionPdf() {
+    const mesSeleccionado = $('#export_pdf_mes').val().trim();
+    
+    if (!mesSeleccionado) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Mes requerido',
+            text: 'Por favor, seleccione un mes y año para exportar',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
+    // Convertir formato YYYY-MM a mes y año separados
+    let mes, año;
+    
+    if (mesSeleccionado.match(/^(\d{4})-(\d{2})$/)) {
+        const partes = mesSeleccionado.split('-');
+        año = parseInt(partes[0]);
+        mes = parseInt(partes[1]);
+    } else {
+        Swal.fire({
+            icon: 'error',
+            title: 'Formato inválido',
+            text: 'El formato del mes debe ser AAAA-MM',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
+    // Validar que no sea un mes futuro
+    const fechaSeleccionada = new Date(año, mes - 1);
+    const hoy = new Date();
+    const mesActual = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    
+    if (fechaSeleccionada > mesActual) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Mes inválido',
+            text: 'No se puede exportar meses futuros',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
+    console.log('📤 Confirmando exportación PDF para:', { mes, año });
+
+    // Mostrar confirmación
+    mostrarConfirmacionExportacionPdf(mes, año);
+}
+
+// Función para mostrar confirmación PDF
+// ✅ FUNCIÓN MEJORADA: Mostrar confirmación PDF
+function mostrarConfirmacionExportacionPdf(mes, año) {
+    const nombreMes = getNombreMesCompleto(mes);
+    
+    Swal.fire({
+        title: 'Generar Documento PDF',
+        html: `
+            <div class="text-left">
+                <p>¿Generar documento PDF de empleados registrados en:</p>
+                <div class="alert alert-info">
+                    <h5 class="text-center mb-0"><strong>${nombreMes} de ${año}</strong></h5>
+                </div>
+                <p class="text-muted small mt-3">
+                    <i class="fas fa-info-circle"></i>
+                    Se descargará un documento PDF oficial para archivo digital.
+                </p>
+                <div class="alert alert-warning small">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Nota:</strong> Este documento es para archivo digital. No imprimir.
+                </div>
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, Descargar PDF',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3545',
+        width: '500px'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $('#exportPdfModal').modal('hide');
+            ejecutarExportacionPdf(mes, año, nombreMes);
+        }
+    });
+}
+
+// ✅ FUNCIÓN MEJORADA: Ejecutar exportación PDF
+function ejecutarExportacionPdf(mes, año, nombreMes) {
+    // Mostrar loading
+    Swal.fire({
+        title: 'Generando PDF...',
+        html: `
+            <div class="text-center">
+                <div class="spinner-border text-danger mb-3" role="status">
+                    <span class="sr-only">Generando...</span>
+                </div>
+                <p>Preparando documento para <strong>${nombreMes} de ${año}</strong></p>
+                <p class="small text-muted">Generando archivo PDF...</p>
+            </div>
+        `,
+        allowOutsideClick: false,
+        showConfirmButton: false
+    });
+
+    // Hacer la petición
+    fetch(`/admin/empleados/exportar-pdf-mes?mes=${mes}&año=${año}`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            // Si la respuesta no es OK, intentar obtener el mensaje de error
+            if (response.headers.get('content-type')?.includes('application/json')) {
+                return response.json().then(errorData => {
+                    throw new Error(errorData.message || `Error ${response.status}`);
+                });
+            } else {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+        }
+        
+        // Verificar que sea un PDF
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/pdf')) {
+            throw new Error('La respuesta no es un archivo PDF válido');
+        }
+        
+        return response.blob();
+    })
+    .then(blob => {
+        Swal.close();
+        
+        // Verificar que el blob sea un PDF
+        if (blob.size === 0) {
+            throw new Error('El archivo PDF está vacío');
+        }
+        
+        if (blob.type !== 'application/pdf') {
+            throw new Error('El archivo generado no es un PDF válido');
+        }
+
+        // Crear URL para descargar
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        
+        const nombreArchivo = `registro_empleados_${getNombreMesCorto(mes)}_${año}.pdf`;
+        a.download = nombreArchivo;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        // Mensaje de éxito
+        Swal.fire({
+            icon: 'success',
+            title: '¡PDF Descargado!',
+            html: `
+                <div class="text-left">
+                    <p>El documento PDF se ha descargado correctamente:</p>
+                    <div class="alert alert-success">
+                        <strong>${nombreArchivo}</strong>
+                    </div>
+                    <div class="alert alert-info small">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Archivo de uso digital:</strong> Conservar para registro oficial.
+                    </div>
+                </div>
+            `,
+            confirmButtonText: 'Entendido',
+            width: '500px'
+        });
+    })
+    .catch(error => {
+        Swal.close();
+        
+        console.error('❌ Error descargando PDF:', error);
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'Error al Generar PDF',
+            html: `
+                <div class="text-left">
+                    <p><strong>No se pudo generar el documento PDF</strong></p>
+                    <p class="text-danger">${error.message}</p>
+                    <div class="alert alert-warning mt-2">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        <strong>Posibles soluciones:</strong>
+                        <ul class="small mt-1">
+                            <li>Verifique que hay empleados registrados en ${nombreMes} de ${año}</li>
+                            <li>Intente nuevamente en unos momentos</li>
+                            <li>Contacte al administrador si el problema persiste</li>
+                        </ul>
+                    </div>
+                </div>
+            `,
+            confirmButtonText: 'Entendido',
+            width: '550px'
+        });
+    });
+}
+
+// Función auxiliar para nombres de tipos de documento
+function getTipoDocumentoNombre(tipo) {
+    const tipos = {
+        'completo': 'Documento Completo',
+        'resumen': 'Resumen Ejecutivo',
+        'legal': 'Formato Legal'
+    };
+    return tipos[tipo] || 'Documento';
+}
+
+// Inicializar cuando el documento esté listo
+$(document).ready(function() {
+    initializePdfDatepicker();
+    
+    // Limpiar el modal cuando se cierre
+    $('#exportPdfModal').on('hidden.bs.modal', function () {
+        $('#export_pdf_mes').val('');
+        $('#export_pdf_tipo').val('completo');
+    });
+    
+    // Permitir Enter en el campo de mes
+    $('#export_pdf_mes').on('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            confirmarExportacionPdf();
+        }
+    });
+});
 
 // Función para ver detalles de un registro específico
 function verDetallesRegistro(registroId) {
@@ -6056,6 +6674,25 @@ function imprimirDetallesEmpleado() {
     ventanaImpresion.document.write(contenido);
     ventanaImpresion.document.close();
 }
+
+
+// Inicializar cuando el documento esté listo
+$(document).ready(function() {
+    initializePdfDatepicker();
+    
+    // Limpiar el modal cuando se cierre
+    $('#exportPdfModal').on('hidden.bs.modal', function () {
+        $('#export_pdf_mes').val('');
+    });
+    
+    // Permitir Enter en el campo de mes
+    $('#export_pdf_mes').on('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            confirmarExportacionPdf();
+        }
+    });
+});
 
 </script>
 
@@ -7332,6 +7969,57 @@ code {
     #view_empleado_registros_table {
         min-width: 1200px;
     }
+}
+
+/* Estilos para el modal de PDF */
+#exportPdfModal .modal-header {
+    background: linear-gradient(45deg, #dc3545, #c82333) !important;
+}
+
+#exportPdfModal .modal-content {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+#exportPdfModal .form-control:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+#exportPdfModal select.form-control {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+}
+
+.btn-outline-danger {
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
+.btn-outline-danger:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+/* Estilo para el botón de registro horario */
+.btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+}
+
+/* Asegurar que los botones se vean bien en grupos pequeños */
+.btn-group-sm .btn {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
 }
 
 </style>

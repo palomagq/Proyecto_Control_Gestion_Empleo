@@ -178,4 +178,11 @@ public static function crearConCredenciales($datosEmpleado)
         return $this->belongsTo(Qr::class, 'qr_id');
     }
 
+
+      // ✅ NUEVA RELACIÓN: Registros de tiempo del empleado
+    public function registrosTiempo()
+    {
+        return $this->hasMany(RegistroTiempo::class, 'empleado_id');
+    }
+
 }

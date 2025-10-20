@@ -26,6 +26,9 @@ Route::prefix('admin')->group(function () {
 
     Route::get('/empleados/verificar-username/{username}', [AdminController::class, 'verificarUsername'])->name('admin.empleados.verificar-username');
     Route::get('/empleados/exportar-excel-mes', [AdminController::class, 'exportarExcelMes'])->name('admin.empleados.exportar-excel-mes');
+    Route::get('/empleados/exportar-pdf-mes', [AdminController::class, 'exportarPdfMes'])->name('admin.empleados.exportar-pdf-mes');
+    Route::get('/empleados/{id}/exportar-registro-horario', [AdminController::class, 'exportarRegistroHorarioIndividual'])->name('admin.empleados.exportar-registro-horario');
+
      // Rutas para gestión de QR
     Route::get('/empleados/{id}/qr-info', [AdminController::class, 'getQRInfo'])->name('admin.empleados.qr-info');
     Route::post('/empleados/generar-qr-preview', [AdminController::class, 'generarQRPreview'])->name('admin.empleados.generar-qr-preview');
@@ -34,16 +37,13 @@ Route::prefix('admin')->group(function () {
 
 
     // Rutas para los registros del empleado en el modal de vista
-    Route::get('/empleados/{id}/registros/datatable', [AdminController::class, 'getRegistrosDataTable'])->name('admin.empleados.registros.datatable');
-    Route::get('/empleados/{id}/registros/resumen', [AdminController::class, 'getResumenRegistros'])->name('admin.empleados.registros.resumen');
+    Route::get('/empleados/registros/{id}/datatable', [AdminController::class, 'getRegistrosDataTable'])->name('admin.empleados.registros.datatable');
+    Route::get('/empleados/registros/{id}/resumen', [AdminController::class, 'getResumenRegistros'])->name('admin.empleados.registros.resumen');
 
     Route::get('/empleados/{id}/edit', [AdminController::class, 'editEmployee'])->name('admin.empleados.edit');
     Route::put('/empleados/{id}', [AdminController::class, 'updateEmployee'])->name('admin.empleados.update');
     Route::get('/empleados/{id}', [AdminController::class, 'show'])->name('admin.empleados.show');
     Route::delete('/empleados/{id}', [AdminController::class, 'destroyEmployee'])->name('admin.empleados.destroy');
-
-
-    
 });
 
 
