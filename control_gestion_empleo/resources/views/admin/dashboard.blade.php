@@ -14,6 +14,13 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
+
+      <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
     <style>
       body {
         padding-top: 5rem;
@@ -39,6 +46,32 @@
             <a class="nav-link" href="{{ route('admin.dashboard') }}">Dashboard</a>
           </li>
         </ul>
+                <!-- Menú de usuario a la derecha - VERSIÓN CORREGIDA -->
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              <i class="fas fa-user-circle mr-1"></i>
+              Administrador
+            </a>
+            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
+              <h6 class="dropdown-header">
+                <i class="fas fa-user-shield mr-1"></i>
+                Administrador
+              </h6>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" href="#">
+                <i class="fas fa-cog mr-2"></i>Configuración
+              </a>
+              <a class="dropdown-item" href="#">
+                <i class="fas fa-user mr-2"></i>Mi Perfil
+              </a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" href="#" onclick="confirmLogout()">
+                <i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión
+              </a>
+            </div>
+          </li>
+        </ul>
       </div>
     </nav>
 
@@ -56,8 +89,72 @@
     @yield('modals')
 
     <!-- Bootstrap JavaScript -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SweetAlert2 JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Script para cerrar sesión -->
+     <script>
+      function confirmLogout() {
+        Swal.fire({
+          title: '¿Cerrar Sesión?',
+          text: '¿Estás seguro de que deseas salir del sistema?',
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonColor: '#d33',
+          cancelButtonColor: '#3085d6',
+          confirmButtonText: 'Sí, Cerrar Sesión',
+          cancelButtonText: 'Cancelar'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // Crear formulario para logout (protección CSRF)
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ route("logout") }}';
+            
+            // Agregar CSRF token
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = '_token';
+            csrfToken.value = '{{ csrf_token() }}';
+            form.appendChild(csrfToken);
+            
+            // Agregar al documento y enviar
+            document.body.appendChild(form);
+            form.submit();
+          }
+        });
+      }
+
+      // Script de inicialización del dropdown
+      $(document).ready(function() {
+        console.log('=== INICIALIZANDO DROPDOWN ===');
+        
+        // El dropdown de Bootstrap 4 debería funcionar automáticamente
+        // con los atributos data-toggle="dropdown"
+        
+        // Verificar que todo esté cargado
+        console.log('jQuery:', typeof $ !== 'undefined');
+        console.log('Bootstrap dropdown:', typeof $.fn.dropdown !== 'undefined');
+        console.log('Elemento #userDropdown:', $('#userDropdown').length);
+        
+        // Forzar la inicialización si es necesario
+        try {
+          // Inicializar manualmente el dropdown
+          $('.dropdown-toggle').dropdown();
+          console.log('✅ Dropdown inicializado manualmente');
+        } catch (error) {
+          console.log('❌ Error inicializando dropdown:', error);
+        }
+      });
+
+      // Función para probar el dropdown manualmente
+      function testDropdown() {
+        console.log('🔧 Probando dropdown...');
+        $('#userDropdown').dropdown('toggle');
+      }
+    </script>
 
     <!-- Scripts adicionales -->
     @yield('scripts')

@@ -5702,7 +5702,7 @@ function viewDetailsFromAdmin(registroId, empleadoId) {
     
     // Obtener datos del registro via AJAX (misma ruta que en el perfil)
     $.ajax({
-        url: `/empleado/registro/${empleadoId}/detalles/${registroId}`,
+        url: `/admin/empleados/${empleadoId}/registros/${registroId}/detalles`,
         method: 'GET',
         timeout: 10000,
         success: function(response) {
@@ -7267,10 +7267,17 @@ table.dataTable thead .sorting_desc:after {
     color: #6c757d;
 }
 
+#view_empleado_registros_table_info{
+    padding: 0.75rem 0;
+    padding-right: 0; 
+}
+
 .dataTables_info {
     padding: 0.75rem 0;
     padding-right: 12rem;
 }
+
+
 
 /* Mejoras visuales para el buscador */
 .dataTables_filter input {
@@ -7420,21 +7427,21 @@ table.dataTable thead .sorting_desc:after {
 
 @media (min-width: 768px) {
     .btn-lg-md {
-        padding: 0.75rem 1.5rem;
+        /*padding: 0.75rem 1.5rem;*/
         font-size: 1.1rem;
     }
 }
 
 /* Texto responsivo */
-.small-lg {
+/*.small-lg {
     font-size: 0.8rem;
-}
+}*/
 
-@media (min-width: 768px) {
+/*@media (min-width: 768px) {
     .small-lg {
         font-size: 0.875rem;
     }
-}
+}*/
 
 /* Controles de formulario responsivos */
 .form-control-lg-md {
@@ -7901,9 +7908,9 @@ code {
         margin: 0.5rem;
     }
     
-    .btn-group {
+    /*.btn-group {
         flex-direction: column;
-    }
+    }*/
     
     .btn-group .btn {
         margin-bottom: 0.5rem;

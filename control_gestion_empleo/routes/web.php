@@ -39,6 +39,7 @@ Route::prefix('admin')->group(function () {
     // Rutas para los registros del empleado en el modal de vista
     Route::get('/empleados/registros/{id}/datatable', [AdminController::class, 'getRegistrosDataTable'])->name('admin.empleados.registros.datatable');
     Route::get('/empleados/registros/{id}/resumen', [AdminController::class, 'getResumenRegistros'])->name('admin.empleados.registros.resumen');
+    Route::get('/empleados/{empleadoId}/registros/{registroId}/detalles', [AdminController::class, 'getDetallesRegistroAdmin']) ->name('admin.empleados.registros.detalles');
 
     Route::get('/empleados/{id}/edit', [AdminController::class, 'editEmployee'])->name('admin.empleados.edit');
     Route::put('/empleados/{id}', [AdminController::class, 'updateEmployee'])->name('admin.empleados.update');

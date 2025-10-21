@@ -1499,4 +1499,89 @@ public function exportarRegistroHorarioIndividual(Request $request, $id)
     }
 }
 
+
+// AdminController.php - AGREGAR ESTE MÉTODO
+/**
+ * Obtener detalles de un registro específico - VERSIÓN ADMIN
+ */
+public function getDetallesRegistroAdmin($empleadoId, $registroId)
+{
+    try {
+        Log::info('🔍 Admin solicitando detalles de registro:', [
+            'empleado_id' => $empleadoId,
+            'registro_id' => $registroId,
+            'admin_id' => Auth::id()
+        ]);
+
+        // Verificar que el empleado existe
+        $empleado = Empleado::find($empleadoId);
+        if (!$empleado) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Empleado no encontrado'
+            ], 404);
+        }
+
+        // Obtener el registro específico con datos de geolocalización
+        $registro = DB::table('tabla_registros_tiempo')
+            ->where('id', $registroId)
+            ->where('empleado_id', $empleado->id)
+            ->first();
+
+        if (!$registro) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Registro no encontrado'
+            ], 404);
+        }
+
+        // Obtener estadísticas del día del registro
+        $fechaRegistro = Carbon::parse($registro->created_at)->format('Y-m-d');
+        
+        $estadisticasDia = DB::table('tabla_registros_tiempo')
+            ->where('empleado_id', $empleado->id)
+            ->whereDate('created_at', $fechaRegistro)
+            ->select(
+                DB::raw('COUNT(*) as total_registros_dia'),
+                DB::raw('COALESCE(SUM(tiempo_total), 0) as total_segundos_dia')
+            )
+            ->first();
+
+        // Calcular horas totales del día
+        $totalHorasDia = number_format(($estadisticasDia->total_segundos_dia / 3600), 2);
+        $promedioPorRegistro = $estadisticasDia->total_registros_dia > 0 
+            ? number_format(($estadisticasDia->total_segundos_dia / $estadisticasDia->total_registros_dia / 3600), 2)
+            : '0.00';
+
+        Log::info('✅ Detalles de registro enviados a admin:', [
+            'empleado_id' => $empleado->id,
+            'registro_id' => $registro->id,
+            'admin_id' => Auth::id()
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'registro' => $registro,
+            'estadisticasDia' => [
+                'total_registros_dia' => $estadisticasDia->total_registros_dia,
+                'total_horas_dia' => $totalHorasDia,
+                'promedio_por_registro' => $promedioPorRegistro
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('❌ Error en getDetallesRegistroAdmin:', [
+            'empleado_id' => $empleadoId,
+            'registro_id' => $registroId,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al obtener detalles del registro: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
 }
