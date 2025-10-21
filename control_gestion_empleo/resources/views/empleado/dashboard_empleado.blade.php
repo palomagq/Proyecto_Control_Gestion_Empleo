@@ -224,7 +224,7 @@
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" 
                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         <i class="fas fa-user-circle mr-1"></i>
-                        {{ Auth::user()->name }}
+                        {{ substr(auth()->user()->name, 0, 1) }}
                     </a>
                     <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
                         <!--<a class="dropdown-item" href="#">

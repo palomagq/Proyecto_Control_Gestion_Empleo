@@ -11,11 +11,9 @@
                     <h5 class="mb-0"><i class="fas fa-user mr-2"></i>Mi Perfil</h5>
                 </div>
                 <div class="card-body text-center">
-                    <!--<div class="profile-avatar">
-                        <span class="text-white h3">{{ substr(Auth::user()->name, 0, 1) }}</span>
-                    </div>-->
-                    <h5 class="mb-1">{{ Auth::user()->name }}</h5>
-                    <p class="text-muted mb-3">{{ Auth::user()->email }}</p>
+                    
+                    <h5 class="mb-1">{{ substr(auth()->user()->name, 0, 1) }}</h5>
+                    <p class="text-muted mb-3">{{ substr(auth()->user()->email, 0, 1) }}</p>
                     
                     <div class="row text-center">
                         <div class="col-6">
@@ -292,12 +290,12 @@ $(document).ready(function() {
         // Destruir si ya existe
         if ($.fn.DataTable.isDataTable('#historial-table')) {
             dataTable.clear().destroy();
-            $('#historial-table').empty();
+            //$('#historial-table').empty();
         }
         
         dataTable = $('#historial-table').DataTable({
             serverSide: true,
-            //processing: true,
+            processing: true,
             pageLength: 5,
             lengthMenu: [5, 10, 25, 50], // ✅ SIN ARRAYS ANIDADOS
             ajax: {

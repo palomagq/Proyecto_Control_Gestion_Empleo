@@ -1120,102 +1120,128 @@ function ejecutarExportacionRegistroHorario(empleadoId, mes, año) {
         showConfirmButton: false
     });
 
-    // Hacer la petición
-    fetch(`/admin/empleados/${empleadoId}/exportar-registro-horario?mes=${mes}&año=${año}`, {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            if (response.headers.get('content-type')?.includes('application/json')) {
-                return response.json().then(errorData => {
-                    throw new Error(errorData.message || `Error ${response.status}`);
-                });
-            } else {
-                throw new Error(`Error ${response.status}: ${response.statusText}`);
+    // Obtener el username del empleado para el nombre del archivo
+    obtenerUsernameEmpleado(empleadoId).then(username => {
+        // Hacer la petición
+        fetch(`/admin/empleados/${empleadoId}/exportar-registro-horario?mes=${mes}&año=${año}`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
             }
-        }
-        
-        // Verificar que sea un PDF
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/pdf')) {
-            throw new Error('La respuesta no es un archivo PDF válido');
-        }
-        
-        return response.blob();
-    })
-    .then(blob => {
-        Swal.close();
-        
-        // Verificar que el blob sea un PDF
-        if (blob.size === 0) {
-            throw new Error('El archivo PDF está vacío');
-        }
+        })
+        .then(response => {
+            if (!response.ok) {
+                if (response.headers.get('content-type')?.includes('application/json')) {
+                    return response.json().then(errorData => {
+                        throw new Error(errorData.message || `Error ${response.status}`);
+                    });
+                } else {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+            }
+            
+            // Verificar que sea un PDF
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/pdf')) {
+                throw new Error('La respuesta no es un archivo PDF válido');
+            }
+            
+            return response.blob();
+        })
+        .then(blob => {
+            Swal.close();
+            
+            // Verificar que el blob sea un PDF
+            if (blob.size === 0) {
+                throw new Error('El archivo PDF está vacío');
+            }
 
-        if (blob.type !== 'application/pdf') {
-            throw new Error('El archivo generado no es un PDF válido');
-        }
+            if (blob.type !== 'application/pdf') {
+                throw new Error('El archivo generado no es un PDF válido');
+            }
 
-        // Crear URL para descargar
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        
-        const nombreArchivo = `registro_horario_${empleadoId}_${getNombreMesCorto(mes)}_${año}.pdf`;
-        a.download = nombreArchivo;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        
-        // Mensaje de éxito
-        Swal.fire({
-            icon: 'success',
-            title: '¡Registro Horario Generado!',
-            html: `
-                <div class="text-left">
-                    <p>El registro horario oficial se ha descargado correctamente:</p>
-                    <div class="alert alert-success">
-                        <strong>${nombreArchivo}</strong>
+            // Crear URL para descargar
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            
+            // ✅ CORREGIDO: Usar username en lugar del ID
+            const nombreArchivo = `registro_horario_${username}_${getNombreMesCorto(mes)}_${año}.pdf`;
+            a.download = nombreArchivo;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            
+            // Mensaje de éxito
+            Swal.fire({
+                icon: 'success',
+                title: '¡Registro Horario Generado!',
+                html: `
+                    <div class="text-left">
+                        <p>El registro horario oficial se ha descargado correctamente:</p>
+                        <div class="alert alert-success">
+                            <strong>${nombreArchivo}</strong>
+                        </div>
+                        <div class="alert alert-info small">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Documento oficial:</strong> Formato legal para registro de control horario.
+                        </div>
                     </div>
-                    <div class="alert alert-info small">
-                        <i class="fas fa-info-circle"></i>
-                        <strong>Documento oficial:</strong> Formato legal para registro de control horario.
+                `,
+                confirmButtonText: 'Entendido',
+                width: '500px'
+            });
+        })
+        .catch(error => {
+            Swal.close();
+            
+            console.error('❌ Error descargando registro horario:', error);
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Error al Generar Registro',
+                html: `
+                    <div class="text-left">
+                        <p><strong>No se pudo generar el registro horario</strong></p>
+                        <p class="text-danger">${error.message}</p>
+                        <div class="alert alert-warning mt-2">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            <strong>Posibles soluciones:</strong>
+                            <ul class="small mt-1">
+                                <li>Verifique que el empleado tenga registros en ${nombreMes} de ${año}</li>
+                                <li>Intente nuevamente en unos momentos</li>
+                                <li>Contacte al administrador si el problema persiste</li>
+                            </ul>
+                        </div>
                     </div>
-                </div>
-            `,
-            confirmButtonText: 'Entendido',
-            width: '500px'
+                `,
+                confirmButtonText: 'Entendido',
+                width: '550px'
+            });
         });
-    })
-    .catch(error => {
+    }).catch(error => {
         Swal.close();
+        console.error('❌ Error obteniendo username:', error);
         
-        console.error('❌ Error descargando registro horario:', error);
-        
-        Swal.fire({
-            icon: 'error',
-            title: 'Error al Generar Registro',
-            html: `
-                <div class="text-left">
-                    <p><strong>No se pudo generar el registro horario</strong></p>
-                    <p class="text-danger">${error.message}</p>
-                    <div class="alert alert-warning mt-2">
-                        <i class="fas fa-exclamation-triangle mr-2"></i>
-                        <strong>Posibles soluciones:</strong>
-                        <ul class="small mt-1">
-                            <li>Verifique que el empleado tenga registros en ${nombreMes} de ${año}</li>
-                            <li>Intente nuevamente en unos momentos</li>
-                            <li>Contacte al administrador si el problema persiste</li>
-                        </ul>
-                    </div>
-                </div>
-            `,
-            confirmButtonText: 'Entendido',
-            width: '550px'
-        });
+        // Fallback: usar ID si no se puede obtener el username
+        ejecutarExportacionRegistroHorarioConId(empleadoId, mes, año, nombreMes);
+    });
+}
+
+// ✅ FUNCIÓN AUXILIAR: Obtener username del empleado
+function obtenerUsernameEmpleado(empleadoId) {
+    return new Promise((resolve, reject) => {
+        fetch(`/admin/empleados/${empleadoId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data.username) {
+                    resolve(data.data.username);
+                } else {
+                    reject(new Error('No se pudo obtener el username del empleado'));
+                }
+            })
+            .catch(error => reject(error));
     });
 }
 

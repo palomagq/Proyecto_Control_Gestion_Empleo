@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log; 
 
 class LoginController extends Controller
 {
@@ -26,7 +27,7 @@ class LoginController extends Controller
             $user = Auth::user();
             
             // DEBUG
-            \Log::info("LOGIN EXITOSO - Usuario: {$user->username}, Rol ID: {$user->rol_id}");
+            Log::info("LOGIN EXITOSO - Usuario: {$user->username}, Rol ID: {$user->rol_id}");
 
             // REDIRECCIÓN SIMPLE Y DIRECTA
             if ($user->rol_id == 1) { // Administrador
@@ -39,7 +40,7 @@ class LoginController extends Controller
                     ->first();
 
                 if ($empleado) {
-                    \Log::info("Redirigiendo a empleado: {$empleado->id} - {$empleado->nombre}");
+                    Log::info("Redirigiendo a empleado: {$empleado->id} - {$empleado->nombre}");
                     return redirect()->route('empleado.perfil', $empleado->id)
                         ->with('success', "¡Bienvenido {$empleado->nombre}!");
                 } else {

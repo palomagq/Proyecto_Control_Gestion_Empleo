@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use App\Exports\EmpleadosMesExport;
 use App\Exports\EmpleadosPdfExport;
+use Illuminate\Support\Facades\Auth;
 
 class AdminController extends Controller
 {

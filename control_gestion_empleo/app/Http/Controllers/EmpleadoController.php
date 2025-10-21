@@ -561,6 +561,9 @@ private function formatearTiempo($segundos)
 /**
  * Obtener datos para DataTable
  */
+/**
+ * Obtener datos para DataTable - VERSIÓN CORREGIDA
+ */
 public function getDataTable(Request $request, $id)
 {
     try {
@@ -579,18 +582,15 @@ public function getDataTable(Request $request, $id)
             ]);
         }
 
-        // OBTENER PARÁMETROS DE PAGINACIÓN DE DATATABLES
+        // OBTENER PARÁMETROS DE DATATABLES
         $start = $request->input('start', 0);
-        $length = $request->input('length', 5); // ← ESTO ES CLAVE: usar el parámetro 'length'
+        $length = $request->input('length', 10);
         $draw = $request->input('draw', 1);
+        $search = $request->input('search.value');
 
-        \Log::info("📊 Parámetros DataTable recibidos:", [
-            'start' => $start,
-            'length' => $length,
-            'draw' => $draw,
-            'empleado_id' => $id
-        ]);
+        Log::info("📊 DataTable request:", $request->all());
 
+        // QUERY BASE
         $query = DB::table('tabla_registros_tiempo')
             ->where('empleado_id', $empleado->id)
             ->select([
@@ -610,7 +610,7 @@ public function getDataTable(Request $request, $id)
                 'pais'
             ]);
 
-        // Aplicar filtros de mes y año
+        // APLICAR FILTROS DE FECHA
         $month = $request->input('month');
         $year = $request->input('year');
 
@@ -619,25 +619,47 @@ public function getDataTable(Request $request, $id)
                   ->whereMonth('created_at', $month);
         } else {
             // Por defecto, mes actual
-            $query->whereYear('created_at', date('Y'))
-                  ->whereMonth('created_at', date('m'));
+            $now = Carbon::now();
+            $query->whereYear('created_at', $now->year)
+                  ->whereMonth('created_at', $now->month);
         }
 
-        // 1. OBTENER TOTAL DE REGISTROS (sin paginación)
+        // CONTAR TOTAL DE REGISTROS (sin paginación)
         $recordsTotal = $query->count();
 
-        // 2. APLICAR PAGINACIÓN ← ESTO ES LO QUE FALTABA
-        $query->orderBy('created_at', 'desc')
-              ->skip($start)  // ← Saltar registros
-              ->take($length); // ← Tomar solo X registros
+        // APLICAR BÚSQUEDA SI EXISTE
+        if (!empty($search)) {
+            $query->where(function($q) use ($search) {
+                $q->where('estado', 'like', "%{$search}%")
+                  ->orWhere('direccion', 'like', "%{$search}%")
+                  ->orWhere('ciudad', 'like', "%{$search}%")
+                  ->orWhere('pais', 'like', "%{$search}%")
+                  ->orWhereDate('created_at', 'like', "%{$search}%");
+            });
+        }
 
-        // 3. OBTENER DATOS PAGINADOS
+        // CONTAR REGISTROS FILTRADOS
+        $recordsFiltered = $query->count();
+
+        // APLICAR ORDENACIÓN
+        $orderColumn = $request->input('order.0.column', 0);
+        $orderDirection = $request->input('order.0.dir', 'desc');
+        
+        $columns = ['created_at', 'inicio', 'fin', 'pausa_inicio', 'pausa_fin', 'tiempo_pausa_total', 'tiempo_total', 'direccion', 'estado'];
+        $orderBy = $columns[$orderColumn] ?? 'created_at';
+        
+        $query->orderBy($orderBy, $orderDirection);
+
+        // APLICAR PAGINACIÓN
+        if ($length != -1) {
+            $query->skip($start)->take($length);
+        }
+
+        // OBTENER DATOS
         $data = $query->get()->map(function($registro) {
             // Asegurar que los tiempos no sean negativos
             $tiempoTotal = max(0, $registro->tiempo_total ?? 0);
             $tiempoPausaTotal = max(0, $registro->tiempo_pausa_total ?? 0);
-            
-            \Log::info("Procesando registro ID {$registro->id}: {$tiempoTotal}s total, {$tiempoPausaTotal}s pausa");
             
             return [
                 'id' => $registro->id,
@@ -657,24 +679,23 @@ public function getDataTable(Request $request, $id)
             ];
         });
 
-        \Log::info("📦 Respuesta DataTable:", [
+        Log::info("✅ DataTable response:", [
             'draw' => $draw,
             'recordsTotal' => $recordsTotal,
-            'recordsFiltered' => $recordsTotal,
-            'data_count' => $data->count(),
-            'start' => $start,
-            'length' => $length
+            'recordsFiltered' => $recordsFiltered,
+            'data_count' => $data->count()
         ]);
 
+        // RESPUESTA CORRECTA PARA DATATABLES
         return response()->json([
             'draw' => intval($draw),
             'recordsTotal' => $recordsTotal,
-            'recordsFiltered' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
             'data' => $data
         ]);
 
     } catch (\Exception $e) {
-        \Log::error('Error en DataTable', [
+        Log::error('❌ Error en DataTable:', [
             'empleado_id' => $id,
             'error' => $e->getMessage(),
             'trace' => $e->getTraceAsString()
@@ -684,8 +705,9 @@ public function getDataTable(Request $request, $id)
             'draw' => intval($request->input('draw', 1)),
             'recordsTotal' => 0,
             'recordsFiltered' => 0,
-            'data' => []
-        ]);
+            'data' => [],
+            'error' => 'Error al cargar datos'
+        ], 500);
     }
 }
 
@@ -731,7 +753,7 @@ public function getResumenPeriodo(Request $request, $id)
 
         $registros = $query->get();
         
-        \Log::info('Registros encontrados para resumen:', [
+        Log::info('Registros encontrados para resumen:', [
             'total' => $registros->count(),
             'empleado_id' => $empleado->id,
             'month' => $month,
@@ -743,7 +765,7 @@ public function getResumenPeriodo(Request $request, $id)
         $registrosValidos = 0;
 
         foreach ($registros as $registro) {
-            \Log::info('Analizando registro:', [
+            Log::info('Analizando registro:', [
                 'id' => $registro->id,
                 'inicio' => $registro->inicio,
                 'fin' => $registro->fin,
@@ -755,7 +777,7 @@ public function getResumenPeriodo(Request $request, $id)
                 // Registro completado con tiempo positivo
                 $totalSegundos += $registro->tiempo_total;
                 $registrosValidos++;
-                \Log::info('Registro válido - tiempo total:', ['tiempo' => $registro->tiempo_total]);
+                Log::info('Registro válido - tiempo total:', ['tiempo' => $registro->tiempo_total]);
             } else if ($registro->fin === null && $registro->inicio && $registro->estado !== 'pausado') {
                 // Registro activo - calcular tiempo hasta ahora
                 $inicio = Carbon::parse($registro->inicio);
@@ -771,7 +793,7 @@ public function getResumenPeriodo(Request $request, $id)
                 $totalSegundos += $tiempoNeto;
                 $registrosValidos++;
                 
-                \Log::info('Registro activo - tiempo calculado:', [
+                Log::info('Registro activo - tiempo calculado:', [
                     'tiempo_bruto' => $tiempoBruto,
                     'tiempo_pausa' => $tiempoPausa,
                     'tiempo_neto' => $tiempoNeto
@@ -788,7 +810,7 @@ public function getResumenPeriodo(Request $request, $id)
                 $totalSegundos += $tiempoNeto;
                 $registrosValidos++;
                 
-                \Log::info('Registro sin tiempo_total - calculado:', [
+                Log::info('Registro sin tiempo_total - calculado:', [
                     'tiempo_bruto' => $tiempoBruto,
                     'tiempo_pausa' => $tiempoPausa,
                     'tiempo_neto' => $tiempoNeto
@@ -827,7 +849,7 @@ public function getResumenPeriodo(Request $request, $id)
             ->get()
             ->count();
 
-        \Log::info('Días trabajados calculados:', [
+        Log::info('Días trabajados calculados:', [
             'dias' => $diasTrabajados,
             'empleado_id' => $empleado->id
         ]);
@@ -835,7 +857,7 @@ public function getResumenPeriodo(Request $request, $id)
         // Promedio diario basado en días trabajados
         $promedioDiario = $diasTrabajados > 0 ? $totalHoras / $diasTrabajados : 0;
 
-        \Log::info('Resumen final calculado:', [
+        Log::info('Resumen final calculado:', [
             'total_segundos' => $totalSegundos,
             'total_horas' => $totalHoras,
             'total_registros' => $totalRegistros,
@@ -855,7 +877,7 @@ public function getResumenPeriodo(Request $request, $id)
         ]);
 
     } catch (\Exception $e) {
-        \Log::error('Error en resumen período:', [
+        Log::error('Error en resumen período:', [
             'error' => $e->getMessage(),
             'trace' => $e->getTraceAsString()
         ]);
