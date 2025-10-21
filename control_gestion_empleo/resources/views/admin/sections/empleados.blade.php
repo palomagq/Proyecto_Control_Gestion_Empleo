@@ -5484,22 +5484,70 @@ function cargarRegistrosEmpleado() {
                     return data ? new Date(data).toLocaleTimeString('es-ES') : 'En progreso';
                 }
             },
-            { 
+             { 
                 data: 'pausa_inicio',
                 name: 'pausa_inicio',
                 width: '10%',
-                render: function(data) {
-                    return data ? new Date(data).toLocaleTimeString('es-ES') : '-';
+                render: function(data, type, row) {
+                    const tienePausa = row.tiempo_pausa_total > 0;
+                    const tieneHoraEspecifica = data && data !== '-' && data !== 'null' && data !== '0000-00-00 00:00:00';
+                    
+                    if (tienePausa && !tieneHoraEspecifica) {
+                        return `<span class="badge badge-warning" title="Pausa de ${formatTimeForTable(row.tiempo_pausa_total)} registrada">Pausa</span>`;
+                    }
+                    
+                    if (tieneHoraEspecifica) {
+                        try {
+                            const fecha = new Date(data);
+                            return fecha.toLocaleTimeString('es-ES', { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                            });
+                        } catch (e) {
+                            return '<span class="text-danger">Error</span>';
+                        }
+                    }
+                    
+                    return '<span class="text-muted">-</span>';
                 }
             },
+
+            // Columna Pausa Fin - VERSIÓN MEJORADA
             { 
                 data: 'pausa_fin',
                 name: 'pausa_fin',
                 width: '10%',
-                render: function(data) {
-                    return data ? new Date(data).toLocaleTimeString('es-ES') : '-';
+                render: function(data, type, row) {
+                    const tienePausa = row.tiempo_pausa_total > 0;
+                    const tieneHoraEspecifica = data && data !== '-' && data !== 'null' && data !== '0000-00-00 00:00:00';
+                    const tieneInicio = row.pausa_inicio && row.pausa_inicio !== '-' && row.pausa_inicio !== 'null';
+                    
+                    // Si hay inicio pero no fin (pausa activa)
+                    if (tieneInicio && !tieneHoraEspecifica) {
+                        return '<span class="badge badge-info">Activa</span>';
+                    }
+                    
+                    if (tieneHoraEspecifica) {
+                        try {
+                            const fecha = new Date(data);
+                            return fecha.toLocaleTimeString('es-ES', { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                            });
+                        } catch (e) {
+                            return '<span class="text-danger">Error</span>';
+                        }
+                    }
+                    
+                    // Si hay pausa pero no horas específicas
+                    if (tienePausa && !tieneHoraEspecifica) {
+                        return `<span class="badge badge-secondary" title="Tiempo total: ${formatTimeForTable(row.tiempo_pausa_total)}">Completada</span>`;
+                    }
+                    
+                    return '<span class="text-muted">-</span>';
                 }
             },
+
             { 
                 data: 'tiempo_pausa_total',
                 name: 'tiempo_pausa_total',
@@ -5525,17 +5573,43 @@ function cargarRegistrosEmpleado() {
                     const ciudad = row.ciudad || '';
                     const pais = row.pais || '';
                     
-                    if (!data || data === 'Sin ubicación') {
-                            return '<span class="text-muted">Sin ubicación</span>';
-                        }
+                    // Si tenemos ciudad y país válidos, mostrarlos
+                    if (ciudad && pais && 
+                        ciudad !== 'Ubicación GPS' && 
+                        ciudad !== 'Ciudad desconocida' &&
+                        pais !== 'GPS' &&
+                        pais !== 'País desconocido') {
                         
                         return `
-                            <div class="ubicacion-info" title="${data}">
+                            <div class="ubicacion-info">
                                 <i class="fas fa-map-marker-alt text-success mr-1"></i>
-                                <small>${data.length > 25 ? data.substring(0, 25) + '...' : data}</small>
+                                <small>${ciudad}, ${pais}</small>
                             </div>
                         `;
- 
+                    }
+                    
+                    // Si solo tenemos ciudad
+                    if (ciudad && ciudad !== 'Ubicación GPS' && ciudad !== 'Ciudad desconocida') {
+                        return `
+                            <div class="ubicacion-info">
+                                <i class="fas fa-map-marker-alt text-info mr-1"></i>
+                                <small>${ciudad}</small>
+                            </div>
+                        `;
+                    }
+                    
+                    // Si solo tenemos país
+                    if (pais && pais !== 'GPS' && pais !== 'País desconocido') {
+                        return `
+                            <div class="ubicacion-info">
+                                <i class="fas fa-map-marker-alt text-warning mr-1"></i>
+                                <small>${pais}</small>
+                            </div>
+                        `;
+                    }
+                    
+                    // Si no hay ubicación válida
+                    return '<span class="text-muted">Sin ubicación</span>';
                 }
             },
             { 

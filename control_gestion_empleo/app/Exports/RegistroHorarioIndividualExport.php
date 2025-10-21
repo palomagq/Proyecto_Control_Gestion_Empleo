@@ -193,27 +193,41 @@ class RegistroHorarioIndividualExport
                 }
                 
                 .firma-section {
-                    margin-top: 30px;
-                    width: 100%;
-                }
-                
-                .firma-line {
-                    border-top: 1px solid #000;
                     margin-top: 40px;
-                    padding-top: 5px;
-                    text-align: center;
-                    font-size: 9px;
+                    border-top: 1px dashed #bdc3c7;
+                    padding-top: 30px;
                 }
                 
                 .firma-container {
                     display: flex;
                     justify-content: space-between;
-                    margin-top: 10px;
+                    gap: 20px;
                 }
                 
                 .firma-box {
-                    width: 45%;
+                    flex: 1;
+                    min-width: 0;
                     text-align: center;
+                }
+                
+                .firma-line {
+                    border-bottom: 2px solid #7f8c8d;
+                    height: 60px;
+                    margin-bottom: 10px;
+                    position: relative;
+                }
+                
+                .firma-label {
+                    margin-top: 8px;
+                    font-size: 14px;
+                    color: #2c3e50;
+                    font-weight: 500;
+                }
+                
+                .firma-note {
+                    font-size: 12px;
+                    color: #7f8c8d;
+                    margin-top: 5px;
                 }
                 
                 .fecha-emision {
@@ -221,6 +235,27 @@ class RegistroHorarioIndividualExport
                     margin-top: 20px;
                     font-size: 9px;
                 }
+
+                    /* Estilos para asegurar que estén en la misma fila */
+                    .firma-container {
+                        display: flex;
+                        flex-direction: row;
+                    }
+                    
+                    .firma-box {
+                        width: 40%;
+                    }
+                    
+                    @media (max-width: 600px) {
+                        .firma-container {
+                            flex-direction: column;
+                        }
+                        
+                        .firma-box {
+                            width: 100%;
+                            margin-bottom: 30px;
+                        }
+                    }
             </style>
         </head>
         <body>
@@ -288,17 +323,16 @@ class RegistroHorarioIndividualExport
 
             <!-- Sección de firmas -->
             <div class='firma-section'>
-                <div class='firma-line'>Firma de la empresa</div>
-                <div class='firma-line'>Firma del trabajador</div>
-                
                 <div class='firma-container'>
-                    <div class='firma-box'>
-                        <div class='firma-line' style='margin-top: 50px;'></div>
-                        <div>Firma y sello de la empresa</div>
+                   <div class='firma-box'>
+                        <div class='firma-line'></div>
+                        <div class='firma-label'>Firma y sello de la empresa</div>
+                        <div class='firma-note'>Nombre y cargo</div>
                     </div>
                     <div class='firma-box'>
-                        <div class='firma-line' style='margin-top: 50px;'></div>
-                        <div>Firma del trabajador</div>
+                        <div class='firma-line'></div>
+                        <div class='firma-label'>Firma del trabajador</div>
+                        <div class='firma-note'>Nombre y DNI</div>
                     </div>
                 </div>
             </div>

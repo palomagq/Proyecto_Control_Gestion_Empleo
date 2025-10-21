@@ -15,7 +15,7 @@ use App\Exports\UsersExport;
 use Yajra\DataTables\Facades\DataTables;
 use Datetime;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Log; // ✅ AGREGAR ESTA LÍNEA
 use Carbon\Carbon;
 use App\Exports\EmpleadosMesExport;
 use App\Exports\EmpleadosPdfExport;
@@ -1181,7 +1181,7 @@ private function generarQRLocalBasico($dni, $nombreCompleto, $codigoUnico)
 public function getQRInfo($id)
 {
     try {
-        \Log::info('🔍 Solicitando información QR para empleado ID:', ['id' => $id]);
+        Log::info('🔍 Solicitando información QR para empleado ID:', ['id' => $id]);
 
         // Cargar empleado con la relación QR
         $empleado = Empleado::with('qr')->find($id);
@@ -1195,7 +1195,7 @@ public function getQRInfo($id)
 
         // Verificar si existe el QR relacionado
         if (!$empleado->qr) {
-            \Log::error('❌ QR no encontrado para empleado:', [
+            Log::error('❌ QR no encontrado para empleado:', [
                 'empleado_id' => $empleado->id,
                 'qr_id_en_empleado' => $empleado->qr_id
             ]);
@@ -1225,7 +1225,7 @@ public function getQRInfo($id)
             'fecha_generacion' => $empleado->qr->created_at->format('d/m/Y H:i')
         ];
 
-        \Log::info('✅ Información QR enviada correctamente', [
+        Log::info('✅ Información QR enviada correctamente', [
             'empleado_id' => $empleado->id,
             'qr_id' => $empleado->qr->id
         ]);
@@ -1236,7 +1236,7 @@ public function getQRInfo($id)
         ]);
 
     } catch (\Exception $e) {
-        \Log::error('❌ Error obteniendo información QR:', [
+        Log::error('❌ Error obteniendo información QR:', [
             'id' => $id, 
             'error' => $e->getMessage()
         ]);
@@ -1255,116 +1255,64 @@ public function getQRInfo($id)
 public function getRegistrosDataTable(Request $request, $id)
 {
     try {
-        \Log::info('📊 Datatable registros solicitado:', [
-            'empleado_id' => $id,
-            'mes' => $request->input('mes'),
-            'año' => $request->input('año'),
-            'draw' => $request->input('draw')
-        ]);
-
-        $empleado = Empleado::find($id);
-        
-        if (!$empleado) {
-            \Log::error('❌ Empleado no encontrado:', ['id' => $id]);
-            return response()->json([
-                'draw' => intval($request->input('draw', 1)),
-                'recordsTotal' => 0,
-                'recordsFiltered' => 0,
-                'data' => [],
-                'error' => 'Empleado no encontrado'
-            ]);
-        }
-
+        // USA LA MISMA CONSULTA QUE EL PERFIL DEL EMPLEADO
         $query = DB::table('tabla_registros_tiempo')
-            ->where('empleado_id', $empleado->id);
+            ->where('empleado_id', $id);
 
-        // Aplicar filtros de mes y año
+        // MISMO FILTRADO POR MES
         $month = $request->input('mes');
         $year = $request->input('año');
 
         if ($month && $year) {
             $fechaInicio = Carbon::create($year, $month, 1)->startOfMonth();
             $fechaFin = Carbon::create($year, $month, 1)->endOfMonth();
-            
-            $query->whereBetween('created_at', [$fechaInicio, $fechaFin]);
-            
-            \Log::info('📅 Filtro aplicado:', [
-                'mes' => $month,
-                'año' => $year,
-                'inicio' => $fechaInicio,
-                'fin' => $fechaFin
-            ]);
-        } else {
-            // Por defecto, mes actual
-            $now = Carbon::now();
-            $month = $now->month;
-            $year = $now->year;
-            
-            $fechaInicio = $now->copy()->startOfMonth();
-            $fechaFin = $now->copy()->endOfMonth();
-            
             $query->whereBetween('created_at', [$fechaInicio, $fechaFin]);
         }
 
-        // Obtener el total de registros
-        $recordsTotal = $query->count();
-
-        // Obtener datos paginados
         $registros = $query->orderBy('created_at', 'desc')->get();
 
-        \Log::info('📋 Registros encontrados:', ['total' => $registros->count()]);
-
+        // MISMO FORMATO DE DATOS
         $data = $registros->map(function($registro) {
             return [
                 'id' => $registro->id,
                 'inicio' => $registro->inicio,
                 'fin' => $registro->fin,
-                'tiempo_total' => $registro->tiempo_total,
+                'pausa_inicio' => $registro->pausa_inicio, // ✅ MISMOS CAMPOS
+                'pausa_fin' => $registro->pausa_fin,       // ✅ MISMOS CAMPOS  
                 'tiempo_pausa_total' => $registro->tiempo_pausa_total,
+                'tiempo_total' => $registro->tiempo_total,
                 'estado' => $registro->estado,
+                'direccion' => $registro->direccion,
+                'ciudad' => $registro->ciudad,
+                'pais' => $registro->pais,
                 'created_at' => $registro->created_at
             ];
         });
 
-        $response = [
+        return response()->json([
             'draw' => intval($request->input('draw', 1)),
-            'recordsTotal' => $recordsTotal,
-            'recordsFiltered' => $recordsTotal,
+            'recordsTotal' => $registros->count(),
+            'recordsFiltered' => $registros->count(),
             'data' => $data
-        ];
-
-        \Log::info('✅ Respuesta DataTable generada:', [
-            'draw' => $response['draw'],
-            'recordsTotal' => $response['recordsTotal'],
-            'data_count' => count($response['data'])
         ]);
-
-        return response()->json($response);
 
     } catch (\Exception $e) {
-        \Log::error('❌ Error en datatable registros empleado:', [
-            'empleado_id' => $id,
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-        
+        Log::error('Error en datatable admin:', ['error' => $e->getMessage()]);
         return response()->json([
             'draw' => intval($request->input('draw', 1)),
             'recordsTotal' => 0,
             'recordsFiltered' => 0,
-            'data' => [],
-            'error' => 'Error interno: ' . $e->getMessage()
+            'data' => []
         ], 500);
     }
 }
-
 /**
  * Obtener resumen de registros del empleado - VERSIÓN CORREGIDA
  */
 public function getResumenRegistros(Request $request, $id)
 {
     try {
-        \Log::info('📈 Resumen registros solicitado:', [
+        Log::info('📈 Resumen registros solicitado:', [
             'empleado_id' => $id,
             'mes' => $request->input('mes'),
             'año' => $request->input('año')
@@ -1402,7 +1350,7 @@ public function getResumenRegistros(Request $request, $id)
 
         $registros = $query->get();
 
-        \Log::info('📊 Registros para resumen:', ['total' => $registros->count()]);
+        Log::info('📊 Registros para resumen:', ['total' => $registros->count()]);
 
         // Calcular estadísticas
         $totalSegundos = 0;
@@ -1423,7 +1371,7 @@ public function getResumenRegistros(Request $request, $id)
         // Promedio diario
         $promedioDiario = $diasTrabajados > 0 ? number_format($totalSegundos / $diasTrabajados / 3600, 2) : 0;
 
-        \Log::info('📈 Resumen calculado:', [
+        Log::info('📈 Resumen calculado:', [
             'total_horas' => $totalHoras,
             'total_registros' => $totalRegistros,
             'dias_trabajados' => $diasTrabajados,
@@ -1439,7 +1387,7 @@ public function getResumenRegistros(Request $request, $id)
         ]);
 
     } catch (\Exception $e) {
-        \Log::error('❌ Error obteniendo resumen registros:', [
+        Log::error('❌ Error obteniendo resumen registros:', [
             'empleado_id' => $id,
             'error' => $e->getMessage(),
             'trace' => $e->getTraceAsString()
