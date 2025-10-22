@@ -1036,8 +1036,289 @@ $(document).ready(function() {
     initializeDataTable();
     loadStats(); // Cargar estadísticas al inicio
 
+    $('#detailsModal').on('hidden.bs.modal', function () {
+        console.log('🔙 Modal de detalles cerrado - Iniciando recuperación...');
+        
+        // Limpiar el estado de Bootstrap manualmente
+        $('body').removeClass('modal-open');
+        $('.modal-backdrop').remove();
+        
+        // Para móviles/tablets, esperar un poco más
+        const isMobile = window.innerWidth <= 1024;
+        const delay = isMobile ? 600 : 400;
+        
+        setTimeout(() => {
+            console.log('🔄 Reabriendo modal de empleado...');
+            
+            // Reabrir el modal de empleado
+            $('#viewEmployeeModal').modal('show');
+            
+            // Reinicializar el mapa después de que el modal esté completamente visible
+            const mapDelay = isMobile ? 1000 : 700;
+            setTimeout(() => {
+                if (tempEmployeeData) {
+                    console.log('🗺️ Reinicializando mapa después de cerrar detalles...');
+                    reinicializarMapaDespuesDeDetalles();
+                } else {
+                    console.log('⚠️ No hay datos de empleado para reinicializar el mapa');
+                }
+            }, mapDelay);
+            
+        }, delay);
+    });
 });
 
+
+function reinicializarMapaDespuesDeDetalles() {
+    const mapElement = document.getElementById('view_map');
+    if (!mapElement) {
+        console.error('❌ Elemento view_map no encontrado');
+        return;
+    }
+    
+    console.log('🔄 Ejecutando reinicialización del mapa...');
+    
+    // Mostrar loading
+    mapElement.innerHTML = `
+        <div class="d-flex justify-content-center align-items-center h-100 bg-light">
+            <div class="text-center">
+                <div class="spinner-border text-primary mb-2"></div>
+                <p class="small text-muted">Reiniciando mapa...</p>
+            </div>
+        </div>
+    `;
+    
+    // Esperar un poco para asegurar que se vea el loading
+    setTimeout(() => {
+        try {
+            // Destruir instancias anteriores
+            if (viewMap) {
+                viewMap = null;
+            }
+            if (viewMarker) {
+                viewMarker = null;
+            }
+            
+            // Limpiar completamente
+            mapElement.innerHTML = '';
+            
+            // Crear nuevo contenedor
+            const mapInnerDiv = document.createElement('div');
+            mapInnerDiv.id = 'view_map_reloaded';
+            mapInnerDiv.style.width = '100%';
+            mapInnerDiv.style.height = '100%';
+            mapInnerDiv.style.minHeight = '250px';
+            mapElement.appendChild(mapInnerDiv);
+            
+            const lat = parseFloat(tempEmployeeData.latitud) || 40.4168;
+            const lng = parseFloat(tempEmployeeData.longitud) || -3.7038;
+            
+            console.log('📍 Creando nuevo mapa en:', lat, lng);
+            
+            // Crear nuevo mapa
+            viewMap = new google.maps.Map(mapInnerDiv, {
+                zoom: 15,
+                center: { lat: lat, lng: lng },
+                mapTypeControl: window.innerWidth > 768,
+                streetViewControl: window.innerWidth > 768,
+                fullscreenControl: true,
+                zoomControl: true,
+                styles: [
+                    {
+                        featureType: "poi",
+                        elementType: "labels",
+                        stylers: [{ visibility: "off" }]
+                    }
+                ]
+            });
+            
+            // Crear nuevo marcador
+            viewMarker = new google.maps.Marker({
+                map: viewMap,
+                draggable: false,
+                title: `${tempEmployeeData.nombre} ${tempEmployeeData.apellidos}`,
+                position: { lat: lat, lng: lng }
+            });
+            
+            // InfoWindow
+            const infoWindow = new google.maps.InfoWindow({
+                content: `
+                    <div class="p-2">
+                        <h6 class="mb-1">${tempEmployeeData.nombre} ${tempEmployeeData.apellidos}</h6>
+                        <p class="mb-1 small">${tempEmployeeData.domicilio || 'Dirección no disponible'}</p>
+                        <p class="mb-0 small text-muted">Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
+                    </div>
+                `
+            });
+            
+            viewMarker.addListener('click', () => {
+                infoWindow.open(viewMap, viewMarker);
+            });
+            
+            // Forzar redibujado del mapa
+            setTimeout(() => {
+                google.maps.event.trigger(viewMap, 'resize');
+                viewMap.setCenter({ lat: lat, lng: lng });
+                infoWindow.open(viewMap, viewMarker);
+                
+                console.log('✅ Mapa reinicializado correctamente después de detalles');
+            }, 500);
+            
+        } catch (error) {
+            console.error('❌ Error en reinicialización:', error);
+            mostrarFallbackInteractivo();
+        }
+    }, 300);
+}
+
+
+// ✅ SOLUCIÓN PARA MÓVILES Y TABLETS
+function solucionMovilParaModal() {
+    // Esperar un poco más en móviles
+    setTimeout(() => {
+        // Usar un approach más directo para móviles
+        $('#viewEmployeeModal').modal({
+            show: true,
+            backdrop: 'static'
+        });
+        
+        // Redibujar el mapa después de un delay más largo
+        setTimeout(() => {
+            reinicializarMapaCompletamente();
+        }, 800);
+        
+    }, 400);
+}
+
+// ✅ SOLUCIÓN PARA DESKTOP
+function solucionDesktopParaModal() {
+    setTimeout(() => {
+        $('#viewEmployeeModal').modal('show');
+        
+        setTimeout(() => {
+            reinicializarMapaCompletamente();
+        }, 500);
+        
+    }, 300);
+}
+
+// ✅ FUNCIÓN PARA REINICIALIZAR EL MAPA COMPLETAMENTE
+function reinicializarMapaCompletamente() {
+    if (!tempEmployeeData) {
+        console.log('⚠️ No hay datos de empleado para reinicializar el mapa');
+        return;
+    }
+    
+    console.log('🗺️ Reinicializando mapa...');
+    
+    const mapElement = document.getElementById('view_map');
+    if (!mapElement) {
+        console.error('❌ Elemento view_map no encontrado');
+        return;
+    }
+    
+    // Limpiar completamente
+    mapElement.innerHTML = '';
+    
+    // Pequeño delay para asegurar que el DOM esté listo
+    setTimeout(() => {
+        try {
+            // Recrear el contenedor del mapa
+            const mapInnerDiv = document.createElement('div');
+            mapInnerDiv.style.width = '100%';
+            mapInnerDiv.style.height = '100%';
+            mapInnerDiv.style.minHeight = '250px';
+            mapElement.appendChild(mapInnerDiv);
+            
+            const lat = parseFloat(tempEmployeeData.latitud) || 40.4168;
+            const lng = parseFloat(tempEmployeeData.longitud) || -3.7038;
+            
+            // Crear nuevo mapa
+            viewMap = new google.maps.Map(mapInnerDiv, {
+                zoom: 15,
+                center: { lat: lat, lng: lng },
+                mapTypeControl: window.innerWidth > 768, // Solo mostrar controles en tablets grandes y desktop
+                streetViewControl: window.innerWidth > 768,
+                fullscreenControl: true,
+                zoomControl: true,
+                styles: [
+                    {
+                        featureType: "poi",
+                        elementType: "labels",
+                        stylers: [{ visibility: "off" }]
+                    }
+                ]
+            });
+            
+            // Crear nuevo marcador
+            viewMarker = new google.maps.Marker({
+                map: viewMap,
+                draggable: false,
+                title: `${tempEmployeeData.nombre} ${tempEmployeeData.apellidos}`,
+                position: { lat: lat, lng: lng }
+            });
+            
+            // InfoWindow
+            const infoWindow = new google.maps.InfoWindow({
+                content: `
+                    <div class="p-2">
+                        <h6 class="mb-1">${tempEmployeeData.nombre} ${tempEmployeeData.apellidos}</h6>
+                        <p class="mb-1 small">${tempEmployeeData.domicilio || 'Dirección no disponible'}</p>
+                        <p class="mb-0 small text-muted">Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
+                    </div>
+                `
+            });
+            
+            viewMarker.addListener('click', () => {
+                infoWindow.open(viewMap, viewMarker);
+            });
+            
+            // Abrir infoWindow automáticamente después de un delay
+            setTimeout(() => {
+                infoWindow.open(viewMap, viewMarker);
+            }, 1000);
+            
+            console.log('✅ Mapa reinicializado correctamente');
+            
+        } catch (error) {
+            console.error('❌ Error reinicializando mapa:', error);
+            mostrarFallbackMapa();
+        }
+    }, 100);
+}
+
+// ✅ FUNCIÓN FALLBACK PARA EL MAPA
+function mostrarFallbackMapa() {
+    const mapElement = document.getElementById('view_map');
+    if (mapElement && tempEmployeeData) {
+        const lat = parseFloat(tempEmployeeData.latitud) || 40.4168;
+        const lng = parseFloat(tempEmployeeData.longitud) || -3.7038;
+        
+        mapElement.innerHTML = `
+            <div class="alert alert-info text-center h-100 d-flex align-items-center justify-content-center">
+                <div>
+                    <i class="fas fa-map-marker-alt fa-2x mb-3"></i>
+                    <h5>Ubicación del Empleado</h5>
+                    <p class="mb-1">${tempEmployeeData.domicilio || 'Dirección no disponible'}</p>
+                    <p class="mb-2 small text-muted">Coordenadas: ${lat}, ${lng}</p>
+                    <button class="btn btn-sm btn-outline-primary" onclick="abrirMapaExterno()">
+                        <i class="fas fa-external-link-alt mr-1"></i>Abrir en Google Maps
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// ✅ FUNCIÓN PARA ABRIR MAPA EXTERNO
+function abrirMapaExterno() {
+    if (tempEmployeeData) {
+        const lat = parseFloat(tempEmployeeData.latitud) || 40.4168;
+        const lng = parseFloat(tempEmployeeData.longitud) || -3.7038;
+        const url = `https://www.google.com/maps?q=${lat},${lng}`;
+        window.open(url, '_blank');
+    }
+}
 
 // ✅ FUNCIÓN: Exportar registro horario individual - DEBE ESTAR DEFINIDA ANTES DEL DATATABLE
 function exportarRegistroHorario(empleadoId) {
@@ -3622,77 +3903,107 @@ function populateViewModal(empleado) {
 
 // Función para inicializar el mapa de vista
 function initializeViewMap(empleado) {
+    console.log('🗺️ Inicializando mapa para:', empleado.nombre);
+    
+    // Guardar datos temporalmente
+    tempEmployeeData = empleado;
+    
     const lat = parseFloat(empleado.latitud) || 40.4168;
     const lng = parseFloat(empleado.longitud) || -3.7038;
     
     const mapElement = document.getElementById('view_map');
-    if (!mapElement) return;
-
-    // Limpiar mapa existente
-    mapElement.innerHTML = '';
-
-    try {
-        const mapInnerDiv = document.createElement('div');
-        mapInnerDiv.style.width = '100%';
-        mapInnerDiv.style.height = '100%';
-        mapElement.appendChild(mapInnerDiv);
-
-        // Crear mapa
-        viewMap = new google.maps.Map(mapInnerDiv, {
-            zoom: 15,
-            center: { lat: lat, lng: lng },
-            mapTypeControl: true,
-            streetViewControl: true,
-            fullscreenControl: true,
-            zoomControl: true,
-            styles: [
-                {
-                    featureType: "poi",
-                    elementType: "labels",
-                    stylers: [{ visibility: "off" }]
-                }
-            ]
-        });
-
-        // Crear marcador
-        viewMarker = new google.maps.Marker({
-            map: viewMap,
-            draggable: false,
-            title: `${empleado.nombre} ${empleado.apellidos}`,
-            position: { lat: lat, lng: lng },
-            animation: google.maps.Animation.DROP
-        });
-
-        // Crear ventana de información
-        const infoWindow = new google.maps.InfoWindow({
-            content: `
-                <div class="p-2">
-                    <h6 class="mb-1">${empleado.nombre} ${empleado.apellidos}</h6>
-                    <p class="mb-1 small">${empleado.domicilio || 'Dirección no disponible'}</p>
-                    <p class="mb-0 small text-muted">Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
-                </div>
-            `
-        });
-
-        // Mostrar infoWindow al hacer clic en el marcador
-        viewMarker.addListener('click', () => {
-            infoWindow.open(viewMap, viewMarker);
-        });
-
-        console.log('✅ Mapa de vista inicializado');
-
-    } catch (error) {
-        console.error('❌ Error inicializando mapa de vista:', error);
-        mapElement.innerHTML = `
-            <div class="alert alert-warning text-center h-100 d-flex align-items-center justify-content-center">
-                <div>
-                    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
-                    <h5>Error al cargar el mapa</h5>
-                    <p class="mb-0">Coordenadas: ${lat}, ${lng}</p>
-                </div>
-            </div>
-        `;
+    if (!mapElement) {
+        console.error('❌ Elemento view_map no encontrado');
+        return;
     }
+
+    // Limpiar completamente el contenedor del mapa
+    mapElement.innerHTML = '';
+    
+    // Añadir un indicador de carga
+    mapElement.innerHTML = `
+        <div class="d-flex justify-content-center align-items-center h-100">
+            <div class="text-center">
+                <div class="spinner-border text-primary mb-2"></div>
+                <p class="small text-muted">Cargando mapa...</p>
+            </div>
+        </div>
+    `;
+
+    // Usar un timeout para asegurar que el DOM se actualizó
+    setTimeout(() => {
+        try {
+            // Volver a limpiar y crear nuevo contenedor
+            mapElement.innerHTML = '';
+            const mapInnerDiv = document.createElement('div');
+            mapInnerDiv.id = 'view_map_container';
+            mapInnerDiv.style.width = '100%';
+            mapInnerDiv.style.height = '100%';
+            mapInnerDiv.style.minHeight = '250px';
+            mapElement.appendChild(mapInnerDiv);
+
+            console.log('📍 Creando mapa en coordenadas:', lat, lng);
+            
+            // Crear nuevo mapa
+            viewMap = new google.maps.Map(mapInnerDiv, {
+                zoom: 15,
+                center: { lat: lat, lng: lng },
+                mapTypeControl: true,
+                streetViewControl: true,
+                fullscreenControl: true,
+                zoomControl: true,
+                styles: [
+                    {
+                        featureType: "poi",
+                        elementType: "labels", 
+                        stylers: [{ visibility: "off" }]
+                    }
+                ]
+            });
+
+            // Crear marcador
+            viewMarker = new google.maps.Marker({
+                map: viewMap,
+                draggable: false,
+                title: `${empleado.nombre} ${empleado.apellidos}`,
+                position: { lat: lat, lng: lng },
+                animation: google.maps.Animation.DROP
+            });
+
+            // InfoWindow
+            const infoWindow = new google.maps.InfoWindow({
+                content: `
+                    <div class="p-2">
+                        <h6 class="mb-1">${empleado.nombre} ${empleado.apellidos}</h6>
+                        <p class="mb-1 small">${empleado.domicilio || 'Dirección no disponible'}</p>
+                        <p class="mb-0 small text-muted">Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
+                    </div>
+                `
+            });
+
+            // Evento para mostrar infoWindow
+            viewMarker.addListener('click', () => {
+                infoWindow.open(viewMap, viewMarker);
+            });
+
+            // Mostrar infoWindow automáticamente después de un delay
+            setTimeout(() => {
+                infoWindow.open(viewMap, viewMarker);
+            }, 1500);
+
+            // Disparar evento resize después de que el mapa esté cargado
+            setTimeout(() => {
+                google.maps.event.trigger(viewMap, 'resize');
+                viewMap.setCenter({ lat: lat, lng: lng });
+            }, 500);
+
+            console.log('✅ Mapa inicializado correctamente');
+
+        } catch (error) {
+            console.error('❌ Error crítico inicializando mapa:', error);
+            mostrarFallbackMapaPermanente(empleado);
+        }
+    }, 100);
 }
 
 // Función para calcular información adicional
@@ -5692,45 +6003,51 @@ function cargarRegistrosEmpleado() {
 function viewDetailsFromAdmin(registroId, empleadoId) {
     console.log('🔍 Cargando detalles del registro desde admin:', registroId, empleadoId);
     
-    // Resetear modal (igual que en el perfil)
-    $('#modal-loading').show();
-    $('#modal-content').hide();
-    $('#modal-error').hide();
+    // 1. Ocultar temporalmente el modal de empleado
+    $('#viewEmployeeModal').modal('hide');
     
-    // Mostrar modal inmediatamente
-    $('#detailsModal').modal('show');
-    
-    // Obtener datos del registro via AJAX (misma ruta que en el perfil)
-    $.ajax({
-        url: `/admin/empleados/${empleadoId}/registros/${registroId}/detalles`,
-        method: 'GET',
-        timeout: 10000,
-        success: function(response) {
-            console.log('✅ Respuesta detalles:', response);
-            
-            if (response.success && response.registro) {
-                mostrarDetallesCompletos(response.registro, response.estadisticasDia);
-            } else {
-                mostrarErrorModal(response.message || 'No se pudieron cargar los detalles del registro.');
+    // 2. Pequeño delay para asegurar que el modal se oculta completamente
+    setTimeout(() => {
+        // 3. Resetear el modal de detalles
+        $('#modal-loading').show();
+        $('#modal-content').hide();
+        $('#modal-error').hide();
+        
+        // 4. Mostrar modal de detalles
+        $('#detailsModal').modal('show');
+        
+        // 5. Obtener datos del registro
+        $.ajax({
+            url: `/admin/empleados/${empleadoId}/registros/${registroId}/detalles`,
+            method: 'GET',
+            timeout: 10000,
+            success: function(response) {
+                console.log('✅ Respuesta detalles:', response);
+                
+                if (response.success && response.registro) {
+                    mostrarDetallesCompletos(response.registro, response.estadisticasDia);
+                } else {
+                    mostrarErrorModal(response.message || 'No se pudieron cargar los detalles del registro.');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('❌ Error al cargar detalles:', error);
+                
+                let mensajeError = 'Error de conexión';
+                if (xhr.status === 404) {
+                    mensajeError = 'Registro no encontrado';
+                } else if (xhr.status === 403) {
+                    mensajeError = 'No tienes permiso para ver este registro';
+                } else if (xhr.status === 500) {
+                    mensajeError = 'Error interno del servidor';
+                } else if (status === 'timeout') {
+                    mensajeError = 'Tiempo de espera agotado';
+                }
+                
+                mostrarErrorModal(mensajeError);
             }
-        },
-        error: function(xhr, status, error) {
-            console.error('❌ Error al cargar detalles:', error);
-            
-            let mensajeError = 'Error de conexión';
-            if (xhr.status === 404) {
-                mensajeError = 'Registro no encontrado';
-            } else if (xhr.status === 403) {
-                mensajeError = 'No tienes permiso para ver este registro';
-            } else if (xhr.status === 500) {
-                mensajeError = 'Error interno del servidor';
-            } else if (status === 'timeout') {
-                mensajeError = 'Tiempo de espera agotado';
-            }
-            
-            mostrarErrorModal(mensajeError);
-        }
-    });
+        });
+    }, 300);
 }
 
 // Función para mostrar detalles completos (COPIADA DEL PERFIL DEL EMPLEADO)
@@ -7568,6 +7885,13 @@ table.dataTable thead .sorting_desc:after {
     }
 }
 
+@media (min-width: 576px) and (max-width:1023px){
+    .modal-dialog {
+        max-width: 720px !important;    
+    }
+}
+
+
 /* Mejoras específicas para DataTables en móvil */
 .dtr-details {
     font-size: 0.8rem;
@@ -7699,9 +8023,9 @@ code {
 
 /* Responsive */
 @media (max-width: 768px) {
-    #viewEmployeeModal .modal-dialog {
-        margin: 0.5rem;
-    }
+  /*  #viewEmployeeModal .modal-dialog {
+        margin: 0 !important;
+    }*/
     
     #viewEmployeeModal .modal-body {
         padding: 1rem;
@@ -8127,6 +8451,108 @@ code {
 .btn-group-sm .btn {
     padding: 0.25rem 0.4rem;
     font-size: 0.75rem;
+}
+
+
+/* ✅ ESTILOS CRÍTICOS PARA MÓVILES Y TABLETS */
+@media (max-width: 1024px) {
+    /* Asegurar que los modales ocupen toda la pantalla */
+    .modal-dialog {
+        /*margin: 0 !important;*/
+        max-width: 100% !important;
+        height: 100% !important;
+    }
+    
+    .modal-content {
+        border-radius: 0 !important;
+        height: 100% !important;
+        min-height: 100vh !important;
+    }
+    
+    .modal-body {
+        overflow-y: auto !important;
+        max-height: calc(100vh - 120px) !important;
+        padding: 1rem !important;
+    }
+    
+    /* Mapa en móviles */
+    #view_map {
+        min-height: 300px !important;
+        height: 300px !important;
+    }
+    
+    /* Prevenir problemas de scroll */
+    body.modal-open {
+        overflow: hidden !important;
+        position: fixed !important;
+        width: 100% !important;
+    }
+    
+    /* Asegurar que el backdrop ocupe toda la pantalla */
+    .modal-backdrop {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+}
+
+/* ✅ ESTILOS ESPECÍFICOS PARA EL MODAL DE DETALLES EN MÓVILES */
+@media (max-width: 768px) {
+    #detailsModal .modal-dialog {
+        margin: 0 !important;
+    }
+    
+    #detailsModal .modal-content {
+        min-height: 100vh;
+        border-radius: 0;
+    }
+    
+    #detailsModal .modal-body {
+        padding: 15px;
+    }
+    
+    /* Botones más grandes en móviles */
+    #detailsModal .btn {
+        padding: 12px 20px;
+        font-size: 16px; /* Tamaño mínimo para touch */
+    }
+}
+
+/* ✅ ESTILOS PARA TABLETS */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .modal-dialog {
+        max-width: 90% !important;
+        margin: 2% auto !important;
+    }
+    
+    #view_map {
+        min-height: 400px !important;
+        height: 400px !important;
+    }
+}
+
+/* ✅ PREVENIR PROBLEMAS DE SUPERPOSICIÓN DE MODALES */
+.modal {
+    z-index: 1050 !important;
+}
+
+.modal-backdrop {
+    z-index: 1040 !important;
+}
+
+#detailsModal {
+    z-index: 1060 !important;
+}
+
+#viewEmployeeModal {
+    z-index: 1055 !important;
+}
+
+/* ✅ LIMPIAR BACKDROP CUANDO SE CIERRAN MODALES */
+.modal.fade.show {
+    backdrop-filter: none !important;
 }
 
 </style>
