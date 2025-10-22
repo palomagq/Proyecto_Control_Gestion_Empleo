@@ -1584,4 +1584,158 @@ public function getDetallesRegistroAdmin($empleadoId, $registroId)
     }
 }
 
+
+
+ /**
+     * Mostrar el perfil del administrador
+     */
+    public function showProfile()
+    {
+        try {
+            $admin = Auth::user();
+            
+            return view('admin.sections.profile', [
+                'admin' => $admin
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error cargando perfil admin:', ['error' => $e->getMessage()]);
+            return redirect()->route('admin.dashboard')
+                ->with('error', 'Error al cargar el perfil: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Actualizar perfil del administrador
+     */
+    public function updateProfile(Request $request)
+    {
+        try {
+            $admin = Auth::user();
+
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string|max:255',
+                'email' => [
+                    'required',
+                    'email',
+                    Rule::unique('users')->ignore($admin->id)
+                ],
+                'current_password' => 'nullable|required_with:new_password',
+                'new_password' => 'nullable|min:8|confirmed',
+                'phone' => 'nullable|string|max:20',
+                'department' => 'nullable|string|max:255',
+            ], [
+                'name.required' => 'El nombre es obligatorio',
+                'email.required' => 'El email es obligatorio',
+                'email.email' => 'El formato del email es inválido',
+                'email.unique' => 'Este email ya está en uso',
+                'new_password.min' => 'La nueva contraseña debe tener al menos 8 caracteres',
+                'new_password.confirmed' => 'Las contraseñas no coinciden',
+                'current_password.required_with' => 'La contraseña actual es requerida para cambiar la contraseña',
+            ]);
+
+            if ($validator->fails()) {
+                return redirect()->back()
+                    ->withErrors($validator)
+                    ->withInput();
+            }
+
+            // Verificar contraseña actual si se quiere cambiar la contraseña
+            if ($request->filled('new_password')) {
+                if (!Hash::check($request->current_password, $admin->password)) {
+                    return redirect()->back()
+                        ->with('error', 'La contraseña actual es incorrecta')
+                        ->withInput();
+                }
+            }
+
+            // Preparar datos para actualizar
+            $updateData = [
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'department' => $request->department,
+            ];
+
+            // Actualizar contraseña si se proporcionó una nueva
+            if ($request->filled('new_password')) {
+                $updateData['password'] = Hash::make($request->new_password);
+            }
+
+            $admin->update($updateData);
+
+            Log::info('Perfil de administrador actualizado:', [
+                'admin_id' => $admin->id,
+                'name' => $request->name
+            ]);
+
+            return redirect()->route('admin.profile')
+                ->with('success', 'Perfil actualizado correctamente');
+
+        } catch (\Exception $e) {
+            Log::error('Error actualizando perfil admin:', [
+                'admin_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->back()
+                ->with('error', 'Error al actualizar el perfil: ' . $e->getMessage())
+                ->withInput();
+        }
+    }
+    
+    /**
+     * Obtener estadísticas del administrador para el dashboard
+     */
+    public function getAdminStats()
+{
+    try {
+        // Total de empleados
+        $totalEmpleados = DB::table('tabla_empleados')->count();
+        
+        // Registros de hoy - ajusta según tu tabla de registros
+        $registrosHoy = DB::table('tabla_registros_tiempo')
+            ->whereDate('created_at', today())
+            ->count();
+
+        // Calcular edad promedio - ASUNIENDO que tienes un campo 'fecha_nacimiento'
+        $empleadosConEdad = DB::table('tabla_empleados')
+            ->whereNotNull('fecha_nacimiento')
+            ->get();
+
+        $totalEdad = 0;
+        $contador = 0;
+
+        foreach ($empleadosConEdad as $empleado) {
+            $fechaNacimiento = \Carbon\Carbon::parse($empleado->fecha_nacimiento);
+            $edad = $fechaNacimiento->age; // Calcula la edad automáticamente
+            $totalEdad += $edad;
+            $contador++;
+        }
+
+        $promedioEdad = $contador > 0 ? round($totalEdad / $contador, 1) : 0;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total_empleados' => $totalEmpleados,
+                'registros_hoy' => $registrosHoy,
+                'promedio_edad' => $promedioEdad
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'data' => [
+                'total_empleados' => 0,
+                'registros_hoy' => 0,
+                'promedio_edad' => 0
+            ],
+            'error' => $e->getMessage()
+        ]);
+    }
+}
+
+
 }

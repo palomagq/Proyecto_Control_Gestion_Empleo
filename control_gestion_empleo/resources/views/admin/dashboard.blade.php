@@ -35,43 +35,43 @@
   <body>
 
     <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
-      <a class="navbar-brand" href="{{ route('admin.dashboard') }}">Panel del Administrador</a>
+      <a class="navbar-brand" href="{{ route('admin.empleados') }}">Panel del Administrador</a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
 
       <div class="collapse navbar-collapse" id="navbarsExampleDefault">
-        <ul class="navbar-nav mr-auto">
+        <!--<ul class="navbar-nav mr-auto">
           <li class="nav-item active">
             <a class="nav-link" href="{{ route('admin.dashboard') }}">Dashboard</a>
           </li>
-        </ul>
+        </ul>-->
                 <!-- Menú de usuario a la derecha - VERSIÓN CORREGIDA -->
         <ul class="navbar-nav ml-auto">
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-              <i class="fas fa-user-circle mr-1"></i>
-              Administrador
-            </a>
-            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
-              <h6 class="dropdown-header">
-                <i class="fas fa-user-shield mr-1"></i>
-                Administrador
-              </h6>
-              <div class="dropdown-divider"></div>
-              <a class="dropdown-item" href="#">
-                <i class="fas fa-cog mr-2"></i>Configuración
+              <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  <i class="fas fa-user-circle mr-1"></i>
+                  {{ auth()->user()->name ?? 'Administrador' }}
               </a>
-              <a class="dropdown-item" href="#">
-                <i class="fas fa-user mr-2"></i>Mi Perfil
-              </a>
-              <div class="dropdown-divider"></div>
-              <a class="dropdown-item" href="#" onclick="confirmLogout()">
-                <i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión
-              </a>
-            </div>
+              <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
+                  <h6 class="dropdown-header">
+                      <i class="fas fa-user-shield mr-1"></i>
+                      Administrador
+                  </h6>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item" href="{{ route('admin.profile') }}">
+                      <i class="fas fa-user mr-2"></i>Mi Perfil
+                  </a>
+                  <a class="dropdown-item" href="{{ route('admin.empleados') }}">
+                      <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item" href="#" onclick="confirmLogout()">
+                      <i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión
+                  </a>
+              </div>
           </li>
-        </ul>
+      </ul>
       </div>
     </nav>
 
