@@ -761,21 +761,31 @@
                 <div class="row mt-4">
                     <div class="col-12">
                         <div class="card border-0 shadow-sm">
-                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0">
-                                    <i class="fas fa-history mr-2 text-primary"></i>Registros de Tiempo del Empleado
-                                </h6>
-                                
-                                <!-- Filtro de mes para los registros -->
-                                <div class="d-flex align-items-center">
-                                    <label for="view_filter_mes" class="mb-0 mr-2 small font-weight-bold text-dark">
-                                        <i class="fas fa-calendar-alt mr-1"></i>Filtrar por mes:
-                                    </label>
-                                    <input type="text" class="form-control form-control-sm" id="view_filter_mes" 
-                                        style="width: 150px;" placeholder="Seleccione mes">
-                                    <button type="button" class="btn btn-primary btn-sm ml-2" onclick="cargarRegistrosEmpleado()">
-                                        <i class="fas fa-filter"></i>
-                                    </button>
+                            <div class="card-header bg-light">
+                                <div class="row align-items-center">
+                                    <!-- Título -->
+                                    <div class="col-12 col-md-6 mb-2 mb-md-0">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-history mr-2 text-primary"></i>Registros de Tiempo del Empleado
+                                        </h6>
+                                    </div>
+                                    
+                                    <!-- Filtro de mes -->
+                                    <div class="col-12 col-md-6">
+                                        <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center">
+                                            <label for="view_filter_mes" class="mb-1 mb-md-0 mr-md-2 small font-weight-bold text-dark">
+                                                <i class="fas fa-calendar-alt mr-1"></i>Filtrar por mes:
+                                            </label>
+                                            <div class="d-flex w-100">
+                                                <input type="text" class="form-control form-control-sm mr-2" id="view_filter_mes" 
+                                                    placeholder="Seleccione mes">
+                                                <button type="button" class="btn btn-primary btn-sm" onclick="cargarRegistrosEmpleado()">
+                                                    <i class="fas fa-filter"></i>
+                                                    <span class="d-none d-md-inline"> Filtrar</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -1033,76 +1043,105 @@ let table;
 // Esperar a que jQuery esté completamente cargado
 $(document).ready(function() {
     console.log('✅ jQuery cargado, versión:', $.fn.jquery);
+    initializeMonthPickers();
+
+    // Limpiar el modal cuando se cierre (Excel)
+    $('#exportExcelModal').on('hidden.bs.modal', function () {
+        $('#export_mes').val('');
+    });
+    
+    // Reinicializar cuando se abra el modal Excel
+    $('#exportExcelModal').on('show.bs.modal', function () {
+        // Pequeño delay para asegurar que el DOM esté listo
+        setTimeout(() => {
+            const excelInput = document.querySelector('#export_mes');
+            if (excelInput && !excelInput._flatpickr) {
+                initializeExcelDatepicker();
+            }
+        }, 100);
+    });
+    
+    // Permitir Enter en el campo de mes (Excel)
+    $('#export_mes').on('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            confirmarExportacion();
+        }
+    });
+
     initializeDataTable();
     loadStats(); // Cargar estadísticas al inicio
 
     $('#detailsModal').on('hidden.bs.modal', function () {
-        console.log('🔙 Modal de detalles cerrado - Iniciando recuperación...');
+        console.log('🔙 Modal de detalles cerrado - Restaurando vista de empleado...');
         
-        // Limpiar el estado de Bootstrap manualmente
+        // Limpiar el estado de Bootstrap
         $('body').removeClass('modal-open');
         $('.modal-backdrop').remove();
         
-        // Para móviles/tablets, esperar un poco más
-        const isMobile = window.innerWidth <= 1024;
-        const delay = isMobile ? 600 : 400;
-        
+        // Esperar un poco para asegurar la transición
         setTimeout(() => {
             console.log('🔄 Reabriendo modal de empleado...');
             
             // Reabrir el modal de empleado
             $('#viewEmployeeModal').modal('show');
             
-            // Reinicializar el mapa después de que el modal esté completamente visible
-            const mapDelay = isMobile ? 1000 : 700;
-            setTimeout(() => {
-                if (tempEmployeeData) {
-                    console.log('🗺️ Reinicializando mapa después de cerrar detalles...');
-                    reinicializarMapaDespuesDeDetalles();
-                } else {
-                    console.log('⚠️ No hay datos de empleado para reinicializar el mapa');
-                }
-            }, mapDelay);
+            // Restaurar el scroll
+            $('body').addClass('modal-open');
             
-        }, delay);
+            // ✅ CRÍTICO: Reinicializar el mapa después de reabrir
+            setTimeout(() => {
+                reinicializarMapaDespuesDeDetalles();
+            }, 300);
+            
+        }, 400);
+    });
+
+    // ✅ MANEJADOR ADICIONAL para cuando se muestra el modal de detalles
+    $('#detailsModal').on('show.bs.modal', function () {
+        console.log('📋 Modal de detalles abierto - Ajustando estilos...');
+        // Asegurar que el body tenga la clase modal-open
+        $('body').addClass('modal-open');
+    });
+
+    // ✅ MANEJADOR para cuando se muestra completamente el modal de detalles
+    $('#detailsModal').on('shown.bs.modal', function () {
+        console.log('✅ Modal de detalles completamente visible');
+        // Forzar el redibujado del scroll si es necesario
+        $(this).find('.modal-body').css('overflow-y', 'auto');
     });
 });
 
 
 function reinicializarMapaDespuesDeDetalles() {
+    if (!tempEmployeeData) {
+        console.log('⚠️ No hay datos de empleado para reinicializar el mapa');
+        return;
+    }
+    
+    console.log('🗺️ Reinicializando mapa después de detalles...');
+    
     const mapElement = document.getElementById('view_map');
     if (!mapElement) {
         console.error('❌ Elemento view_map no encontrado');
         return;
     }
     
-    console.log('🔄 Ejecutando reinicialización del mapa...');
+    // Destruir instancias anteriores
+    if (viewMap) {
+        viewMap = null;
+    }
+    if (viewMarker) {
+        viewMarker = null;
+    }
     
-    // Mostrar loading
-    mapElement.innerHTML = `
-        <div class="d-flex justify-content-center align-items-center h-100 bg-light">
-            <div class="text-center">
-                <div class="spinner-border text-primary mb-2"></div>
-                <p class="small text-muted">Reiniciando mapa...</p>
-            </div>
-        </div>
-    `;
+    // Limpiar completamente el contenedor
+    mapElement.innerHTML = '';
     
-    // Esperar un poco para asegurar que se vea el loading
+    // Pequeño delay para asegurar que el DOM esté listo
     setTimeout(() => {
         try {
-            // Destruir instancias anteriores
-            if (viewMap) {
-                viewMap = null;
-            }
-            if (viewMarker) {
-                viewMarker = null;
-            }
-            
-            // Limpiar completamente
-            mapElement.innerHTML = '';
-            
-            // Crear nuevo contenedor
+            // Crear nuevo contenedor interno
             const mapInnerDiv = document.createElement('div');
             mapInnerDiv.id = 'view_map_reloaded';
             mapInnerDiv.style.width = '100%';
@@ -1110,15 +1149,21 @@ function reinicializarMapaDespuesDeDetalles() {
             mapInnerDiv.style.minHeight = '250px';
             mapElement.appendChild(mapInnerDiv);
             
-            const lat = parseFloat(tempEmployeeData.latitud) || 40.4168;
-            const lng = parseFloat(tempEmployeeData.longitud) || -3.7038;
+            // Usar estado guardado o datos del empleado
+            const lat = window.savedMapState ? 
+                window.savedMapState.position.lat() : 
+                parseFloat(tempEmployeeData.latitud) || 40.4168;
+                
+            const lng = window.savedMapState ? 
+                window.savedMapState.position.lng() : 
+                parseFloat(tempEmployeeData.longitud) || -3.7038;
             
             console.log('📍 Creando nuevo mapa en:', lat, lng);
             
             // Crear nuevo mapa
             viewMap = new google.maps.Map(mapInnerDiv, {
-                zoom: 15,
-                center: { lat: lat, lng: lng },
+                zoom: window.savedMapState ? window.savedMapState.zoom : 15,
+                center: window.savedMapState ? window.savedMapState.center : { lat: lat, lng: lng },
                 mapTypeControl: window.innerWidth > 768,
                 streetViewControl: window.innerWidth > 768,
                 fullscreenControl: true,
@@ -1155,22 +1200,142 @@ function reinicializarMapaDespuesDeDetalles() {
                 infoWindow.open(viewMap, viewMarker);
             });
             
-            // Forzar redibujado del mapa
+            // Forzar redibujado después de que el modal esté completamente visible
             setTimeout(() => {
                 google.maps.event.trigger(viewMap, 'resize');
-                viewMap.setCenter({ lat: lat, lng: lng });
+                
+                // Usar estado guardado o centrar en el marcador
+                if (window.savedMapState) {
+                    viewMap.setCenter(window.savedMapState.center);
+                    viewMap.setZoom(window.savedMapState.zoom);
+                } else {
+                    viewMap.setCenter({ lat: lat, lng: lng });
+                }
+                
+                // Abrir infoWindow
                 infoWindow.open(viewMap, viewMarker);
                 
                 console.log('✅ Mapa reinicializado correctamente después de detalles');
-            }, 500);
+                
+                // Limpiar estado guardado
+                window.savedMapState = null;
+                
+            }, 300);
             
         } catch (error) {
             console.error('❌ Error en reinicialización:', error);
             mostrarFallbackInteractivo();
         }
-    }, 300);
+    }, 100);
 }
 
+
+function initializeMonthPickers() {
+    console.log('📅 Inicializando selectores de mes...');
+    
+    // Destruir instancias anteriores primero
+    const existingPickers = [
+        '#filterMes', '#view_filter_mes', '#export_mes', '#export_pdf_mes'
+    ];
+    
+    existingPickers.forEach(selector => {
+        const input = document.querySelector(selector);
+        if (input && input._flatpickr) {
+            input._flatpickr.destroy();
+        }
+    });
+
+    // Opciones comunes para todos los datepickers de mes
+    const monthPickerOptions = {
+        plugins: [
+            new monthSelectPlugin({
+                shorthand: true,
+                dateFormat: "Y-m",
+                altFormat: "F Y",
+                theme: "material_blue"
+            })
+        ],
+        locale: "es",
+        static: true,
+        disableMobile: true,
+        wrap: true,
+        clickOpens: true,
+        onChange: function(selectedDates, dateStr, instance) {
+            console.log('📅 Mes seleccionado:', dateStr);
+        }
+    };
+
+    // Inicializar cada datepicker con verificación
+    const datepickers = [
+        { selector: '#filterMes', options: { ...monthPickerOptions, defaultDate: null } },
+        { selector: '#view_filter_mes', options: { ...monthPickerOptions, defaultDate: "today" } },
+        { selector: '#export_mes', options: monthPickerOptions },
+        { selector: '#export_pdf_mes', options: monthPickerOptions }
+    ];
+
+    datepickers.forEach(({ selector, options }) => {
+        try {
+            const element = document.querySelector(selector);
+            if (element && !element._flatpickr) {
+                flatpickr(element, options);
+                console.log('✅ Flatpickr inicializado para:', selector);
+            } else if (element && element._flatpickr) {
+                console.log('⚠️ Flatpickr ya estaba inicializado para:', selector);
+            }
+        } catch (error) {
+            console.error('❌ Error inicializando', selector, ':', error);
+            setupFallbackMonthInput(selector);
+        }
+    });
+}
+
+// ✅ FUNCIÓN MEJORADA: Inicializar Flatpickr para Excel
+function initializeExcelDatepicker() {
+    const selector = '#export_mes';
+    
+    // Destruir instancia anterior si existe
+    const existingInput = document.querySelector(selector);
+    if (existingInput && existingInput._flatpickr) {
+        existingInput._flatpickr.destroy();
+    }
+    
+    try {
+        flatpickr(selector, {
+            plugins: [
+                new monthSelectPlugin({
+                    shorthand: true,
+                    dateFormat: "Y-m",
+                    altFormat: "F Y",
+                    theme: "material_blue"
+                })
+            ],
+            locale: "es",
+            static: true,
+            disableMobile: true
+        });
+        console.log('✅ Flatpickr Excel inicializado correctamente');
+    } catch (error) {
+        console.error('❌ Error inicializando datepicker Excel:', error);
+        setupFallbackMonthInput(selector);
+    }
+}
+
+// ✅ FALLBACK para cuando Flatpickr falle
+function setupFallbackMonthInput(selector) {
+    console.log('🔄 Configurando fallback para:', selector);
+    
+    const input = document.querySelector(selector);
+    if (!input) return;
+    
+    // Cambiar a input month nativo
+    input.type = 'month';
+    input.className += ' form-control form-control-sm form-control-lg-md';
+    
+    // Agregar placeholder descriptivo
+    input.placeholder = 'MM-AAAA';
+    
+    console.log('✅ Fallback configurado para:', selector);
+}
 
 // ✅ SOLUCIÓN PARA MÓVILES Y TABLETS
 function solucionMovilParaModal() {
@@ -3790,8 +3955,9 @@ $('#deleteEmployeeModal').on('hidden.bs.modal', function () {
 // Variables globales para el modal de vista
 let viewMap = null;
 let viewMarker = null;
-let currentEmployeeId = null;
-let viewRegistrosTable = null;
+let viewMapInitialized = false;
+let tempEmployeeData = null;
+let mapResizeTimeout = null;
 
 // Función para abrir el modal de vista
 function verEmpleado(id) {
@@ -3922,7 +4088,7 @@ function initializeViewMap(empleado) {
     
     // Añadir un indicador de carga
     mapElement.innerHTML = `
-        <div class="d-flex justify-content-center align-items-center h-100">
+        <div class="d-flex justify-content-center align-items-center h-100 bg-light">
             <div class="text-center">
                 <div class="spinner-border text-primary mb-2"></div>
                 <p class="small text-muted">Cargando mapa...</p>
@@ -3986,17 +4152,14 @@ function initializeViewMap(empleado) {
                 infoWindow.open(viewMap, viewMarker);
             });
 
-            // Mostrar infoWindow automáticamente después de un delay
+            // Mostrar infoWindow automáticamente
             setTimeout(() => {
                 infoWindow.open(viewMap, viewMarker);
-            }, 1500);
+            }, 1000);
 
-            // Disparar evento resize después de que el mapa esté cargado
-            setTimeout(() => {
-                google.maps.event.trigger(viewMap, 'resize');
-                viewMap.setCenter({ lat: lat, lng: lng });
-            }, 500);
-
+            // Marcar como inicializado
+            viewMapInitialized = true;
+            
             console.log('✅ Mapa inicializado correctamente');
 
         } catch (error) {
@@ -4550,24 +4713,6 @@ function getNombreMesCorto(mes) {
     };
     return meses[mes] || 'mes';
 }
-
-// Inicializar cuando el documento esté listo
-$(document).ready(function() {
-    initializeExportDatepicker();
-    
-    // Limpiar el modal cuando se cierre
-    $('#exportExcelModal').on('hidden.bs.modal', function () {
-        $('#export_mes').val('');
-    });
-    
-    // Permitir Enter en el campo de mes
-    $('#export_mes').on('keypress', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            confirmarExportacion();
-        }
-    });
-});
 
 // Función para verificar si hay datos antes de exportar
 function verificarDatosAntesDeExportar(mes, año) {
@@ -5676,8 +5821,8 @@ function descargarQR(empleadoId) {
 
 
 // Variables globales para el modal de vista
-//let viewRegistrosTable = null;
-let currentViewEmpleadoId = null;
+let viewRegistrosTable = null; // Para la tabla de registros en el modal de vista
+let currentEmployeeId = null;
 
 // Función para inicializar el datepicker del filtro de mes
 function initializeViewDatepicker() {
@@ -5692,6 +5837,7 @@ function initializeViewDatepicker() {
         ],
         locale: "es",
         defaultDate: "today",
+        disableMobile: true, // ✅ CRÍTICO: Deshabilitar el datepicker nativo móvil
         onChange: function(selectedDates, dateStr, instance) {
             console.log('📅 Mes seleccionado:', dateStr);
             // Recargar automáticamente al cambiar el mes
@@ -5705,7 +5851,7 @@ function initializeViewDatepicker() {
 // Función para cargar los registros del empleado - VERSIÓN CORREGIDA
 function cargarRegistrosEmpleado() {
     if (!currentEmployeeId) {
-        console.error('No hay ID de empleado seleccionado');
+        console.error('❌ No hay ID de empleado seleccionado');
         return;
     }
 
@@ -5731,282 +5877,294 @@ function cargarRegistrosEmpleado() {
         año: año
     });
 
-    // Destruir DataTable si existe
-    if (viewRegistrosTable && $.fn.DataTable.isDataTable('#view_empleado_registros_table')) {
+    // ✅ CORREGIDO: Verificar y destruir DataTable si existe
+    if (viewRegistrosTable !== null && $.fn.DataTable.isDataTable('#view_empleado_registros_table')) {
+        console.log('🗑️ Destruyendo DataTable existente');
         viewRegistrosTable.destroy();
+        viewRegistrosTable = null;
+        
+        // Limpiar el cuerpo de la tabla
+        $('#view_empleado_registros_table tbody').empty();
     }
 
-    // Inicializar DataTable CORREGIDO
-    viewRegistrosTable = $('#view_empleado_registros_table').DataTable({
-        serverSide: true,
-        //processing: true,
-        
-        ajax: {
-            url: `/admin/empleados/registros/${currentEmployeeId}/datatable`,
-            type: 'GET',
-            data: function (d) {
-                // CORRECCIÓN: Usar los nombres de parámetro correctos
-                return {
-                    mes: mes,
-                    año: año,
-                    draw: d.draw,
-                    start: d.start,
-                    length: d.length,
-                    search: { value: d.search.value }
-                };
-            },
-            dataSrc: function (json) {
-                console.log('📥 Respuesta del servidor:', json);
-                return json.data;
-            },
-            error: function(xhr, error, thrown) {
-                console.error('❌ Error cargando registros:', error);
-                console.log('Status:', xhr.status);
-                console.log('Response:', xhr.responseText);
-            }
-        },
-        columns: [
-            { 
-                data: 'created_at',
-                name: 'created_at',
-                width: '12%',
-                render: function(data) {
-                    return data ? new Date(data).toLocaleDateString('es-ES', {
-                        weekday: 'short',
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                    }) : '-';
-                }
-            },
-            { 
-                data: 'inicio',
-                name: 'inicio',
-                width: '10%',
-                render: function(data) {
-                    return data ? new Date(data).toLocaleTimeString('es-ES') : '-';
-                }
-            },
-            { 
-                data: 'fin',
-                name: 'fin',
-                width: '10%',
-                render: function(data) {
-                    return data ? new Date(data).toLocaleTimeString('es-ES') : 'En progreso';
-                }
-            },
-             { 
-                data: 'pausa_inicio',
-                name: 'pausa_inicio',
-                width: '10%',
-                render: function(data, type, row) {
-                    const tienePausa = row.tiempo_pausa_total > 0;
-                    const tieneHoraEspecifica = data && data !== '-' && data !== 'null' && data !== '0000-00-00 00:00:00';
-                    
-                    if (tienePausa && !tieneHoraEspecifica) {
-                        return `<span class="badge badge-warning" title="Pausa de ${formatTimeForTable(row.tiempo_pausa_total)} registrada">Pausa</span>`;
-                    }
-                    
-                    if (tieneHoraEspecifica) {
-                        try {
-                            const fecha = new Date(data);
-                            return fecha.toLocaleTimeString('es-ES', { 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
-                            });
-                        } catch (e) {
-                            return '<span class="text-danger">Error</span>';
-                        }
-                    }
-                    
-                    return '<span class="text-muted">-</span>';
-                }
-            },
-
-            // Columna Pausa Fin - VERSIÓN MEJORADA
-            { 
-                data: 'pausa_fin',
-                name: 'pausa_fin',
-                width: '10%',
-                render: function(data, type, row) {
-                    const tienePausa = row.tiempo_pausa_total > 0;
-                    const tieneHoraEspecifica = data && data !== '-' && data !== 'null' && data !== '0000-00-00 00:00:00';
-                    const tieneInicio = row.pausa_inicio && row.pausa_inicio !== '-' && row.pausa_inicio !== 'null';
-                    
-                    // Si hay inicio pero no fin (pausa activa)
-                    if (tieneInicio && !tieneHoraEspecifica) {
-                        return '<span class="badge badge-info">Activa</span>';
-                    }
-                    
-                    if (tieneHoraEspecifica) {
-                        try {
-                            const fecha = new Date(data);
-                            return fecha.toLocaleTimeString('es-ES', { 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
-                            });
-                        } catch (e) {
-                            return '<span class="text-danger">Error</span>';
-                        }
-                    }
-                    
-                    // Si hay pausa pero no horas específicas
-                    if (tienePausa && !tieneHoraEspecifica) {
-                        return `<span class="badge badge-secondary" title="Tiempo total: ${formatTimeForTable(row.tiempo_pausa_total)}">Completada</span>`;
-                    }
-                    
-                    return '<span class="text-muted">-</span>';
-                }
-            },
-
-            { 
-                data: 'tiempo_pausa_total',
-                name: 'tiempo_pausa_total',
-                width: '10%',
-                render: function(data) {
-                    return formatSecondsToTime(data);
-                }
-            },
-            { 
-                data: 'tiempo_total',
-                name: 'tiempo_total',
-                width: '10%',
-                render: function(data) {
-                    // ✅ CORREGIDO: Usar la nueva función de formateo
-                    return `<span class="font-weight-bold text-primary">${formatDuration(data)}</span>`;
-                }
-            },
-            { 
-                data: 'direccion',
-                name: 'direccion',
-                width: '15%',
-                render: function(data, type, row) {
-                    const ciudad = row.ciudad || '';
-                    const pais = row.pais || '';
-                    
-                    // Si tenemos ciudad y país válidos, mostrarlos
-                    if (ciudad && pais && 
-                        ciudad !== 'Ubicación GPS' && 
-                        ciudad !== 'Ciudad desconocida' &&
-                        pais !== 'GPS' &&
-                        pais !== 'País desconocido') {
-                        
-                        return `
-                            <div class="ubicacion-info">
-                                <i class="fas fa-map-marker-alt text-success mr-1"></i>
-                                <small>${ciudad}, ${pais}</small>
-                            </div>
-                        `;
-                    }
-                    
-                    // Si solo tenemos ciudad
-                    if (ciudad && ciudad !== 'Ubicación GPS' && ciudad !== 'Ciudad desconocida') {
-                        return `
-                            <div class="ubicacion-info">
-                                <i class="fas fa-map-marker-alt text-info mr-1"></i>
-                                <small>${ciudad}</small>
-                            </div>
-                        `;
-                    }
-                    
-                    // Si solo tenemos país
-                    if (pais && pais !== 'GPS' && pais !== 'País desconocido') {
-                        return `
-                            <div class="ubicacion-info">
-                                <i class="fas fa-map-marker-alt text-warning mr-1"></i>
-                                <small>${pais}</small>
-                            </div>
-                        `;
-                    }
-                    
-                    // Si no hay ubicación válida
-                    return '<span class="text-muted">Sin ubicación</span>';
-                }
-            },
-            { 
-                data: 'estado',
-                name: 'estado',
-                width: '10%',
-                render: function(data) {
-                    let badgeClass = 'secondary';
-                    let texto = 'Desconocido';
-                    let icon = '❓';
-                    
-                    if (data === 'activo') {
-                        badgeClass = 'success';
-                        texto = 'Activo';
-                        icon = '🔴';
-                    } else if (data === 'pausado') {
-                        badgeClass = 'warning';
-                        texto = 'Pausado';
-                        icon = '⏸️';
-                    } else if (data === 'completado') {
-                        badgeClass = 'primary';
-                        texto = 'Completado';
-                        icon = '✅';
-                    }
-                    
-                    return `<span class="badge badge-${badgeClass}">${icon} ${texto}</span>`;
-                }
-            },
-            {
-                data: 'id',
-                name: 'actions',
-                width: '8%',
-                render: function(data) {
-                    return data ? `
-                        <button class="btn btn-sm btn-outline-primary" onclick="viewDetailsFromAdmin(${data}, ${currentEmployeeId})" title="Ver detalles">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    ` : '';
+    // ✅ INICIALIZACIÓN SEGURA de DataTable
+    try {
+        viewRegistrosTable = $('#view_empleado_registros_table').DataTable({
+            serverSide: true,
+            processing: true,
+            ajax: {
+                url: `/admin/empleados/registros/${currentEmployeeId}/datatable`,
+                type: 'GET',
+                data: function (d) {
+                    return {
+                        mes: mes,
+                        año: año,
+                        draw: d.draw,
+                        start: d.start,
+                        length: d.length,
+                        search: { value: d.search.value }
+                    };
                 },
-                orderable: false,
-                searchable: false
-            }
-        ],
-        language: {
-            url: "{{ asset('js/datatables/Spanish.json') }}",
-            emptyTable: 'No hay registros para el mes seleccionado',
-            zeroRecords: 'No se encontraron registros que coincidan'
-        },
-        order: [[0, 'desc']],
-        scrollX: true,
-        autoWidth: false,
-        responsive: true,
-        drawCallback: function(settings) {
-            // Cargar resumen después de cargar los datos
-            cargarResumenRegistros(currentEmployeeId, mes, año);
-            
-            // Manejar estado vacío
-            if (settings.json && settings.json.recordsTotal === 0) {
-                const api = this.api();
-                const $table = $(api.table().node());
-                const periodText = mesSeleccionado ? `para ${formatMonthYear(mesSeleccionado)}` : 'para el período seleccionado';
+                dataSrc: function (json) {
+                    console.log('📥 Respuesta del servidor:', json);
+                    return json.data;
+                },
+                error: function(xhr, error, thrown) {
+                    console.error('❌ Error cargando registros:', error);
+                    console.log('Status:', xhr.status);
+                    console.log('Response:', xhr.responseText);
+                }
+            },
+            columns: [
+                { 
+                    data: 'created_at',
+                    name: 'created_at',
+                    width: '12%',
+                    render: function(data) {
+                        return data ? new Date(data).toLocaleDateString('es-ES', {
+                            weekday: 'short',
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                        }) : '-';
+                    }
+                },
+                { 
+                    data: 'inicio',
+                    name: 'inicio',
+                    width: '10%',
+                    render: function(data) {
+                        return data ? new Date(data).toLocaleTimeString('es-ES') : '-';
+                    }
+                },
+                { 
+                    data: 'fin',
+                    name: 'fin',
+                    width: '10%',
+                    render: function(data) {
+                        return data ? new Date(data).toLocaleTimeString('es-ES') : 'En progreso';
+                    }
+                },
+                { 
+                    data: 'pausa_inicio',
+                    name: 'pausa_inicio',
+                    width: '10%',
+                    render: function(data, type, row) {
+                        const tienePausa = row.tiempo_pausa_total > 0;
+                        const tieneHoraEspecifica = data && data !== '-' && data !== 'null' && data !== '0000-00-00 00:00:00';
+                        
+                        if (tienePausa && !tieneHoraEspecifica) {
+                            return `<span class="badge badge-warning" title="Pausa de ${formatTimeForTable(row.tiempo_pausa_total)} registrada">Pausa</span>`;
+                        }
+                        
+                        if (tieneHoraEspecifica) {
+                            try {
+                                const fecha = new Date(data);
+                                return fecha.toLocaleTimeString('es-ES', { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                });
+                            } catch (e) {
+                                return '<span class="text-danger">Error</span>';
+                            }
+                        }
+                        
+                        return '<span class="text-muted">-</span>';
+                    }
+                },
+                { 
+                    data: 'pausa_fin',
+                    name: 'pausa_fin',
+                    width: '10%',
+                    render: function(data, type, row) {
+                        const tienePausa = row.tiempo_pausa_total > 0;
+                        const tieneHoraEspecifica = data && data !== '-' && data !== 'null' && data !== '0000-00-00 00:00:00';
+                        const tieneInicio = row.pausa_inicio && row.pausa_inicio !== '-' && row.pausa_inicio !== 'null';
+                        
+                        // Si hay inicio pero no fin (pausa activa)
+                        if (tieneInicio && !tieneHoraEspecifica) {
+                            return '<span class="badge badge-info">Activa</span>';
+                        }
+                        
+                        if (tieneHoraEspecifica) {
+                            try {
+                                const fecha = new Date(data);
+                                return fecha.toLocaleTimeString('es-ES', { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                });
+                            } catch (e) {
+                                return '<span class="text-danger">Error</span>';
+                            }
+                        }
+                        
+                        // Si hay pausa pero no horas específicas
+                        if (tienePausa && !tieneHoraEspecifica) {
+                            return `<span class="badge badge-secondary" title="Tiempo total: ${formatTimeForTable(row.tiempo_pausa_total)}">Completada</span>`;
+                        }
+                        
+                        return '<span class="text-muted">-</span>';
+                    }
+                },
+                { 
+                    data: 'tiempo_pausa_total',
+                    name: 'tiempo_pausa_total',
+                    width: '10%',
+                    render: function(data) {
+                        return formatSecondsToTime(data);
+                    }
+                },
+                { 
+                    data: 'tiempo_total',
+                    name: 'tiempo_total',
+                    width: '10%',
+                    render: function(data) {
+                        return `<span class="font-weight-bold text-primary">${formatDuration(data)}</span>`;
+                    }
+                },
+                { 
+                    data: 'direccion',
+                    name: 'direccion',
+                    width: '15%',
+                    render: function(data, type, row) {
+                        const ciudad = row.ciudad || '';
+                        const pais = row.pais || '';
+                        
+                        if (ciudad && pais && 
+                            ciudad !== 'Ubicación GPS' && 
+                            ciudad !== 'Ciudad desconocida' &&
+                            pais !== 'GPS' &&
+                            pais !== 'País desconocido') {
+                            
+                            return `
+                                <div class="ubicacion-info">
+                                    <i class="fas fa-map-marker-alt text-success mr-1"></i>
+                                    <small>${ciudad}, ${pais}</small>
+                                </div>
+                            `;
+                        }
+                        
+                        if (ciudad && ciudad !== 'Ubicación GPS' && ciudad !== 'Ciudad desconocida') {
+                            return `
+                                <div class="ubicacion-info">
+                                    <i class="fas fa-map-marker-alt text-info mr-1"></i>
+                                    <small>${ciudad}</small>
+                                </div>
+                            `;
+                        }
+                        
+                        if (pais && pais !== 'GPS' && pais !== 'País desconocido') {
+                            return `
+                                <div class="ubicacion-info">
+                                    <i class="fas fa-map-marker-alt text-warning mr-1"></i>
+                                    <small>${pais}</small>
+                                </div>
+                            `;
+                        }
+                        
+                        return '<span class="text-muted">Sin ubicación</span>';
+                    }
+                },
+                { 
+                    data: 'estado',
+                    name: 'estado',
+                    width: '10%',
+                    render: function(data) {
+                        let badgeClass = 'secondary';
+                        let texto = 'Desconocido';
+                        let icon = '❓';
+                        
+                        if (data === 'activo') {
+                            badgeClass = 'success';
+                            texto = 'Activo';
+                            icon = '🔴';
+                        } else if (data === 'pausado') {
+                            badgeClass = 'warning';
+                            texto = 'Pausado';
+                            icon = '⏸️';
+                        } else if (data === 'completado') {
+                            badgeClass = 'primary';
+                            texto = 'Completado';
+                            icon = '✅';
+                        }
+                        
+                        return `<span class="badge badge-${badgeClass}">${icon} ${texto}</span>`;
+                    }
+                },
+                {
+                    data: 'id',
+                    name: 'actions',
+                    width: '8%',
+                    render: function(data) {
+                        return data ? `
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewDetailsFromAdmin(${data}, ${currentEmployeeId})" title="Ver detalles">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        ` : '';
+                    },
+                    orderable: false,
+                    searchable: false
+                }
+            ],
+            language: {
+                url: "{{ asset('js/datatables/Spanish.json') }}",
+                emptyTable: 'No hay registros para el mes seleccionado',
+                zeroRecords: 'No se encontraron registros que coincidan'
+            },
+            order: [[0, 'desc']],
+            scrollX: true,
+            autoWidth: false,
+            responsive: true,
+            drawCallback: function(settings) {
+                // Cargar resumen después de cargar los datos
+                cargarResumenRegistros(currentEmployeeId, mes, año);
                 
-                $table.find('.dataTables_empty').html(
-                    '<div class="text-center py-4">' +
-                    '<i class="fas fa-clock fa-3x text-muted mb-3"></i>' +
-                    `<h5 class="text-muted">No hay registros ${periodText}</h5>` +
-                    '<p class="text-muted">Cuando el empleado trabaje durante este mes, aparecerán aquí sus registros.</p>' +
-                    '</div>'
-                );
+                // Manejar estado vacío
+                if (settings.json && settings.json.recordsTotal === 0) {
+                    const api = this.api();
+                    const $table = $(api.table().node());
+                    const periodText = mesSeleccionado ? `para ${formatMonthYear(mesSeleccionado)}` : 'para el período seleccionado';
+                    
+                    $table.find('.dataTables_empty').html(
+                        '<div class="text-center py-4">' +
+                        '<i class="fas fa-clock fa-3x text-muted mb-3"></i>' +
+                        `<h5 class="text-muted">No hay registros ${periodText}</h5>` +
+                        '<p class="text-muted">Cuando el empleado trabaje durante este mes, aparecerán aquí sus registros.</p>' +
+                        '</div>'
+                    );
+                }
+            },
+            initComplete: function(settings, json) {
+                console.log('✅ DataTable de registros inicializado correctamente');
+                console.log('Datos recibidos:', json);
             }
-        },
-        initComplete: function(settings, json) {
-            console.log('✅ DataTable inicializado correctamente');
-            console.log('Datos recibidos:', json);
-        }
-    });
+        });
+
+    } catch (error) {
+        console.error('❌ Error inicializando DataTable de registros:', error);
+        
+        // Mostrar error al usuario
+        $('#view_empleado_registros_table').html(`
+            <div class="alert alert-danger text-center">
+                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                <h5>Error al cargar los registros</h5>
+                <p class="mb-0">${error.message}</p>
+            </div>
+        `);
+    }
 }
 
 // Función para ver detalles desde el modal de admin - USA EL MISMO MODAL
 function viewDetailsFromAdmin(registroId, empleadoId) {
     console.log('🔍 Cargando detalles del registro desde admin:', registroId, empleadoId);
     
+    // Guardar el estado actual del mapa
+    guardarEstadoMapa();
+    
     // 1. Ocultar temporalmente el modal de empleado
     $('#viewEmployeeModal').modal('hide');
     
-    // 2. Pequeño delay para asegurar que el modal se oculta completamente
+    // 2. Esperar a que el modal se oculte completamente
     setTimeout(() => {
         // 3. Resetear el modal de detalles
         $('#modal-loading').show();
@@ -6032,22 +6190,21 @@ function viewDetailsFromAdmin(registroId, empleadoId) {
             },
             error: function(xhr, status, error) {
                 console.error('❌ Error al cargar detalles:', error);
-                
-                let mensajeError = 'Error de conexión';
-                if (xhr.status === 404) {
-                    mensajeError = 'Registro no encontrado';
-                } else if (xhr.status === 403) {
-                    mensajeError = 'No tienes permiso para ver este registro';
-                } else if (xhr.status === 500) {
-                    mensajeError = 'Error interno del servidor';
-                } else if (status === 'timeout') {
-                    mensajeError = 'Tiempo de espera agotado';
-                }
-                
-                mostrarErrorModal(mensajeError);
+                mostrarErrorModal('Error al cargar los detalles del registro.');
             }
         });
-    }, 300);
+    }, 500);
+}
+
+function guardarEstadoMapa() {
+    if (viewMap && viewMarker) {
+        window.savedMapState = {
+            center: viewMap.getCenter(),
+            zoom: viewMap.getZoom(),
+            position: viewMarker.getPosition()
+        };
+        console.log('💾 Estado del mapa guardado:', window.savedMapState);
+    }
 }
 
 // Función para mostrar detalles completos (COPIADA DEL PERFIL DEL EMPLEADO)
@@ -6756,17 +6913,33 @@ function mostrarDetallesCompletosEnModal(registro, estadisticasDia) {
 
 // ✅ FUNCIÓN MEJORADA: Inicializar Flatpickr para PDF
 function initializePdfDatepicker() {
-    flatpickr("#export_pdf_mes", {
-        plugins: [
-            new monthSelectPlugin({
-                shorthand: true,
-                dateFormat: "Y-m",
-                altFormat: "F Y",
-                theme: "material_blue"
-            })
-        ],
-        locale: "es"
-    });
+    const selector = '#export_pdf_mes';
+    
+    // Destruir instancia anterior si existe
+    const existingInput = document.querySelector(selector);
+    if (existingInput && existingInput._flatpickr) {
+        existingInput._flatpickr.destroy();
+    }
+    
+    try {
+        flatpickr(selector, {
+            plugins: [
+                new monthSelectPlugin({
+                    shorthand: true,
+                    dateFormat: "Y-m",
+                    altFormat: "F Y",
+                    theme: "material_blue"
+                })
+            ],
+            locale: "es",
+            static: true,
+            disableMobile: true
+        });
+        console.log('✅ Flatpickr PDF inicializado correctamente');
+    } catch (error) {
+        console.error('❌ Error inicializando datepicker PDF:', error);
+        setupFallbackMonthInput(selector);
+    }
 }
 
 // ✅ FUNCIÓN MEJORADA: Confirmar exportación PDF
@@ -8553,6 +8726,13 @@ code {
 /* ✅ LIMPIAR BACKDROP CUANDO SE CIERRAN MODALES */
 .modal.fade.show {
     backdrop-filter: none !important;
+}
+
+
+@media (min-width: 1200px) {
+    .modal-xl {
+        max-width: 1210px !important;
+    }
 }
 
 </style>
