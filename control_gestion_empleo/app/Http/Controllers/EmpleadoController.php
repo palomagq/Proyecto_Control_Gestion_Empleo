@@ -165,10 +165,10 @@ public function pauseTiempo(Request $request, $id)
         $now = Carbon::now();
         $nuevoEstado = $registro->estado === 'activo' ? 'pausado' : 'activo';
         
-        \Log::info("=== PAUSA/REANUDAR ===");
-        \Log::info("Registro ID: {$registro->id}");
-        \Log::info("Estado actual: {$registro->estado}");
-        \Log::info("Nuevo estado: {$nuevoEstado}");
+        Log::info("=== PAUSA/REANUDAR ===");
+        Log::info("Registro ID: {$registro->id}");
+        Log::info("Estado actual: {$registro->estado}");
+        Log::info("Nuevo estado: {$nuevoEstado}");
 
         if ($nuevoEstado === 'pausado') {
             // INICIAR PAUSA - solo registrar el inicio
@@ -181,13 +181,13 @@ public function pauseTiempo(Request $request, $id)
                     'updated_at' => $now
                 ]);
                 
-            \Log::info("PAUSA INICIADA - Hora: {$now}");
-                
+            Log::info("PAUSA INICIADA - Hora: {$now}");
+               
             $mensaje = 'Tiempo pausado';
         } else {
             // REANUDAR - calcular tiempo de pausa actual y acumular
             if (!$registro->pausa_inicio) {
-                \Log::error("No hay pausa_inicio para reanudar");
+                Log::error("No hay pausa_inicio para reanudar");
                 return response()->json([
                     'success' => false,
                     'message' => 'No hay pausa iniciada para reanudar'
@@ -203,12 +203,12 @@ public function pauseTiempo(Request $request, $id)
             $tiempoPausaAnterior = $registro->tiempo_pausa_total ?? 0;
             $nuevoTiempoPausaTotal = $tiempoPausaAnterior + $tiempoEstaPausa;
             
-            \Log::info("=== REANUDAR PAUSA ===");
-            \Log::info("Pausa desde: {$registro->pausa_inicio}");
-            \Log::info("Reanudar en: {$now}");
-            \Log::info("Tiempo esta pausa: {$tiempoEstaPausa} segundos");
-            \Log::info("Tiempo pausa anterior: {$tiempoPausaAnterior} segundos");
-            \Log::info("Nuevo tiempo pausa total: {$nuevoTiempoPausaTotal} segundos");
+            Log::info("=== REANUDAR PAUSA ===");
+            Log::info("Pausa desde: {$registro->pausa_inicio}");
+            Log::info("Reanudar en: {$now}");
+            Log::info("Tiempo esta pausa: {$tiempoEstaPausa} segundos");
+            Log::info("Tiempo pausa anterior: {$tiempoPausaAnterior} segundos");
+            Log::info("Nuevo tiempo pausa total: {$nuevoTiempoPausaTotal} segundos");
             
             DB::table('tabla_registros_tiempo')
                 ->where('id', $registro->id)
@@ -229,7 +229,7 @@ public function pauseTiempo(Request $request, $id)
         ]);
         
     } catch (\Exception $e) {
-        \Log::error('Error al pausar el tiempo: ' . $e->getMessage());
+        Log::error('Error al pausar el tiempo: ' . $e->getMessage());
         return response()->json([
             'success' => false,
             'message' => 'Error al pausar el tiempo: ' . $e->getMessage()
@@ -242,13 +242,39 @@ public function pauseTiempo(Request $request, $id)
  */
 public function stopTiempo(Request $request, $id)
 {
+    Log::info("=== INICIANDO STOP TIEMPO ===");
+    Log::info("Empleado ID: {$id}");
+    Log::info("Usuario autenticado: " . (Auth::check() ? Auth::id() : 'No autenticado'));
+
     try {
         if (!Auth::check()) {
+            Log::warning('Usuario no autenticado en stopTiempo');
             return response()->json([
                 'success' => false,
                 'message' => 'No autenticado'
             ], 401);
         }
+
+        $user = Auth::user();
+        
+        // VERIFICAR QUE EL EMPLEADO PERTENEZCA AL USUARIO
+        $empleado = DB::table('tabla_empleados')
+            ->where('id', $id)
+            ->where('credencial_id', $user->id)
+            ->first();
+        
+        if (!$empleado) {
+            Log::warning('Empleado no encontrado o no autorizado', [
+                'empleado_id' => $id,
+                'user_id' => $user->id
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'No autorizado para este empleado'
+            ], 403);
+        }
+
+        Log::info("Empleado validado: {$empleado->id}");
 
         $registro = DB::table('tabla_registros_tiempo')
             ->where('empleado_id', $id)
@@ -256,14 +282,21 @@ public function stopTiempo(Request $request, $id)
             ->whereDate('created_at', Carbon::today())
             ->first();
         
+        Log::info("Registro encontrado para STOP:", [
+            'registro_id' => $registro ? $registro->id : 'NULL',
+            'estado' => $registro ? $registro->estado : 'NULL',
+            'inicio' => $registro ? $registro->inicio : 'NULL'
+        ]);
+
         if (!$registro) {
+            Log::warning('No hay registro activo para detener');
             return response()->json([
                 'success' => false,
                 'message' => 'No hay tiempo activo para detener'
-            ]);
+            ], 404);
         }
         
-        \Log::info("=== STOP TIEMPO - CÁLCULO CONSISTENTE ===");
+        Log::info("=== STOP TIEMPO - CÁLCULO CONSISTENTE ===");
 
         // Mismo cálculo que en el JavaScript
         $inicio = strtotime($registro->inicio);
@@ -272,7 +305,7 @@ public function stopTiempo(Request $request, $id)
         // 1. TIEMPO BRUTO
         $tiempoBrutoSegundos = $fin - $inicio;
 
-        // 2. CALCULAR PAUSA MANUALMENTE (igual que en el modal)
+        // 2. CALCULAR PAUSA MANUALMENTE
         $tiempoPausaTotal = 0;
         
         if ($registro->pausa_inicio && $registro->pausa_fin) {
@@ -287,9 +320,9 @@ public function stopTiempo(Request $request, $id)
         // 3. TIEMPO NETO
         $tiempoNeto = max(0, $tiempoBrutoSegundos - $tiempoPausaTotal);
 
-        \Log::info("CÁLCULO FINAL: {$tiempoBrutoSegundos}s - {$tiempoPausaTotal}s = {$tiempoNeto}s");
+        Log::info("CÁLCULO FINAL: {$tiempoBrutoSegundos}s - {$tiempoPausaTotal}s = {$tiempoNeto}s");
 
-        // Actualizar registro
+        // Preparar datos de actualización
         $updateData = [
             'fin' => date('Y-m-d H:i:s', $fin),
             'estado' => 'completado',
@@ -298,14 +331,26 @@ public function stopTiempo(Request $request, $id)
             'updated_at' => date('Y-m-d H:i:s')
         ];
 
+        // Si hay pausa activa, cerrarla
         if ($registro->pausa_inicio && !$registro->pausa_fin) {
             $updateData['pausa_fin'] = date('Y-m-d H:i:s', $fin);
         }
 
-        DB::table('tabla_registros_tiempo')
+        Log::info("Actualizando registro con:", $updateData);
+
+        // Actualizar registro
+        $actualizado = DB::table('tabla_registros_tiempo')
             ->where('id', $registro->id)
             ->update($updateData);
+
+        Log::info("Registro actualizado: " . ($actualizado ? 'SÍ' : 'NO'));
+
+        if (!$actualizado) {
+            throw new \Exception('No se pudo actualizar el registro en la base de datos');
+        }
         
+        Log::info("✅ STOP completado exitosamente");
+
         return response()->json([
             'success' => true,
             'message' => 'Tiempo detenido correctamente',
@@ -322,10 +367,12 @@ public function stopTiempo(Request $request, $id)
         ]);
         
     } catch (\Exception $e) {
-        \Log::error('Error en stopTiempo: ' . $e->getMessage());
+        Log::error('❌ Error crítico en stopTiempo: ' . $e->getMessage());
+        Log::error('Stack trace: ' . $e->getTraceAsString());
+        
         return response()->json([
             'success' => false,
-            'message' => 'Error al detener el tiempo: ' . $e->getMessage()
+            'message' => 'Error interno del servidor: ' . $e->getMessage()
         ], 500);
     }
 }
@@ -345,6 +392,20 @@ public function getEstado(Request $request, $id)
             ]);
         }
 
+        $user = Auth::user();
+
+        $empleado = DB::table('tabla_empleados')
+            ->where('id', $id)
+            ->where('credencial_id', $user->id)
+            ->first();
+        
+        if (!$empleado) {
+            return response()->json([
+                'activo' => false,
+                'estado' => 'no_autorizado'
+            ]);
+        }
+
         $registro = DB::table('tabla_registros_tiempo')
             ->where('empleado_id', $id)
             ->whereNull('fin')
@@ -358,7 +419,7 @@ public function getEstado(Request $request, $id)
             ]);
         }
 
-        \Log::info("=== CÁLCULO CORREGIDO CON PAUSAS ===");
+        Log::info("=== CÁLCULO CORREGIDO CON PAUSAS ===");
 
         // CÁLCULO MANUAL
         $inicio = strtotime($registro->inicio);
@@ -370,24 +431,24 @@ public function getEstado(Request $request, $id)
         // 2. TIEMPO PAUSA TOTAL - USAR DIRECTAMENTE EL VALOR DE LA BD
         $tiempoPausaTotal = max(0, intval($registro->tiempo_pausa_total ?? 0));
         
-        \Log::info("Tiempo pausa total desde BD: " . $tiempoPausaTotal);
-        \Log::info("Pausa inicio: " . ($registro->pausa_inicio ?: 'NULL'));
-        \Log::info("Pausa fin: " . ($registro->pausa_fin ?: 'NULL'));
+        Log::info("Tiempo pausa total desde BD: " . $tiempoPausaTotal);
+        Log::info("Pausa inicio: " . ($registro->pausa_inicio ?: 'NULL'));
+        Log::info("Pausa fin: " . ($registro->pausa_fin ?: 'NULL'));
 
         // 3. SI HAY PAUSA ACTIVA (pausa_inicio SIN pausa_fin), CALCULARLA
         if ($registro->estado === 'pausado' && $registro->pausa_inicio && !$registro->pausa_fin) {
             $pausaInicio = strtotime($registro->pausa_inicio);
             $pausaActual = $now - $pausaInicio;
             $tiempoPausaTotal += $pausaActual;
-            \Log::info("Pausa activa agregada: " . $pausaActual . " segundos");
+            Log::info("Pausa activa agregada: " . $pausaActual . " segundos");
         }
 
-        \Log::info("Tiempo pausa total final: " . $tiempoPausaTotal . " segundos");
+        Log::info("Tiempo pausa total final: " . $tiempoPausaTotal . " segundos");
 
         // 4. TIEMPO NETO
         $tiempoNeto = max(0, $tiempoBrutoSegundos - $tiempoPausaTotal);
 
-        \Log::info("RESULTADO: {$tiempoBrutoSegundos}s - {$tiempoPausaTotal}s = {$tiempoNeto}s");
+        Log::info("RESULTADO: {$tiempoBrutoSegundos}s - {$tiempoPausaTotal}s = {$tiempoNeto}s");
 
         $debugData = [
             'tiempo_bruto_formateado' => $this->formatearTiempo($tiempoBrutoSegundos),
@@ -413,7 +474,7 @@ public function getEstado(Request $request, $id)
         ]);
         
     } catch (\Exception $e) {
-        \Log::error('Error en getEstado: ' . $e->getMessage());
+        Log::error('Error en getEstado: ' . $e->getMessage());
         return response()->json([
             'activo' => false,
             'estado' => 'error',

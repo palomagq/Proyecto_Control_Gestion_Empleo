@@ -1285,225 +1285,272 @@ function encontrarMejorUbicacion(resultados) {
 
     // Evento PAUSE
     btnPause.click(function() {
-        console.log('⏸️ Solicitando pausa...');
-        
-        // Mostrar loading
-        const originalHtml = btnPause.html();
-        btnPause.html('<i class="fas fa-spinner fa-spin mr-2"></i> PAUSANDO...');
-        
-        $.ajax({
-            url: `/empleado/registro/${empleadoId}/pause`,
-            method: 'POST',
-            data: {
-                _token: '{{ csrf_token() }}'
-            },
-            timeout: 10000,
-            success: function(response) {
-                console.log('✅ Respuesta PAUSE:', response);
-                btnPause.html(originalHtml); // Restaurar botón
-                
-                if (response.success) {
-                    // Actualizar estado localmente inmediatamente
-                    if (response.estado === 'pausado') {
-                        detenerActualizacionTiempoReal();
-                        // Mantener el tiempo actual pero mostrar como pausado
-                        const tiempoActual = tiempoTranscurridoElement.text().replace('Tiempo: ', '').replace(' (Pausado)', '');
-                        tiempoTranscurridoElement.text(`Tiempo: ${tiempoActual} (Pausado)`);
-                        estadoActual.text('Estado: Pausado');
-                    } else if (response.estado === 'activo') {
-                        // Reanudar - obtener el tiempo actual del servidor
-                        checkEstado();
-                    }
-                    
-                    // Recargar datos
-                    recargarDatosCompletos();
-                    
-                    Swal.fire({
-                        icon: 'success',
-                        title: response.message,
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: response.message
-                    });
+    console.log('⏸️ Solicitando pausa...');
+    
+    // Mostrar loading
+    const originalHtml = btnPause.html();
+    btnPause.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i> PROCESANDO...');
+    
+    $.ajax({
+        url: `/empleado/registro/${empleadoId}/pause`,
+        method: 'POST',
+        data: {
+            _token: '{{ csrf_token() }}'
+        },
+        timeout: 10000,
+        success: function(response) {
+            console.log('✅ Respuesta PAUSE:', response);
+            btnPause.prop('disabled', false).html(originalHtml);
+            
+            if (response.success) {
+                // Actualizar estado localmente inmediatamente
+                if (response.estado === 'pausado') {
+                    detenerActualizacionTiempoReal();
+                    // Mantener el tiempo actual pero mostrar como pausado
+                    const tiempoActual = tiempoTranscurridoElement.text().replace('Tiempo: ', '').replace(' (Pausado)', '');
+                    tiempoTranscurridoElement.text(`Tiempo: ${tiempoActual} (Pausado)`);
+                    estadoActual.text('Estado: Pausado');
+                    btnPause.html('<i class="fas fa-play mr-2"></i>REANUDAR');
+                } else if (response.estado === 'activo') {
+                    // Reanudar - obtener el tiempo actual del servidor
+                    checkEstado();
+                    btnPause.html('<i class="fas fa-pause mr-2"></i>PAUSAR');
                 }
-            },
-            error: function(xhr, status, error) {
-                console.error('❌ Error PAUSE:', error);
-                btnPause.html(originalHtml); // Restaurar botón
+                
+                // Recargar datos
+                recargarDatosCompletos();
                 
                 Swal.fire({
+                    icon: 'success',
+                    title: response.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire({
                     icon: 'error',
-                    title: 'Error de conexión',
-                    text: 'No se pudo pausar el tiempo'
+                    title: 'Error',
+                    text: response.message
                 });
             }
-        });
+        },
+        error: function(xhr, status, error) {
+            console.error('❌ Error completo PAUSE:', {
+                status: status,
+                error: error,
+                xhr: xhr,
+                responseText: xhr.responseText
+            });
+            
+            btnPause.prop('disabled', false).html(originalHtml);
+            
+            let mensajeError = 'Error desconocido';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                mensajeError = xhr.responseJSON.message;
+            } else if (xhr.status === 500) {
+                mensajeError = 'Error interno del servidor';
+            } else if (xhr.status === 404) {
+                mensajeError = 'Endpoint no encontrado';
+            }
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Error al pausar',
+                html: `
+                    <div class="text-left">
+                        <strong>No se pudo procesar la pausa</strong><br>
+                        <small>Error: ${mensajeError}</small><br>
+                        <small>Status: ${xhr.status}</small>
+                    </div>
+                `,
+                confirmButtonText: 'Reintentar'
+            });
+        }
     });
+});
 
     // Evento STOP
     btnStop.click(function() {
-        console.log('=== STOP - MOSTRANDO SOLO HORAS Y MINUTOS ===');
-        
-        $.ajax({
-            url: `/empleado/registro/${empleadoId}/estado`,
-            method: 'GET',
-            success: function(estadoResponse) {
-                console.log('Respuesta estado:', estadoResponse);
-                
-                if (estadoResponse.activo) {
-                    const inicio = new Date(estadoResponse.inicio);
-                    const fin = new Date();
-                    
-                    const diferenciaMs = fin - inicio;
-                    const segundosBrutos = Math.floor(diferenciaMs / 1000);
-                    
-                    let segundosPausa = 0;
-                    
-                    if (estadoResponse.debug && estadoResponse.debug.pausa_inicio_bd) {
-                        const pausaInicio = new Date(estadoResponse.debug.pausa_inicio_bd);
-                        const pausaFin = estadoResponse.debug.pausa_fin_bd ? 
-                            new Date(estadoResponse.debug.pausa_fin_bd) : fin;
-                        
-                        const pausaMs = pausaFin - pausaInicio;
-                        segundosPausa = Math.floor(pausaMs / 1000);
-                    } else {
-                        segundosPausa = estadoResponse.tiempo_pausa_total || 0;
-                    }
-                    
-                    const segundosNetos = Math.max(0, segundosBrutos - segundosPausa);
-                    
-                    // USAR EL NUEVO FORMATEO (solo horas y minutos)
-                    const tiempoBrutoFormateado = formatTime(segundosBrutos);
-                    const pausaFormateada = formatTime(segundosPausa);
-                    const tiempoNetoFormateado = formatTime(segundosNetos);
-                    const tiempoConEtiquetas = formatTimeWithLabels(segundosNetos);
-                    
-                    console.log('Cálculo final modal:', {
-                        segundosBrutos,
-                        segundosPausa,
-                        segundosNetos,
-                        tiempoBrutoFormateado,
-                        pausaFormateada,
-                        tiempoNetoFormateado,
-                        tiempoConEtiquetas
-                    });
+    console.log('🛑 Solicitando detención...');
+    
+    // Mostrar loading inmediato
+    Swal.fire({
+        title: 'Calculando tiempo...',
+        text: 'Preparando para detener el registro',
+        icon: 'info',
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
 
-                    let contenidoModal = `
-                        <div class="mb-3">
-                            <strong class="h4 text-primary">${tiempoConEtiquetas}</strong>
-                            <div class="small text-muted">${formatTime(segundosNetos)}</div>
-                        </div>
-                        <div class="small text-muted mb-3">
-                            <div>🕐 <strong>Inicio:</strong> ${new Date(estadoResponse.inicio).toLocaleTimeString()}</div>
-                            <div>🛑 <strong>Fin:</strong> ${fin.toLocaleTimeString()}</div>
-                        </div>
-                        <div class="small">
-                            <div>⏱️ <strong>Tiempo bruto:</strong> ${tiempoBrutoFormateado}</div>
-                            <div>⏸️ <strong>Tiempo pausa:</strong> ${pausaFormateada}</div>
-                            <div>📊 <strong>Fórmula:</strong> (${tiempoBrutoFormateado} bruto) - (${pausaFormateada} pausa) = ${tiempoNetoFormateado} neto</div>
-                        </div>
-                    `;
+    $.ajax({
+        url: `/empleado/registro/${empleadoId}/estado`,
+        method: 'GET',
+        success: function(estadoResponse) {
+            console.log('✅ Estado recibido para STOP:', estadoResponse);
+            
+            if (estadoResponse.activo) {
+                Swal.close();
+                
+                const inicio = new Date(estadoResponse.inicio);
+                const fin = new Date();
+                
+                const diferenciaMs = fin - inicio;
+                const segundosBrutos = Math.floor(diferenciaMs / 1000);
+                
+                let segundosPausa = 0;
+                
+                if (estadoResponse.debug && estadoResponse.debug.pausa_inicio_bd) {
+                    const pausaInicio = new Date(estadoResponse.debug.pausa_inicio_bd);
+                    const pausaFin = estadoResponse.debug.pausa_fin_bd ? 
+                        new Date(estadoResponse.debug.pausa_fin_bd) : fin;
                     
-                    if (estadoResponse.debug && estadoResponse.debug.pausa_inicio_bd) {
-                        const pausaInicioTime = new Date(estadoResponse.debug.pausa_inicio_bd).toLocaleTimeString();
-                        const pausaFinTime = estadoResponse.debug.pausa_fin_bd ? 
-                            new Date(estadoResponse.debug.pausa_fin_bd).toLocaleTimeString() : 'En pausa';
-                        
-                        contenidoModal += `
-                            <div class="mt-2 small text-info">
-                                <i class="fas fa-pause-circle"></i> 
-                                Pausa registrada: ${pausaInicioTime} - ${pausaFinTime} (${formatTime(segundosPausa)})
-                            </div>
-                        `;
-                    }
-                    
-                    $('#tiempo-final').html(contenidoModal);
-                    $('#confirmStopModal').modal('show');
-                    $('#confirm-stop').data('tiempo-total', segundosNetos);
-                    $('#confirm-stop').data('tiempo-formateado', tiempoNetoFormateado);
-                    
+                    const pausaMs = pausaFin - pausaInicio;
+                    segundosPausa = Math.floor(pausaMs / 1000);
                 } else {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'No hay tiempo activo',
-                        text: 'No hay un registro de tiempo activo para detener.'
-                    });
+                    segundosPausa = estadoResponse.tiempo_pausa_total || 0;
                 }
-            },
-            error: function(xhr, status, error) {
-                console.error('Error al obtener estado:', error);
+                
+                const segundosNetos = Math.max(0, segundosBrutos - segundosPausa);
+                const tiempoNetoFormateado = formatTime(segundosNetos);
+                const tiempoConEtiquetas = formatTimeWithLabels(segundosNetos);
+                
+                console.log('Cálculo final modal:', {
+                    segundosBrutos,
+                    segundosPausa,
+                    segundosNetos,
+                    tiempoNetoFormateado,
+                    tiempoConEtiquetas
+                });
+
+                let contenidoModal = `
+                    <div class="mb-3">
+                        <strong class="h4 text-primary">${tiempoConEtiquetas}</strong>
+                        <div class="small text-muted">${formatTime(segundosNetos)}</div>
+                    </div>
+                    <div class="small text-muted mb-3">
+                        <div>🕐 <strong>Inicio:</strong> ${new Date(estadoResponse.inicio).toLocaleTimeString()}</div>
+                        <div>🛑 <strong>Fin:</strong> ${fin.toLocaleTimeString()}</div>
+                    </div>
+                    <div class="small">
+                        <div>⏱️ <strong>Tiempo bruto:</strong> ${formatTime(segundosBrutos)}</div>
+                        <div>⏸️ <strong>Tiempo pausa:</strong> ${formatTime(segundosPausa)}</div>
+                    </div>
+                `;
+                
+                $('#tiempo-final').html(contenidoModal);
+                $('#confirmStopModal').modal('show');
+                $('#confirm-stop').data('tiempo-total', segundosNetos);
+                $('#confirm-stop').data('tiempo-formateado', tiempoNetoFormateado);
+                
+            } else {
+                Swal.close();
                 Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'No se pudo obtener el tiempo actual: ' + error
+                    icon: 'warning',
+                    title: 'No hay tiempo activo',
+                    text: 'No hay un registro de tiempo activo para detener.'
                 });
             }
-        });
+        },
+        error: function(xhr, status, error) {
+            console.error('Error al obtener estado para STOP:', error);
+            Swal.close();
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudo obtener el tiempo actual: ' + error
+            });
+        }
     });
+});
 
     // Confirmar STOP
     $('#confirm-stop').click(function() {
-        const tiempoTotal = $(this).data('tiempo-total');
-        const tiempoFormateado = $(this).data('tiempo-formateado');
-        const confirmBtn = $(this);
-        const originalText = confirmBtn.html();
-        
-        confirmBtn.html('<i class="fas fa-spinner fa-spin mr-2"></i> DETENIENDO...');
-        confirmBtn.prop('disabled', true);
+    const tiempoTotal = $(this).data('tiempo-total');
+    const tiempoFormateado = $(this).data('tiempo-formateado');
+    const confirmBtn = $(this);
+    const originalText = confirmBtn.html();
+    
+    confirmBtn.html('<i class="fas fa-spinner fa-spin mr-2"></i> DETENIENDO...');
+    confirmBtn.prop('disabled', true);
 
-        $.ajax({
-            url: `/empleado/registro/${empleadoId}/stop`,
-            method: 'POST',
-            data: {
-                _token: '{{ csrf_token() }}',
-                tiempo_total: tiempoTotal
-            },
-            success: function(response) {
-                if (response.success) {
-                    btnStart.show();
-                    btnGroupActive.hide();
-                    estadoActual.text('Estado: No iniciado');
-                    tiempoTranscurridoElement.text('Tiempo: 00:00:00');
-                    detenerActualizacionTiempoReal();
-                    
-                    recargarDatosCompletos();
-                    
-                    $('#confirmStopModal').modal('hide');
-                    
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Tiempo detenido',
-                        html: `Tiempo registrado: <strong>${response.tiempo_formateado || tiempoFormateado}</strong>`,
-                        timer: 3000,
-                        showConfirmButton: false
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: response.message
-                    });
-                }
-            },
-            error: function(xhr) {
-                console.error('Error STOP:', xhr);
+    console.log('🛑 Enviando STOP al servidor...', { tiempoTotal, empleadoId });
+
+    $.ajax({
+        url: `/empleado/registro/${empleadoId}/stop`,
+        method: 'POST',
+        data: {
+            _token: '{{ csrf_token() }}',
+            tiempo_total: tiempoTotal
+        },
+        timeout: 15000,
+        success: function(response) {
+            console.log('✅ Respuesta STOP:', response);
+            
+            if (response.success) {
+                btnStart.show();
+                btnGroupActive.hide();
+                estadoActual.text('Estado: No iniciado');
+                tiempoTranscurridoElement.text('Tiempo: 00:00:00');
+                detenerActualizacionTiempoReal();
+                
+                recargarDatosCompletos();
+                
+                $('#confirmStopModal').modal('hide');
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Tiempo detenido',
+                    html: `Tiempo registrado: <strong>${response.tiempo_formateado || tiempoFormateado}</strong>`,
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            } else {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'No se pudo detener el tiempo'
+                    text: response.message || 'Error al detener el tiempo'
                 });
-            },
-            complete: function() {
-                confirmBtn.html(originalText);
-                confirmBtn.prop('disabled', false);
             }
-        });
+        },
+        error: function(xhr, status, error) {
+            console.error('❌ Error completo STOP:', {
+                status: status,
+                error: error,
+                xhr: xhr,
+                responseText: xhr.responseText
+            });
+            
+            let mensajeError = 'Error desconocido';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                mensajeError = xhr.responseJSON.message;
+            } else if (xhr.status === 500) {
+                mensajeError = 'Error interno del servidor';
+            } else if (xhr.status === 404) {
+                mensajeError = 'Endpoint no encontrado';
+            }
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Error al detener',
+                html: `
+                    <div class="text-left">
+                        <strong>No se pudo detener el tiempo</strong><br>
+                        <small>Error: ${mensajeError}</small><br>
+                        <small>Status: ${xhr.status}</small>
+                    </div>
+                `,
+                confirmButtonText: 'Reintentar'
+            });
+        },
+        complete: function() {
+            confirmBtn.html(originalText);
+            confirmBtn.prop('disabled', false);
+        }
     });
+});
 
     // =============================================
     // FUNCIONES DE ESTADO Y ACTUALIZACIÓN
@@ -1697,24 +1744,19 @@ function formatTime(seconds) {
     
     if (seconds === 0) return '00:00';
     
-    // Calcular días, horas, minutos
-    const dias = Math.floor(seconds / 86400);
-    const horasRestantes = seconds % 86400;
-    const horas = Math.floor(horasRestantes / 3600);
-    const minutos = Math.floor((horasRestantes % 3600) / 60);
+    // Calcular horas, minutos y segundos
+    const horas = Math.floor(seconds / 3600);
+    const minutosRestantes = seconds % 3600;
+    const minutos = Math.floor(minutosRestantes / 60);
+    const segundosRestantes = minutosRestantes % 60;
     
-    // Si hay días, mostrar formato con días
-    if (dias > 0) {
-        return `${dias}d ${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`;
-    }
-    
-    // Si solo hay horas, mostrar formato normal
+    // Si hay horas, mostrar formato completo HH:MM:SS
     if (horas > 0) {
-        return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`;
+        return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundosRestantes.toString().padStart(2, '0')}`;
     }
     
-    // Si son solo minutos
-    return `${minutos.toString().padStart(2, '0')}:00`;
+    // Si solo hay minutos y segundos, mostrar MM:SS
+    return `${minutos.toString().padStart(2, '0')}:${segundosRestantes.toString().padStart(2, '0')}`;
 }
 
     // Función para recargar datos completos

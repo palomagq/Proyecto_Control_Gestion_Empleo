@@ -47,8 +47,8 @@ Route::prefix('admin')->group(function () {
     Route::delete('/empleados/{id}', [AdminController::class, 'destroyEmployee'])->name('admin.empleados.destroy');
 
     // Nuevas rutas para el perfil del administrador
-    Route::get('/admin/profile', [AdminController::class, 'showProfile'])->name('admin.profile');
-    Route::post('/admin/profile', [AdminController::class, 'updateProfile'])->name('admin.profile.update');
+    Route::get('/profile', [AdminController::class, 'showProfile'])->name('admin.profile');
+    Route::post('/profile', [AdminController::class, 'updateProfile'])->name('admin.profile.update');
     Route::get('/admin/stats', [AdminController::class, 'getAdminStats'])->name('admin.stats');
 
 });

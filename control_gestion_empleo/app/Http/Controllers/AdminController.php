@@ -1592,15 +1592,18 @@ public function getDetallesRegistroAdmin($empleadoId, $registroId)
     public function showProfile()
     {
         try {
-            $admin = Auth::user();
-            
-            return view('admin.sections.profile', [
-                'admin' => $admin
-            ]);
-            
+        // Obtener el usuario autenticado
+        $admin = auth()->user();
+        
+        // Verificar que el usuario existe y es administrador
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Debe iniciar sesión');
+        }
+
+        return view('admin.sections.profile', compact('admin'));
+        
         } catch (\Exception $e) {
-            Log::error('Error cargando perfil admin:', ['error' => $e->getMessage()]);
-            return redirect()->route('admin.dashboard')
+            return redirect()->route('admin.sections.empleados')
                 ->with('error', 'Error al cargar el perfil: ' . $e->getMessage());
         }
     }
@@ -1611,7 +1614,7 @@ public function getDetallesRegistroAdmin($empleadoId, $registroId)
     public function updateProfile(Request $request)
     {
         try {
-            $admin = Auth::user();
+            $admin = auth()->user();
 
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
