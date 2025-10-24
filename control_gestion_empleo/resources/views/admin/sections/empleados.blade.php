@@ -128,14 +128,13 @@
                                 <input type="text" class="form-control form-control-sm form-control-lg-md" id="filterNombre" placeholder="Buscar por nombre...">
                             </div>
                         </div>
-                        <div class="col-12 col-md-4">
+                        <div class="col-12 col-md-4 mb-2 mb-md-0">
                             <div class="form-group mb-1 mb-lg-2">
                                 <label for="filterMes" class="font-weight-bold text-dark small small-lg">
                                     <i class="fas fa-calendar-alt mr-1"></i>Filtrar por Mes Completo:
                                 </label>
                                 <input type="text" class="form-control form-control-sm form-control-lg-md" id="filterMes" 
-                                       placeholder="Seleccione un mes">
-                                <small class="form-text text-muted d-none d-md-block">Se filtrará del día 1 al último día del mes</small> <!-- Ocultar en móvil -->
+                                    placeholder="Seleccione un mes" readonly>
                             </div>
                         </div>
                     </div>
@@ -418,6 +417,7 @@
                             <div class="form-group">
                                 <label for="edit_fecha_nacimiento" class="font-weight-bold">Fecha de Nacimiento</label>
                                 <input type="text" class="form-control bg-light" id="edit_fecha_nacimiento" readonly>
+                                <small class="form-text text-muted" id="edit_fecha_nacimiento_formatted"></small>
                             </div>
                         </div>
                     </div>
@@ -1231,21 +1231,17 @@ function reinicializarMapaDespuesDeDetalles() {
 
 
 function initializeMonthPickers() {
-    console.log('📅 Inicializando selectores de mes...');
+    console.log('📅 Inicializando selectores de mes CORREGIDA...');
     
-    // Destruir instancias anteriores primero
-    const existingPickers = [
-        '#filterMes', '#view_filter_mes', '#export_mes', '#export_pdf_mes'
-    ];
-    
-    existingPickers.forEach(selector => {
-        const input = document.querySelector(selector);
-        if (input && input._flatpickr) {
+    // Destruir TODAS las instancias existentes primero
+    const allDatepickers = document.querySelectorAll('.flatpickr');
+    allDatepickers.forEach(input => {
+        if (input._flatpickr) {
             input._flatpickr.destroy();
         }
     });
 
-    // Opciones comunes para todos los datepickers de mes
+    // Configuración optimizada para Flatpickr
     const monthPickerOptions = {
         plugins: [
             new monthSelectPlugin({
@@ -1256,37 +1252,88 @@ function initializeMonthPickers() {
             })
         ],
         locale: "es",
-        static: true,
-        disableMobile: true,
-        wrap: true,
+        static: false,
+        disableMobile: false, // ✅ IMPORTANTE: Deshabilitar el datepicker móvil nativo
         clickOpens: true,
-        onChange: function(selectedDates, dateStr, instance) {
-            console.log('📅 Mes seleccionado:', dateStr);
+        allowInput: true,
+        position: "auto", // ✅ Dejar en auto para mejor posicionamiento
+        positionElement: undefined, // ✅ No forzar elemento específico
+        onReady: function(selectedDates, dateStr, instance) {
+            console.log('✅ Flatpickr listo:', instance.element.id);
+        },
+        onOpen: function(selectedDates, dateStr, instance) {
+            console.log('📅 Flatpickr abierto:', instance.element.id);
         }
     };
 
-    // Inicializar cada datepicker con verificación
+    // Inicializar cada datepicker con manejo de errores
     const datepickers = [
-        { selector: '#filterMes', options: { ...monthPickerOptions, defaultDate: null } },
-        { selector: '#view_filter_mes', options: { ...monthPickerOptions, defaultDate: "today" } },
-        { selector: '#export_mes', options: monthPickerOptions },
-        { selector: '#export_pdf_mes', options: monthPickerOptions }
+        { id: 'filterMes', options: { ...monthPickerOptions } },
+        { id: 'view_filter_mes', options: { ...monthPickerOptions, defaultDate: "today" } },
+        { id: 'export_mes', options: { ...monthPickerOptions } },
+        { id: 'export_pdf_mes', options: { ...monthPickerOptions } }
     ];
 
-    datepickers.forEach(({ selector, options }) => {
-        try {
-            const element = document.querySelector(selector);
-            if (element && !element._flatpickr) {
-                flatpickr(element, options);
-                console.log('✅ Flatpickr inicializado para:', selector);
-            } else if (element && element._flatpickr) {
-                console.log('⚠️ Flatpickr ya estaba inicializado para:', selector);
-            }
-        } catch (error) {
-            console.error('❌ Error inicializando', selector, ':', error);
-            setupFallbackMonthInput(selector);
-        }
+    datepickers.forEach(({ id, options }) => {
+        initializeSingleDatepicker(id, options);
     });
+
+    console.log('✅ Todos los datepickers inicializados');
+}
+
+// ✅ FUNCIÓN AUXILIAR: Inicializar un datepicker individual
+function initializeSingleDatepicker(elementId, options) {
+    const element = document.getElementById(elementId);
+    
+    if (!element) {
+        console.warn(`⚠️ Elemento #${elementId} no encontrado`);
+        return;
+    }
+
+    // Verificar si ya está inicializado
+    if (element._flatpickr) {
+        console.log(`⚠️ ${elementId} ya estaba inicializado, destruyendo...`);
+        element._flatpickr.destroy();
+    }
+
+    try {
+        // ✅ CRÍTICO: Cambiar el type a text para prevenir datepicker nativo
+        element.type = 'text';
+        
+        // ✅ AGREGAR clase para identificar
+        element.classList.add('flatpickr-custom');
+        
+        // ✅ FORZAR estilos para prevenir datepicker nativo
+        element.style.webkitAppearance = 'none';
+        element.style.mozAppearance = 'none';
+        element.style.appearance = 'none';
+        
+        // Inicializar Flatpickr con configuración móvil mejorada
+        const fp = flatpickr(`#${elementId}`, {
+            ...options,
+            disableMobile: true, // ✅ IMPORTANTE
+            clickOpens: true,
+            allowInput: true,
+            static: true
+        });
+        
+        console.log(`✅ Flatpickr inicializado para: #${elementId}`);
+
+        // ✅ MANEJADOR ADICIONAL para prevenir comportamiento nativo
+        element.addEventListener('focus', function(e) {
+            e.preventDefault();
+            fp.open();
+        });
+        
+        element.addEventListener('click', function(e) {
+            e.preventDefault();
+            fp.open();
+        });
+
+    } catch (error) {
+        console.error(`❌ Error inicializando ${elementId}:`, error);
+        //setupFallbackMonthInput(elementId);
+    }
 }
 
 // ✅ FUNCIÓN MEJORADA: Inicializar Flatpickr para Excel
@@ -1692,7 +1739,7 @@ function obtenerUsernameEmpleado(empleadoId) {
 }
 
 function initializeDataTable() {
-    console.log('🔄 Inicializando DataTable...');
+    console.log('🔄 Inicializando DataTable CLIENT-SIDE...');
     
     if (!$.fn.DataTable) {
         console.error('❌ DataTables no está cargado');
@@ -1706,8 +1753,8 @@ function initializeDataTable() {
     }
     
     table = $('#empleadosTable').DataTable({
-        //processing: true,
-        serverSide: false, // ✅ IMPORTANTE: Cambiar a false
+        serverSide: false, // ✅ CLIENT-SIDE processing
+        processing: true,
         responsive: true,
         language: {
             "url": "{{ asset('js/datatables/Spanish.json') }}"
@@ -1715,10 +1762,20 @@ function initializeDataTable() {
         ajax: {
             url: '{{ route("admin.empleados.datatable") }}',
             type: 'GET',
-            dataSrc: 'data', // ✅ Especificar que los datos están en 'data'
+            dataSrc: function (json) {
+                console.log('📥 Datos recibidos del servidor:', json);
+                
+                // Guardar datos originales para filtros
+                let datos = json.data || json;
+                window.empleadosDataOriginal = Array.isArray(datos) ? datos : [];
+                
+                console.log('💾 Datos originales guardados:', window.empleadosDataOriginal.length, 'empleados');
+                
+                // Devolver todos los datos inicialmente
+                return window.empleadosDataOriginal;
+            },
             error: function(xhr, error, thrown) {
                 console.error('❌ Error cargando DataTable:', error);
-                console.error('Response:', xhr.responseText);
             }
         },
         columns: [
@@ -1739,20 +1796,83 @@ function initializeDataTable() {
                 className: 'text-center'
             }
         ],
-        order: [[0, 'asc']],
+        order: [[0, 'asc']], // ✅ Ordenar por ID ascendente
         pageLength: 10,
         drawCallback: function(settings) {
-            console.log('📊 DataTable actualizado');
-            // Actualizar estadísticas después de cargar datos
-            setTimeout(updateStats, 500);
+            console.log('📊 DataTable dibujado - Registros visibles:', settings.aoData.length);
+            updateStats();
         },
         initComplete: function(settings, json) {
             console.log('✅ DataTable inicializado correctamente');
-            console.log('Datos recibidos:', json);
+            console.log('📊 Total de registros cargados:', window.empleadosDataOriginal?.length || 0);
         }
     });
 }
 
+
+function aplicarFiltrosClientSide(data) {
+    const filtros = prepararDatosFiltros();
+    
+    console.log('🔍 Aplicando filtros client-side:', filtros);
+    
+    // Si no hay ningún filtro aplicado, devolver todos los datos
+    if (!filtros.filterDni && !filtros.filterNombre && !filtros.filterMes) {
+        console.log('🔍 Sin filtros aplicados, mostrando todos los empleados');
+        return data;
+    }
+    
+    // Filtrar los datos
+    const datosFiltrados = data.filter(empleado => {
+        if (!empleado) return false;
+        
+        let coincide = true;
+        
+        // ✅ Filtrar por DNI (si se especificó)
+        if (filtros.filterDni) {
+            const dniEmpleado = empleado.dni ? empleado.dni.toUpperCase() : '';
+            const dniBusqueda = filtros.filterDni.toUpperCase();
+            coincide = coincide && dniEmpleado.includes(dniBusqueda);
+        }
+        
+        // ✅ Filtrar por Nombre (si se especificó)
+        if (filtros.filterNombre && coincide) {
+            const nombreCompleto = `${empleado.nombre || ''} ${empleado.apellidos || ''}`.toLowerCase();
+            const nombreBusqueda = filtros.filterNombre.toLowerCase();
+            coincide = coincide && nombreCompleto.includes(nombreBusqueda);
+        }
+        
+        // ✅ Filtrar por Mes (si se especificó)
+        if (filtros.filterMes && coincide) {
+            let fechaEmpleado = empleado.created_at || empleado.fecha_creacion || empleado.fecha_nacimiento;
+            
+            if (fechaEmpleado) {
+                try {
+                    const fecha = new Date(fechaEmpleado);
+                    if (!isNaN(fecha.getTime())) {
+                        const mesEmpleado = (fecha.getMonth() + 1).toString().padStart(2, '0');
+                        const añoEmpleado = fecha.getFullYear().toString();
+                        
+                        const [filtroAño, filtroMes] = filtros.filterMes.split('-');
+                        
+                        const coincideMes = mesEmpleado === filtroMes && añoEmpleado === filtroAño;
+                        coincide = coincide && coincideMes;
+                    }
+                } catch (e) {
+                    console.warn('Error procesando fecha:', fechaEmpleado, e);
+                }
+            } else {
+                coincide = false;
+            }
+        }
+        
+        return coincide;
+    });
+    
+    console.log(`📊 Resultado filtro: ${datosFiltrados.length} de ${data.length} empleados`);
+    
+    // Ordenar los resultados por ID ascendente
+    return datosFiltrados.sort((a, b) => (a.id - b.id));
+}
 
 document.addEventListener("DOMContentLoaded", function() {
     // Fecha de nacimiento con restricción de +16 años
@@ -1761,6 +1881,7 @@ document.addEventListener("DOMContentLoaded", function() {
         dateFormat: "d-m-Y",
         maxDate: new Date(new Date().setFullYear(new Date().getFullYear() - 16)), // Exactamente 16 años atrás
         locale: "es",
+        disableMobile: true,
         errorHandler: function(error) {
             console.log('Error de fecha:', error);
         }
@@ -2984,81 +3105,116 @@ function loadStats() {
 function aplicarFiltros() {
     console.log('🔍 Aplicando filtros...');
     
-    // Obtener y normalizar datos
     const filtros = prepararDatosFiltros();
     
-    // Validar que los 3 campos estén completos
-    if (!filtros.filterDni || !filtros.filterNombre || !filtros.filterMes) {
+    // ✅ NUEVA VALIDACIÓN: Permitir filtros individuales o combinados
+    const filtrosAplicados = Object.values(filtros).filter(val => val && val.trim() !== '').length;
+    
+    if (filtrosAplicados === 0) {
         Swal.fire({
             icon: 'warning',
-            title: 'Filtros incompletos',
-            html: `
-                <div class="text-left">
-                    <p>Debe completar los 3 filtros para realizar la búsqueda:</p>
-                    <ul>
-                        <li><strong>DNI:</strong> ${filtros.filterDni ? '✅ Completado' : '❌ Faltante'}</li>
-                        <li><strong>Nombre:</strong> ${filtros.filterNombre ? '✅ Completado' : '❌ Faltante'}</li>
-                        <li><strong>Mes completo:</strong> ${filtros.filterMes ? '✅ Completado' : '❌ Faltante'}</li>
-                    </ul>
-                </div>
-            `,
+            title: 'Filtros vacíos',
+            text: 'Por favor, complete al menos un filtro para realizar la búsqueda',
             confirmButtonText: 'Entendido'
         });
         return;
     }
     
-    // Validar formato del DNI
-    if (filtros.filterDni.length === 9) {
-        const numero = filtros.filterDni.substring(0, 8);
-        const letra = filtros.filterDni.substring(8, 9);
-        const letrasValidas = 'TRWAGMYFPDXBNJZSQVHLCKE';
-        const letraCalculada = letrasValidas[numero % 23];
-        
-        if (letra !== letraCalculada) {
-            Swal.fire({
-                icon: 'error',
-                title: 'DNI incorrecto',
-                html: `
-                    <div class="text-left">
-                        <p>La letra del DNI <strong>${filtros.filterDni}</strong> es incorrecta.</p>
-                        <p>La letra debería ser: <strong>${letraCalculada}</strong></p>
-                        <p class="text-muted">DNI correcto: <code>${numero}${letraCalculada}</code></p>
-                    </div>
-                `,
-                confirmButtonText: 'Corregir'
-            });
-            return;
-        }
+    // Mostrar información del filtro aplicado si hay mes
+    if (filtros.filterMes) {
+        mostrarInfoFiltro($('#filterMes').val().trim());
+    } else {
+        $('#filtroInfo').hide();
     }
     
-    // Mostrar información del filtro aplicado
-    mostrarInfoFiltro($('#filterMes').val().trim());
-    
-    // Aplicar filtros - Los datos se enviarán a través del DataTable
-    table.ajax.reload();
+    // ✅ APLICAR FILTROS correctamente
+    if (table && window.empleadosDataOriginal) {
+        console.log('🔄 Aplicando filtros a DataTable...');
+        
+        // Obtener datos filtrados
+        const datosFiltrados = aplicarFiltrosClientSide(window.empleadosDataOriginal);
+        
+        // Limpiar y reemplazar datos en la tabla
+        table.clear();
+        
+        if (datosFiltrados.length > 0) {
+            table.rows.add(datosFiltrados);
+            table.draw();
+            
+            // Mostrar mensaje informativo
+            const mensajeFiltros = [];
+            if (filtros.filterDni) mensajeFiltros.push(`DNI: ${filtros.filterDni}`);
+            if (filtros.filterNombre) mensajeFiltros.push(`Nombre: ${filtros.filterNombre}`);
+            if (filtros.filterMes) mensajeFiltros.push(`Mes: ${filtros.filterMes}`);
+            
+            console.log('✅ Filtros aplicados:', mensajeFiltros.join(', '));
+            
+        } else {
+            table.draw();
+            
+            // Mensaje más específico
+            const criterios = [];
+            if (filtros.filterDni) criterios.push(`DNI "${filtros.filterDni}"`);
+            if (filtros.filterNombre) criterios.push(`nombre "${filtros.filterNombre}"`);
+            if (filtros.filterMes) criterios.push(`mes "${filtros.filterMes}"`);
+            
+            Swal.fire({
+                icon: 'info',
+                title: 'Sin resultados',
+                html: `
+                    <div class="text-left">
+                        <p>No se encontraron empleados con los criterios:</p>
+                        <div class="alert alert-warning">
+                            <strong>${criterios.join(', ')}</strong>
+                        </div>
+                        <p class="text-muted small">
+                            Verifique que los datos ingresados sean correctos.
+                        </p>
+                    </div>
+                `,
+                confirmButtonText: 'Entendido',
+                width: '500px'
+            });
+        }
+        
+    } else {
+        console.error('❌ No se pueden aplicar filtros: tabla o datos no disponibles');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudieron aplicar los filtros. Recargue la página.'
+        });
+    }
 }
 
 function prepararDatosFiltros() {
+    // Obtener valores directamente de los inputs
     const filterDni = $('#filterDni').val().trim();
     const filterNombre = $('#filterNombre').val().trim();
     const filterMes = $('#filterMes').val().trim();
     
+    console.log('📝 Valores brutos de filtros:', {
+        dni: filterDni,
+        nombre: filterNombre,
+        mes: filterMes
+    });
+    
     // Normalizar DNI (quitar espacios, poner mayúsculas)
-    const dniNormalizado = filterDni.toUpperCase().replace(/\s/g, '');
+    const dniNormalizado = filterDni ? filterDni.toUpperCase().replace(/\s/g, '') : '';
     
-    // Normalizar mes (convertir MM-YYYY a YYYY-MM)
+    // Normalizar mes (convertir MM-YYYY o mantener YYYY-MM)
     let mesNormalizado = filterMes;
-    if (filterMes.match(/^\d{2}-\d{4}$/)) {
+    if (filterMes && filterMes.match(/^(\d{2})-(\d{4})$/)) {
+        // Formato MM-YYYY convertir a YYYY-MM
         const partes = filterMes.split('-');
-        mesNormalizado = `${partes[1]}-${partes[0]}`; // Convertir a YYYY-MM
+        mesNormalizado = `${partes[1]}-${partes[0]}`;
     }
+    // Si ya está en formato YYYY-MM, dejarlo así
     
-    console.log('📤 Datos normalizados:', {
-        dni_original: filterDni,
+    console.log('🔄 Filtros normalizados:', {
         dni_normalizado: dniNormalizado,
-        mes_original: filterMes,
-        mes_normalizado: mesNormalizado,
-        nombre: filterNombre
+        nombre: filterNombre,
+        mes_normalizado: mesNormalizado
     });
     
     return {
@@ -3164,13 +3320,24 @@ function limpiarFiltros() {
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
+            // Limpiar inputs
             $('#filterDni').val('');
             $('#filterNombre').val('');
             $('#filterMes').val('');
             $('#filtroInfo').hide();
             
-            // Recargar tabla sin filtros
-            table.ajax.reload();
+            // ✅ RESTAURAR datos originales
+            if (table && window.empleadosDataOriginal) {
+                console.log('🔄 Restaurando datos originales...');
+                table.clear();
+                table.rows.add(window.empleadosDataOriginal);
+                table.draw();
+                
+                console.log('✅ Datos restaurados:', window.empleadosDataOriginal.length, 'empleados');
+            } else {
+                // Recargar desde servidor si no hay datos guardados
+                table.ajax.reload();
+            }
             
             Swal.fire({
                 icon: 'success',
@@ -3492,7 +3659,32 @@ function populateEditForm(empleado) {
     document.getElementById('edit_nombre').value = empleado.nombre || '';
     document.getElementById('edit_apellidos').value = empleado.apellidos || '';
     document.getElementById('edit_dni').value = empleado.dni || '';
-    document.getElementById('edit_fecha_nacimiento').value = empleado.fecha_nacimiento_formatted || '';
+    
+    // ✅ CORREGIDO: Formatear fecha como día-mes-año
+    const fechaNacimiento = empleado.fecha_nacimiento || '';
+    let fechaFormateada = 'Fecha no disponible';
+    
+    if (fechaNacimiento) {
+        try {
+            // Extraer solo la parte de la fecha (YYYY-MM-DD)
+            const fechaParte = fechaNacimiento.split('T')[0];
+            const partes = fechaParte.split('-');
+            
+            if (partes.length === 3) {
+                // Formatear como DD-MM-YYYY
+                fechaFormateada = `${partes[2]}-${partes[1]}-${partes[0]}`;
+            } else {
+                // Si ya está en otro formato, usar directamente
+                fechaFormateada = fechaParte;
+            }
+        } catch (e) {
+            console.error('Error formateando fecha:', e);
+            fechaFormateada = 'Fecha inválida';
+        }
+    }
+    
+    document.getElementById('edit_fecha_nacimiento').value = fechaFormateada;
+    
     document.getElementById('edit_username').value = empleado.username || '';
     document.getElementById('edit_edad').value = empleado.edad ? empleado.edad + ' años' : '';
     
@@ -3509,6 +3701,7 @@ function populateEditForm(empleado) {
     // Inicializar mapa de edición
     initializeEditMap();
 }
+
 
 // Función para validar teléfono en edición
 function validarTelefonoEdit() {
@@ -8732,6 +8925,104 @@ code {
 @media (min-width: 1200px) {
     .modal-xl {
         max-width: 1210px !important;
+    }
+}
+
+.form-control.form-control-sm.form-control-lg-md {
+    display: inline-block !important;
+    width: auto !important;
+}
+
+
+/* ✅ OCULTAR COMPLETAMENTE EL INPUT NATIVO DE FECHA EN MÓVIL */
+.flatpickr-mobile {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    position: absolute !important;
+    left: -9999px !important;
+}
+
+/* ✅ FORZAR que Flatpickr se muestre incluso en móviles */
+.flatpickr-input[type="text"] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* ✅ ESTILOS ESPECÍFICOS PARA LOS INPUTS DE MES */
+#filterMes,
+#view_filter_mes,
+#export_mes,
+#export_pdf_mes {
+    /* Forzar que se comporte como texto, no como date nativo */
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    background-color: white !important;
+}
+
+/* ✅ PREVENIR que iOS muestre el datepicker nativo */
+input[type="date"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+/* ✅ ESTILOS ADICIONALES PARA MÓVILES */
+@media (max-width: 767px) {
+    /* Asegurar que los inputs de Flatpickr sean completamente visibles */
+    .flatpickr-input {
+        background-color: #fff !important;
+        border: 1px solid #ced4da !important;
+        border-radius: 0.375rem !important;
+        padding: 0.5rem 0.75rem !important;
+        width: 100% !important;
+        display: block !important;
+    }
+    
+    /* Ocultar cualquier input nativo de fecha que pueda aparecer */
+    input[type="date"],
+    input[type="month"],
+    input[type="time"] {
+        display: none !important;
+    }
+    
+    /* Asegurar que el contenedor de Flatpickr ocupe el espacio completo */
+    .flatpickr-calendar {
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        width: 90vw !important;
+        max-width: 320px !important;
+        max-height: 80vh !important;
+        z-index: 99999 !important;
+        border-radius: 10px !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
+    }
+    
+    /* Asegurar que el calendario esté centrado */
+    .flatpickr-calendar.open {
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+    }
+    
+    /* Contenedor del calendario */
+    .flatpickr-calendar.animate.open {
+        animation: none !important;
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+    }
+    
+    /* Prevenir que se mueva con el scroll */
+    .flatpickr-calendar {
+        position: fixed !important;
+        transform: translate(-50%, -50%) !important;
     }
 }
 
