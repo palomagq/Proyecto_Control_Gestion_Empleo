@@ -48,6 +48,11 @@ class EmpleadoController extends Controller
 
         // Obtener estadísticas del mes
         $estadisticasMes = $this->obtenerEstadisticasMes($empleado->id);
+
+        // OBTENER NUEVOS DATOS PARA LAS TARJETAS
+        $progresoSemanal = $this->obtenerProgresoSemanal($empleado->id);
+        $logros = $this->obtenerLogros($empleado->id);
+
         // Pasar la API Key a la vista
         $googleMapsApiKey = env('GOOGLE_MAPS_API_KEY');
 
@@ -57,7 +62,9 @@ class EmpleadoController extends Controller
             'registroActivo', 
             'historialHoy',
             'estadisticasMes',
-            'googleMapsApiKey' // Agregar esta variable
+            'googleMapsApiKey', // Agregar esta variable
+            'progresoSemanal', // NUEVO
+            'logros' // NUEVO
 
         ));
     }
@@ -1226,6 +1233,316 @@ public function repararFechasFuturas($empleadoId)
 
         return $horas . 'h ' . str_pad($minutos, 2, '0', STR_PAD_LEFT) . 'm';
     }
+
+
+    /**
+ * Obtener progreso semanal del empleado
+ */
+private function obtenerProgresoSemanal($empleadoId)
+{
+    $progreso = [];
+    $diasSemana = [
+        'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'
+    ];
+
+    // USAR created_at PARA LAS FECHAS - importante
+    $inicioSemana = Carbon::now()->startOfWeek();
+    $finSemana = Carbon::now()->endOfWeek();
+
+    Log::info('🔍 BUSCANDO PROGRESO SEMANAL', [
+        'empleado_id' => $empleadoId,
+        'semana_inicio' => $inicioSemana->format('Y-m-d H:i:s'),
+        'semana_fin' => $finSemana->format('Y-m-d H:i:s'),
+        'hoy' => Carbon::now()->format('Y-m-d H:i:s')
+    ]);
+
+    // Colores para las barras de progreso
+    $colores = ['success', 'info', 'warning', 'danger', 'primary', 'secondary', 'dark'];
+
+    foreach ($diasSemana as $index => $dia) {
+        $fecha = $inicioSemana->copy()->addDays($index);
+        $fechaInicio = $fecha->copy()->startOfDay();
+        $fechaFin = $fecha->copy()->endOfDay();
+        
+        Log::info("📅 Procesando día: {$dia} - {$fecha->format('Y-m-d')}");
+
+        // Obtener registros del día específico - BUSCAR POR created_at
+        $registrosDia = DB::table('tabla_registros_tiempo')
+            ->where('empleado_id', $empleadoId)
+            ->whereBetween('created_at', [$fechaInicio, $fechaFin])
+            ->get();
+
+        Log::info("📊 Registros encontrados para {$dia}: " . $registrosDia->count());
+
+        // Calcular horas trabajadas en el día
+        $totalSegundosDia = 0;
+        
+        foreach ($registrosDia as $registro) {
+            Log::info("🕒 Procesando registro ID: {$registro->id}", [
+                'inicio' => $registro->inicio,
+                'fin' => $registro->fin,
+                'tiempo_total' => $registro->tiempo_total,
+                'estado' => $registro->estado,
+                'created_at' => $registro->created_at
+            ]);
+
+            $tiempoRegistro = 0;
+
+            if ($registro->tiempo_total && $registro->tiempo_total > 0) {
+                // Registro completado con tiempo positivo
+                $tiempoRegistro = $registro->tiempo_total;
+                Log::info("✅ Tiempo desde BD: {$tiempoRegistro}s");
+            } else if ($registro->fin === null && $registro->inicio) {
+                // Registro activo - calcular tiempo hasta ahora
+                try {
+                    $inicio = Carbon::parse($registro->inicio);
+                    $now = Carbon::now();
+                    
+                    if ($inicio->greaterThan($now)) {
+                        Log::warning("⚠️  Fecha de inicio en el futuro: {$registro->inicio}");
+                        $tiempoRegistro = 0;
+                    } else {
+                        $tiempoBruto = $now->diffInSeconds($inicio);
+                        $tiempoPausa = $registro->tiempo_pausa_total ?? 0;
+                        $tiempoRegistro = max(0, $tiempoBruto - $tiempoPausa);
+                        Log::info("⏱️  Tiempo activo calculado: {$tiempoRegistro}s");
+                    }
+                } catch (\Exception $e) {
+                    Log::error("❌ Error calculando tiempo activo: " . $e->getMessage());
+                    $tiempoRegistro = 0;
+                }
+            } else if ($registro->fin && $registro->inicio) {
+                // Calcular manualmente si no hay tiempo_total
+                try {
+                    $inicio = Carbon::parse($registro->inicio);
+                    $fin = Carbon::parse($registro->fin);
+                    
+                    if ($fin->greaterThan($inicio)) {
+                        $tiempoBruto = $fin->diffInSeconds($inicio);
+                        $tiempoPausa = $registro->tiempo_pausa_total ?? 0;
+                        $tiempoRegistro = max(0, $tiempoBruto - $tiempoPausa);
+                        Log::info("🔧 Tiempo manual calculado: {$tiempoRegistro}s");
+                    } else {
+                        Log::warning("⚠️  Fin anterior a inicio: {$registro->inicio} -> {$registro->fin}");
+                        $tiempoRegistro = 0;
+                    }
+                } catch (\Exception $e) {
+                    Log::error("❌ Error calculando tiempo manual: " . $e->getMessage());
+                    $tiempoRegistro = 0;
+                }
+            }
+
+            $totalSegundosDia += $tiempoRegistro;
+        }
+
+        $horasDecimal = $totalSegundosDia / 3600;
+        
+        // Calcular porcentaje (asumiendo 8 horas como 100%)
+        $horasMeta = 8;
+        $porcentaje = $horasMeta > 0 ? min(100, ($horasDecimal / $horasMeta) * 100) : 0;
+
+        $progreso[] = [
+            'nombre' => $dia,
+            'horas' => number_format($horasDecimal, 1),
+            'porcentaje' => round($porcentaje, 1),
+            'color' => $colores[$index] ?? 'primary',
+            'fecha' => $fecha->format('Y-m-d'),
+            'registros' => $registrosDia->count(),
+            'total_segundos' => $totalSegundosDia
+        ];
+
+        Log::info("📈 Resultado final para {$dia}", [
+            'horas' => number_format($horasDecimal, 1),
+            'porcentaje' => round($porcentaje, 1),
+            'segundos' => $totalSegundosDia,
+            'registros' => $registrosDia->count()
+        ]);
+    }
+
+    Log::info('🎯 PROGRESO SEMANAL FINAL', $progreso);
+    return $progreso;
+}
+
+/**
+ * Obtener logros del empleado
+ */
+private function obtenerLogros($empleadoId)
+{
+    $logros = [];
+    $inicioSemana = Carbon::now()->startOfWeek();
+    $finSemana = Carbon::now()->endOfWeek();
+
+    Log::info('Calculando logros para la semana:', [
+        'inicio' => $inicioSemana->format('Y-m-d'),
+        'fin' => $finSemana->format('Y-m-d')
+    ]);
+
+    // Calcular horas totales de la semana
+    $registrosSemana = DB::table('tabla_registros_tiempo')
+        ->where('empleado_id', $empleadoId)
+        ->whereBetween('created_at', [$inicioSemana, $finSemana])
+        ->get();
+
+    Log::info('Registros de la semana encontrados:', ['count' => $registrosSemana->count()]);
+
+    $totalSegundosSemana = 0;
+    foreach ($registrosSemana as $registro) {
+        if ($registro->tiempo_total && $registro->tiempo_total > 0) {
+            $totalSegundosSemana += $registro->tiempo_total;
+        } else if ($registro->fin === null && $registro->inicio && $registro->estado !== 'pausado') {
+            $inicio = Carbon::parse($registro->inicio);
+            $now = Carbon::now();
+            $tiempoBruto = $now->diffInSeconds($inicio);
+            $tiempoPausa = $registro->tiempo_pausa_total ?? 0;
+            $tiempoNeto = max(0, $tiempoBruto - $tiempoPausa);
+            $totalSegundosSemana += $tiempoNeto;
+        } else if ($registro->fin && (!$registro->tiempo_total || $registro->tiempo_total == 0)) {
+            $inicio = Carbon::parse($registro->inicio);
+            $fin = Carbon::parse($registro->fin);
+            $tiempoBruto = $fin->diffInSeconds($inicio);
+            $tiempoPausa = $registro->tiempo_pausa_total ?? 0;
+            $tiempoNeto = max(0, $tiempoBruto - $tiempoPausa);
+            $totalSegundosSemana += $tiempoNeto;
+        }
+    }
+
+    $totalHorasSemanaDecimal = $totalSegundosSemana / 3600;
+
+    Log::info('Total horas semana calculado:', [
+        'segundos' => $totalSegundosSemana,
+        'horas' => $totalHorasSemanaDecimal
+    ]);
+
+    // Logro: +40h esta semana
+    if ($totalHorasSemanaDecimal >= 40) {
+        $logros[] = [
+            'icono' => 'clock',
+            'texto' => '+40h esta semana',
+            'color' => 'primary',
+            'completado' => true
+        ];
+    } else {
+        $logros[] = [
+            'icono' => 'clock',
+            'texto' => number_format($totalHorasSemanaDecimal, 1) . 'h / 40h esta semana',
+            'color' => 'primary',
+            'completado' => false,
+            'progreso' => min(100, ($totalHorasSemanaDecimal / 40) * 100)
+        ];
+    }
+
+    // Logro: Días consecutivos
+    $diasConsecutivos = $this->calcularDiasConsecutivos($empleadoId);
+    
+    if ($diasConsecutivos >= 5) {
+        $logros[] = [
+            'icono' => 'calendar-check',
+            'texto' => $diasConsecutivos . ' días consecutivos',
+            'color' => 'success',
+            'completado' => true
+        ];
+    } else {
+        $logros[] = [
+            'icono' => 'calendar-check',
+            'texto' => $diasConsecutivos . ' de 5 días consecutivos',
+            'color' => 'success',
+            'completado' => false,
+            'progreso' => min(100, ($diasConsecutivos / 5) * 100)
+        ];
+    }
+
+    // Logro adicional: Días trabajados esta semana
+    $diasTrabajadosSemana = DB::table('tabla_registros_tiempo')
+        ->where('empleado_id', $empleadoId)
+        ->whereBetween('created_at', [$inicioSemana, $finSemana])
+        ->distinct()
+        ->select(DB::raw('DATE(created_at) as fecha'))
+        ->get()
+        ->count();
+
+    if ($diasTrabajadosSemana >= 5) {
+        $logros[] = [
+            'icono' => 'star',
+            'texto' => $diasTrabajadosSemana . ' días esta semana',
+            'color' => 'warning',
+            'completado' => true
+        ];
+    } else {
+        $logros[] = [
+            'icono' => 'star',
+            'texto' => $diasTrabajadosSemana . ' de 5 días esta semana',
+            'color' => 'warning',
+            'completado' => false,
+            'progreso' => min(100, ($diasTrabajadosSemana / 5) * 100)
+        ];
+    }
+
+    Log::info('Logros calculados:', $logros);
+    return $logros;
+}
+
+/**
+ * Calcular días consecutivos trabajados
+ */
+private function calcularDiasConsecutivos($empleadoId)
+{
+    $hoy = Carbon::today();
+    $diasConsecutivos = 0;
+
+    for ($i = 0; $i < 7; $i++) {
+        $fecha = $hoy->copy()->subDays($i);
+        
+        $trabajoDia = DB::table('tabla_registros_tiempo')
+            ->where('empleado_id', $empleadoId)
+            ->whereDate('created_at', $fecha->format('Y-m-d'))
+            ->exists();
+
+        if ($trabajoDia) {
+            $diasConsecutivos++;
+        } else {
+            break;
+        }
+    }
+
+    return $diasConsecutivos;
+}
+
+/**
+ * Obtener datos de progreso semanal via AJAX
+ */
+public function getProgresoSemanal($id)
+{
+    try {
+        $user = Auth::user();
+        $empleado = DB::table('tabla_empleados')
+            ->where('id', $id)
+            ->where('credencial_id', $user->id)
+            ->first();
+
+        if (!$empleado) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autorizado'
+            ], 403);
+        }
+
+        $progresoSemanal = $this->obtenerProgresoSemanal($empleado->id);
+        $logros = $this->obtenerLogros($empleado->id);
+
+        return response()->json([
+            'success' => true,
+            'progresoSemanal' => $progresoSemanal,
+            'logros' => $logros
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Error en getProgresoSemanal: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al obtener progreso semanal'
+        ], 500);
+    }
+}
 
     /**
  * Obtener ubicación aproximada por IP

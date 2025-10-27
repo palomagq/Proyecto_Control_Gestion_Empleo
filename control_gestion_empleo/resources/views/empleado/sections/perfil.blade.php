@@ -63,7 +63,103 @@
                     </div>
                 </div>
             </div>
-        </div>
+
+             <!-- Tarjeta de Progreso Semanal -->
+            <div class="card glass-effect animated-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line mr-2"></i>Progreso Semanal</h5>
+                    <small class="">
+                        {{ Carbon\Carbon::now()->startOfWeek()->format('d M') }} - 
+                        {{ Carbon\Carbon::now()->endOfWeek()->format('d M Y') }}
+                    </small>
+                </div>
+                <div class="card-body">
+                    @if(array_sum(array_column($progresoSemanal, 'total_segundos')) > 0)
+                    <div class="progress-container">
+                        @foreach($progresoSemanal as $dia)
+                        <div class="progress-item mb-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="small font-weight-bold">{{ $dia['nombre'] }}</span>
+                                <div class="text-right">
+                                    <span class="small text-muted">{{ $dia['horas'] }}h</span>
+                                    @if($dia['registros'] > 0)
+                                    <br><small class="text-info">{{ $dia['registros'] }} reg.</small>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-{{ $dia['color'] }}" 
+                                    style="width: {{ $dia['porcentaje'] }}%"
+                                    title="{{ $dia['nombre'] }}: {{ $dia['horas'] }} horas ({{ number_format($dia['porcentaje'], 0) }}%)">
+                                </div>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                    
+                    <!-- Resumen semanal -->
+                    @php
+                        $totalHorasSemana = array_sum(array_column($progresoSemanal, 'horas'));
+                        $diasConRegistros = count(array_filter($progresoSemanal, function($dia) {
+                            return $dia['registros'] > 0;
+                        }));
+                        $promedioDiario = $diasConRegistros > 0 ? $totalHorasSemana / $diasConRegistros : 0;
+                    @endphp
+                    <div class="mt-3 pt-3 border-top">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <small class="text-muted d-block">Total</small>
+                                <strong class="text-primary">{{ number_format($totalHorasSemana, 1) }}h</strong>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted d-block">Promedio</small>
+                                <strong class="text-info">{{ number_format($promedioDiario, 1) }}h</strong>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted d-block">Días</small>
+                                <strong class="text-success">{{ $diasConRegistros }}/7</strong>
+                            </div>
+                        </div>
+                    </div>
+                    @else
+                    <div class="text-center py-4">
+                        <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">Sin registros esta semana</h6>
+                        <small class="text-muted">Cuando trabajes esta semana, verás tu progreso aquí.</small>
+                    </div>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Tarjeta de Logros -->
+            <div class="card border-warning animated-card">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0"><i class="fas fa-trophy mr-2"></i>Logros</h5>
+                </div>
+                <div class="card-body">
+                    <div class="achievements-grid">
+                        @foreach($logros as $logro)
+                        <div class="achievement-item text-center mb-3">
+                            <div class="achievement-icon text-{{ $logro['color'] }} mb-2">
+                                <i class="fas fa-{{ $logro['icono'] }} fa-2x"></i>
+                                @if($logro['completado'] ?? false)
+                                <div class="badge badge-success badge-completed">✓</div>
+                                @endif
+                            </div>
+                            <small class="text-dark">{{ $logro['texto'] }}</small>
+                            
+                            @if(isset($logro['progreso']))
+                            <div class="progress mt-1" style="height: 4px;">
+                                <div class="progress-bar bg-{{ $logro['color'] }}" style="width: {{ $logro['progreso'] }}%"></div>
+                            </div>
+                            @endif
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+
+        </div> 
 
         <!-- Columna derecha - Historial y Filtros -->
         <div class="col-lg-8">
@@ -1227,7 +1323,7 @@ function encontrarMejorUbicacion(resultados) {
 
     const inicioProceso = Date.now();
     
-    // Proceso optimizado
+    // Proceso optimizado con manejo de errores mejorado
     obtenerUbicacionGoogleMaps()
         .then(ubicacion => {
             const tiempoGPS = Date.now() - inicioProceso;
@@ -1264,6 +1360,9 @@ function encontrarMejorUbicacion(resultados) {
             const tiempoTotal = Date.now() - inicioProceso;
             console.error(`❌ Error después de ${tiempoTotal}ms:`, error);
             
+            // IMPORTANTE: Siempre restaurar el botón en caso de error
+            btnStart.prop('disabled', false).html(originalHtml);
+            
             Swal.fire({
                 title: 'Ubicación no disponible',
                 html: `No se pudo obtener tu ubicación completa.<br>
@@ -1276,7 +1375,7 @@ function encontrarMejorUbicacion(resultados) {
                 if (result.isConfirmed) {
                     iniciarSinGeolocalizacion();
                 } else {
-                    // Rehabilitar botón
+                    // Ya restauramos el botón arriba, pero por si acaso
                     btnStart.prop('disabled', false).html(originalHtml);
                 }
             });
@@ -1734,6 +1833,29 @@ function encontrarMejorUbicacion(resultados) {
         btnPause.html('<i class="fas fa-play mr-2"></i>REANUDAR');
     }
 
+// Función para actualizar progreso semanal
+function actualizarProgresoSemanal() {
+    console.log('📊 Actualizando progreso semanal...');
+    $.ajax({
+        url: `/empleado/registro/${empleadoId}/progreso-semanal`,
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                console.log('✅ Progreso semanal actualizado:', response);
+                // Aquí podrías actualizar la UI dinámicamente si quieres
+                // Por ahora, recargamos la página para ver cambios inmediatos
+                // location.reload(); // Descomenta si quieres recarga completa
+            }
+        },
+        error: function(xhr) {
+            console.error('❌ Error al actualizar progreso semanal:', xhr);
+        }
+    });
+}
+
+// Actualizar cada 5 minutos
+setInterval(actualizarProgresoSemanal, 300000);
+
     // =============================================
     // FUNCIONES UTILITARIAS
     // =============================================
@@ -1761,17 +1883,29 @@ function formatTime(seconds) {
 
     // Función para recargar datos completos
     function recargarDatosCompletos() {
-        // Recargar DataTable de manera forzada
-        if (dataTable && typeof dataTable.ajax !== 'undefined') {
-            dataTable.ajax.reload();
-        }
-        
-        // Actualizar resumen
-        updatePeriodSummary();
-        
-        // Actualizar estadísticas del perfil
-        actualizarEstadisticasPerfil();
+    console.log('🔄 Recargando datos completos...');
+    
+    // Recargar DataTable de manera forzada
+    if (dataTable && $.fn.DataTable.isDataTable('#historial-table')) {
+        dataTable.ajax.reload(null, false); // false = mantener página actual
+    } else {
+        console.warn('DataTable no está inicializado');
     }
+    
+    // Actualizar resumen
+    updatePeriodSummary();
+    
+    // Actualizar estadísticas del perfil
+    actualizarEstadisticasPerfil();
+    
+    // ACTUALIZAR PROGRESO SEMANAL - NUEVO
+    actualizarProgresoSemanal();
+    
+    // Verificar estado del tiempo
+    setTimeout(() => {
+        checkEstado();
+    }, 1000);
+}
 
     // Función para actualizar estadísticas del perfil
     function actualizarEstadisticasPerfil() {
@@ -2876,6 +3010,84 @@ function imprimirDetalles() {
     
     .stat-number {
         font-size: 1.4rem;
+    }
+}
+
+/* Estilos para las tarjetas de progreso y logros */
+.glass-effect {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.animated-card {
+    transition: all 0.3s ease;
+}
+
+.animated-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.progress-container {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.progress-item {
+    padding: 5px 0;
+}
+
+.progress {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+}
+
+.progress-bar {
+    border-radius: 10px;
+    transition: width 0.6s ease;
+}
+
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.achievement-item {
+    padding: 15px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    transition: all 0.3s ease;
+}
+
+.achievement-item:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.achievement-icon {
+    margin-bottom: 8px;
+}
+
+/* Colores personalizados para las barras de progreso */
+.bg-success { background: linear-gradient(135deg, #28a745, #20c997) !important; }
+.bg-info { background: linear-gradient(135deg, #17a2b8, #6f42c1) !important; }
+.bg-warning { background: linear-gradient(135deg, #ffc107, #fd7e14) !important; }
+.bg-danger { background: linear-gradient(135deg, #dc3545, #e83e8c) !important; }
+.bg-primary { background: linear-gradient(135deg, #007bff, #6610f2) !important; }
+.bg-secondary { background: linear-gradient(135deg, #6c757d, #495057) !important; }
+.bg-dark { background: linear-gradient(135deg, #343a40, #212529) !important; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .achievements-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .achievement-item {
+        padding: 12px;
     }
 }
 
