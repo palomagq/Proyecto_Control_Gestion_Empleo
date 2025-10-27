@@ -71,6 +71,91 @@
         </div>
     </div>
 
+<!-- Dashboard Graficas -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 text-primary">
+                            <i class="fas fa-chart-bar mr-2"></i>Dashboard de Estadísticas
+                        </h6>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Filtros -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label small font-weight-bold text-muted">
+                                <i class="fas fa-filter mr-1"></i>Filtrar por año:
+                            </label>
+                            <select class="form-control form-control-sm" id="chartYearFilter">
+                                <!-- Se llenará dinámicamente -->
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-end h-100">
+                                <button type="button" class="btn btn-sm btn-outline-primary mr-2 w-50" onclick="refreshCharts()">
+                                    <i class="fas fa-redo-alt mr-1"></i> Actualizar
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-success w-50" onclick="exportCharts()">
+                                    <i class="fas fa-file-image mr-1"></i> Exportar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Solo 2 gráficos: Registros por Mes y Distribución por Edad -->
+                    <div class="row">
+                        <!-- Gráfico de Registros por Mes -->
+                        <div class="col-md-6 mb-4">
+                            <div class="chart-container registros">
+                                <div class="chart-header d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="mb-0 text-dark">
+                                        <i class="fas fa-users mr-2 text-primary"></i>Registros por Mes
+                                    </h6>
+                                    <div class="chart-actions">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleChartType('registrosChart')" title="Cambiar tipo de gráfico">
+                                            <i class="fas fa-exchange-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="chart-canvas-container">
+                                    <canvas id="registrosChart"></canvas>
+                                </div>
+                                <div class="chart-stats mt-3">
+                                    <small class="text-muted" id="registrosStats"></small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Gráfico de Distribución por Edad -->
+                        <div class="col-md-6 mb-4">
+                            <div class="chart-container edad">
+                                <div class="chart-header d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="mb-0 text-dark">
+                                        <i class="fas fa-birthday-cake mr-2 text-warning"></i>Distribución por Edad
+                                    </h6>
+                                    <div class="chart-actions">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleChartType('edadChart')" title="Cambiar tipo de gráfico">
+                                            <i class="fas fa-exchange-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="chart-canvas-container">
+                                    <canvas id="edadChart"></canvas>
+                                </div>
+                                <div class="chart-stats mt-3">
+                                    <small class="text-muted" id="edadStats"></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Action Card -->
     <div class="row mb-3 mb-lg-4">
         <div class="col-12">
@@ -1028,6 +1113,10 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css">
 
+
+<!-- ✅ AGREGAR Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <!-- Google Maps API -->
 <script src="https://maps.googleapis.com/maps/api/js?key={{ env('GOOGLE_MAPS_API_KEY') }}&libraries=places" async defer></script>
 
@@ -1039,6 +1128,19 @@
 <script>
 
 let table;
+
+// Variables globales para los gráficos
+let charts = {
+    registrosChart: null,
+    edadChart: null,
+    ciudadChart: null
+};
+
+let currentPeriod = 'month';
+let chartTypes = {
+    registrosChart: 'bar',
+    edadChart: 'doughnut'
+};
 
 // Esperar a que jQuery esté completamente cargado
 $(document).ready(function() {
@@ -1072,6 +1174,11 @@ $(document).ready(function() {
     initializeDataTable();
     loadStats(); // Cargar estadísticas al inicio
 
+    // Inicializar dashboard después de un pequeño delay
+        setTimeout(() => {
+                initializeChartsDashboard();
+            }, 1000);
+            
     $('#detailsModal').on('hidden.bs.modal', function () {
         console.log('🔙 Modal de detalles cerrado - Restaurando vista de empleado...');
         
@@ -7143,6 +7250,758 @@ function mostrarDetallesCompletosEnModal(registro, estadisticasDia) {
     });
 }
 
+// Inicializar dashboard de gráficos
+function initializeChartsDashboard() {
+    console.log('📊 Inicializando dashboard de gráficos...');
+    
+    // Cargar años disponibles
+    loadAvailableYears();
+    
+    // Inicializar event listeners
+    initializeChartEventListeners();
+    
+    // Cargar datos iniciales
+    loadChartData();
+}
+// Cargar años disponibles para filtro
+function loadAvailableYears() {
+    const currentYear = new Date().getFullYear();
+    const yearSelect = $('#chartYearFilter');
+    
+    // Limpiar select
+    yearSelect.empty();
+    
+    // Agregar opciones para los últimos 5 años
+    for (let i = 0; i < 5; i++) {
+        const year = currentYear - i;
+        yearSelect.append(new Option(year, year));
+    }
+    
+    // Establecer año actual por defecto
+    yearSelect.val(currentYear);
+    
+    // Event listener para cambio de año
+    yearSelect.on('change', function() {
+        loadChartData();
+    });
+}
+
+// Inicializar event listeners
+function initializeChartEventListeners() {
+    // Botones de período
+    $('[data-period]').on('click', function() {
+        const period = $(this).data('period');
+        setActivePeriod(period);
+    });
+}
+
+// Establecer período activo
+function setActivePeriod(period) {
+    currentPeriod = period;
+    
+    // Actualizar botones activos
+    $('[data-period]').removeClass('active');
+    $(`[data-period="${period}"]`).addClass('active');
+    
+    // Recargar datos
+    loadChartData();
+}
+
+// Cargar datos para todos los gráficos
+function loadChartData() {
+    const year = $('#chartYearFilter').val();
+    
+    console.log(`🔄 Cargando datos para ${year}, período: ${currentPeriod}`);
+    
+    // Mostrar loading states
+    showChartLoading();
+    
+    // Obtener datos del servidor
+    $.ajax({
+        url: '/admin/empleados/estadisticas/graficos',
+        method: 'GET',
+        data: {
+            year: year,
+            period: currentPeriod
+        },
+        success: function(response) {
+            if (response.success) {
+                renderAllCharts(response.data);
+            } else {
+                showChartError('Error al cargar datos de gráficos: ' + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('❌ Error cargando datos de gráficos:', error);
+            showChartError('Error de conexión al cargar datos del servidor');
+        }
+    });
+}
+
+
+// Mostrar estado de carga
+function showChartLoading() {
+    $('.chart-container canvas').each(function() {
+        const container = $(this).parent();
+        container.addClass('chart-loading');
+    });
+}
+
+// Mostrar error en gráficos
+function showChartError(message) {
+    Swal.fire({
+        icon: 'error',
+        title: 'Error en Gráficos',
+        text: message,
+        timer: 3000
+    });
+}
+
+// Renderizar todos los gráficos
+function renderAllCharts(data) {
+    console.log('🎨 Renderizando gráficos...', data);
+    
+    // Remover estado de loading
+    $('.chart-container').removeClass('chart-loading');
+    
+    // Destruir gráficos existentes
+    destroyAllCharts();
+    
+    try {
+        // Restaurar los canvases
+        restoreChartCanvas('registrosChart');
+        restoreChartCanvas('edadChart');
+        
+        // ✅ SOLO 2 GRÁFICOS AHORA
+        renderRegistrosChart(data.registrosPorMes);
+        renderEdadChart(data.distribucionEdad);
+        
+        console.log('✅ Gráficos renderizados correctamente');
+        
+    } catch (error) {
+        console.error('❌ Error renderizando gráficos:', error);
+        showChartError('Error al crear los gráficos: ' + error.message);
+    }
+}
+function restoreChartCanvas(chartId) {
+    const container = document.getElementById(chartId)?.closest('.chart-canvas-container');
+    if (container) {
+        container.innerHTML = `<canvas id="${chartId}"></canvas>`;
+    }
+}
+
+// Destruir todos los gráficos
+function destroyAllCharts() {
+    // ✅ SOLO 2 GRÁFICOS AHORA
+    if (charts.registrosChart) {
+        charts.registrosChart.destroy();
+        charts.registrosChart = null;
+    }
+    if (charts.edadChart) {
+        charts.edadChart.destroy();
+        charts.edadChart = null;
+    }
+}
+// 1. Gráfico de Registros por Mes
+function renderRegistrosChart(data) {
+    const canvas = document.getElementById('registrosChart');
+    const ctx = canvas.getContext('2d');
+    
+    // Configurar tamaño del canvas
+    canvas.style.height = '280px'; // Altura específica
+    canvas.style.width = '100%';
+    
+    const labels = data.labels || [];
+    const valores = data.valores || [];
+    
+    // ... resto del código igual pero con maintainAspectRatio: true
+    charts.registrosChart = new Chart(ctx, {
+        type: chartTypes.registrosChart,
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Registros',
+                data: valores,
+                backgroundColor: generateGradient(ctx, '#4e73df', '#2e59d9'),
+                borderColor: '#4e73df',
+                borderWidth: 2,
+                borderRadius: 4,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: '#4e73df',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            return `Registros: ${context.parsed.y}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        drawBorder: false,
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    },
+                    ticks: {
+                        precision: 0
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+}
+
+// 2. Gráfico de Distribución por Edad
+function renderEdadChart(data) {
+    const canvas = document.getElementById('edadChart');
+    const ctx = canvas.getContext('2d');
+    
+    // Configurar tamaño del canvas
+    canvas.style.height = '280px'; // Más compacto para doughnut
+    canvas.style.width = '100%';
+    
+    const labels = data.labels || [];
+    const valores = data.valores || [];
+    const colores = data.colores || generateColors(valores.length);
+    
+    charts.edadChart = new Chart(ctx, {
+        type: chartTypes.edadChart,
+        data: {
+            labels: labels,
+            datasets: [{
+                data: valores,
+                backgroundColor: colores,
+                borderColor: '#fff',
+                borderWidth: 2,
+                hoverOffset: 15
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        font: {
+                            size: 11
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                            return `${context.label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            cutout: '50%',
+            animation: {
+                animateScale: true,
+                animateRotate: true
+            }
+        }
+    });
+}
+
+// Función para redimensionar gráficos cuando se muestre el modal o cambie el tamaño
+function resizeCharts() {
+    console.log('🔄 Redimensionando gráficos...');
+    
+    // Forzar redibujado de todos los gráficos
+    Object.keys(charts).forEach(chartName => {
+        if (charts[chartName]) {
+            setTimeout(() => {
+                charts[chartName].resize();
+            }, 100);
+        }
+    });
+}
+
+// Event listener para redimensionar
+$(window).on('resize', function() {
+    resizeCharts();
+});
+
+// Redimensionar cuando se muestre el card
+$('#dashboardChartsCard').on('shown.bs.collapse', function () {
+    setTimeout(resizeCharts, 300);
+});
+
+// Alternar tipo de gráfico
+function toggleChartType(chartId) {
+    // ✅ SOLO 2 GRÁFICOS AHORA
+    const validCharts = ['registrosChart', 'edadChart'];
+    if (!validCharts.includes(chartId)) {
+        console.error('❌ Gráfico no válido:', chartId);
+        return;
+    }
+    
+    const currentType = chartTypes[chartId];
+    let newType;
+    
+    if (chartId === 'registrosChart') {
+        newType = currentType === 'bar' ? 'line' : 'bar';
+    } else if (chartId === 'edadChart') {
+        newType = currentType === 'doughnut' ? 'pie' : 'doughnut';
+    }
+    
+    chartTypes[chartId] = newType;
+    
+    // Recargar datos para aplicar nuevo tipo
+    loadChartData();
+    
+    // Mostrar notificación
+    Swal.fire({
+        icon: 'info',
+        title: 'Tipo de Gráfico Cambiado',
+        text: `Cambiado a gráfico ${newType}`,
+        timer: 1500,
+        showConfirmButton: false
+    });
+}
+
+// Refrescar gráficos
+function refreshCharts() {
+    const refreshBtn = $('button[onclick="refreshCharts()"]');
+    const originalHtml = refreshBtn.html();
+    
+    refreshBtn.html('<i class="fas fa-spinner fa-spin mr-1"></i> Actualizando...');
+    refreshBtn.prop('disabled', true);
+    
+    loadChartData();
+    
+    setTimeout(() => {
+        refreshBtn.html(originalHtml);
+        refreshBtn.prop('disabled', false);
+        
+        Swal.fire({
+            icon: 'success',
+            title: 'Gráficos Actualizados',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    }, 1000);
+}
+
+// Exportar gráficos
+// ✅ FUNCIÓN MEJORADA: Exportar gráficos con información detallada
+function exportCharts() {
+    console.log('🔄 Iniciando exportación de gráficos con información detallada...');
+    
+    Swal.fire({
+        title: 'Preparando exportación...',
+        text: 'Generando imagen con información detallada',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    setTimeout(() => {
+        try {
+            const combinedCanvas = document.createElement('canvas');
+            const ctx = combinedCanvas.getContext('2d');
+            
+            combinedCanvas.width = 1200; // Un poco más ancho para mejor legibilidad
+            combinedCanvas.height = 800; // Más alto para incluir información adicional
+            
+            // Fondo blanco
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, combinedCanvas.width, combinedCanvas.height);
+            
+            // Título principal
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 28px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Dashboard de Estadísticas - Empleados', combinedCanvas.width / 2, 40);
+            
+            // Fecha de generación
+            ctx.fillStyle = '#7f8c8d';
+            ctx.font = '16px Arial';
+            ctx.fillText(`Generado el ${new Date().toLocaleDateString('es-ES')} a las ${new Date().toLocaleTimeString('es-ES')}`, combinedCanvas.width / 2, 75);
+
+            let chartsCompleted = 0;
+            
+            function processChart(chart, x, y, title, chartType) {
+                if (!chart) {
+                    chartsCompleted++;
+                    return;
+                }
+                
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = 550; // Más ancho para mejor visualización
+                tempCanvas.height = 350; // Más alto para información adicional
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Clonación segura
+                const safeData = cloneChartDataSafely(chart.data);
+                const safeOptions = cloneChartOptionsSafely(chart.options);
+                
+                // Configuración específica para exportación
+                const exportOptions = {
+                    ...safeOptions,
+                    responsive: false,
+                    maintainAspectRatio: false,
+                    animation: { duration: 0 },
+                    plugins: {
+                        ...safeOptions.plugins,
+                        tooltip: {
+                            enabled: false // Desactivar tooltips nativos
+                        }
+                    }
+                };
+                
+                const tempChart = new Chart(tempCtx, {
+                    type: chart.config.type,
+                    data: safeData,
+                    options: exportOptions
+                });
+                
+                setTimeout(() => {
+                    // Dibujar el gráfico principal
+                    ctx.drawImage(tempCanvas, x, y, 550, 350);
+                    
+                    // ✅ AGREGAR INFORMACIÓN DETALLADA SEGÚN EL TIPO DE GRÁFICO
+                    if (chartType === 'registros') {
+                        addRegistrosDetailedInfo(ctx, chart, x, y);
+                    } else if (chartType === 'edad') {
+                        addEdadDetailedInfo(ctx, chart, x, y);
+                    }
+                    
+                    tempChart.destroy();
+                    chartsCompleted++;
+                    checkCompletion();
+                }, 500);
+            }
+            
+            // ✅ FUNCIÓN: Agregar información detallada al gráfico de registros
+            function addRegistrosDetailedInfo(ctx, chart, x, y) {
+                const startX = x;
+                const startY = y + 370; // Debajo del gráfico
+                
+                // Título de la sección de detalles
+                ctx.fillStyle = '#2c3e50';
+                ctx.font = 'bold 18px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText('Detalles por Mes:', startX, startY);
+                
+                // Información de registros por mes
+                if (chart.data && chart.data.labels && chart.data.datasets && chart.data.datasets[0]) {
+                    const labels = chart.data.labels;
+                    const valores = chart.data.datasets[0].data;
+                    const totalRegistros = valores.reduce((sum, value) => sum + value, 0);
+                    
+                    let currentY = startY + 30;
+                    
+                    // Encabezado de la tabla
+                    ctx.fillStyle = '#34495e';
+                    ctx.font = 'bold 14px Arial';
+                    ctx.fillText('Mes', startX, currentY);
+                    ctx.fillText('Registros', startX + 200, currentY);
+                    ctx.fillText('Porcentaje', startX + 350, currentY);
+                    
+                    // ✅ LÍNEA SEPARADORA MÁS ARRIBA - justo debajo del encabezado
+                    currentY += 20; // Reducido de 25 a 20
+                    ctx.strokeStyle = '#bdc3c7';
+                    ctx.beginPath();
+                    ctx.moveTo(startX, currentY - 8); // Ajustado para estar más cerca
+                    ctx.lineTo(startX + 450, currentY - 8);
+                    ctx.stroke();
+                    
+                    currentY += 5; // Espacio adicional después de la línea
+                    
+                    // Datos por mes
+                    ctx.font = '13px Arial';
+                    ctx.fillStyle = '#2c3e50';
+                    
+                    for (let i = 0; i < labels.length; i++) {
+                        const mes = labels[i];
+                        const valor = valores[i] || 0;
+                        const porcentaje = totalRegistros > 0 ? ((valor / totalRegistros) * 100).toFixed(1) : 0;
+                        
+                        ctx.fillText(mes, startX, currentY);
+                        ctx.fillText(valor.toString(), startX + 200, currentY);
+                        ctx.fillText(`${porcentaje}%`, startX + 350, currentY);
+                        
+                        currentY += 20;
+                    }
+                    
+                    // Total general
+                    currentY += 10;
+                    ctx.strokeStyle = '#7f8c8d';
+                    ctx.beginPath();
+                    ctx.moveTo(startX, currentY - 5);
+                    ctx.lineTo(startX + 450, currentY - 5);
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = '#e74c3c';
+                    ctx.font = 'bold 14px Arial';
+                    ctx.fillText('TOTAL GENERAL', startX, currentY + 20);
+                    ctx.fillText(totalRegistros.toString(), startX + 200, currentY + 20);
+                    ctx.fillText('100%', startX + 350, currentY + 20);
+                }
+            }
+            
+            // ✅ FUNCIÓN: Agregar información detallada al gráfico de edad
+            function addEdadDetailedInfo(ctx, chart, x, y) {
+                const startX = x;
+                const startY = y + 370; // Debajo del gráfico
+                
+                // Título de la sección de detalles
+                ctx.fillStyle = '#2c3e50';
+                ctx.font = 'bold 18px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText('Distribución por Edad:', startX, startY);
+                
+                // Información de distribución por edad
+                if (chart.data && chart.data.labels && chart.data.datasets && chart.data.datasets[0]) {
+                    const labels = chart.data.labels;
+                    const valores = chart.data.datasets[0].data;
+                    const totalPersonas = valores.reduce((sum, value) => sum + value, 0);
+                    const colores = chart.data.datasets[0].backgroundColor || [
+                        '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'
+                    ];
+                    
+                    let currentY = startY + 30;
+                    
+                    // Encabezado de la tabla
+                    ctx.fillStyle = '#34495e';
+                    ctx.font = 'bold 14px Arial';
+                    ctx.fillText('Rango de Edad', startX, currentY);
+                    ctx.fillText('Personas', startX + 150, currentY);
+                    ctx.fillText('Porcentaje', startX + 250, currentY);
+                    ctx.fillText('Color', startX + 350, currentY);
+                    
+                    // ✅ LÍNEA SEPARADORA MÁS ARRIBA - justo debajo del encabezado
+                    currentY += 20; // Reducido de 25 a 20
+                    ctx.strokeStyle = '#bdc3c7';
+                    ctx.beginPath();
+                    ctx.moveTo(startX, currentY - 8); // Ajustado para estar más cerca
+                    ctx.lineTo(startX + 450, currentY - 8);
+                    ctx.stroke();
+                    
+                    currentY += 5; // Espacio adicional después de la línea
+                    
+                    // Datos por rango de edad
+                    ctx.font = '13px Arial';
+                    
+                    for (let i = 0; i < labels.length; i++) {
+                        const rango = labels[i];
+                        const valor = valores[i] || 0;
+                        const porcentaje = totalPersonas > 0 ? ((valor / totalPersonas) * 100).toFixed(1) : 0;
+                        const color = colores[i] || '#95a5a6';
+                        
+                        ctx.fillStyle = '#2c3e50';
+                        ctx.fillText(rango, startX, currentY);
+                        ctx.fillText(valor.toString(), startX + 150, currentY);
+                        ctx.fillText(`${porcentaje}%`, startX + 250, currentY);
+                        
+                        // Mostrar muestra de color
+                        ctx.fillStyle = color;
+                        ctx.fillRect(startX + 350, currentY - 10, 15, 15);
+                        ctx.strokeStyle = '#2c3e50';
+                        ctx.strokeRect(startX + 350, currentY - 10, 15, 15);
+                        
+                        currentY += 20;
+                    }
+                    
+                    // Total general
+                    currentY += 10;
+                    ctx.strokeStyle = '#7f8c8d';
+                    ctx.beginPath();
+                    ctx.moveTo(startX, currentY - 5);
+                    ctx.lineTo(startX + 450, currentY - 5);
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = '#e74c3c';
+                    ctx.font = 'bold 14px Arial';
+                    ctx.fillText('TOTAL EMPLEADOS', startX, currentY + 20);
+                    ctx.fillText(totalPersonas.toString(), startX + 150, currentY + 20);
+                    ctx.fillText('100%', startX + 250, currentY + 20);
+                    
+                    // Información adicional
+                    currentY += 50;
+                    ctx.fillStyle = '#7f8c8d';
+                    ctx.font = 'italic 12px Arial';
+                    ctx.fillText(`* Base de datos actualizada: ${new Date().toLocaleDateString('es-ES')}`, startX, currentY);
+                    ctx.fillText(`* Total de empleados en sistema: ${totalPersonas}`, startX, currentY + 18);
+                }
+            }
+            
+            function checkCompletion() {
+                if (chartsCompleted === 2) {
+                    const link = document.createElement('a');
+                    const timestamp = new Date().toISOString().split('T')[0];
+                    link.download = `estadisticas-detalladas-empleados-${timestamp}.png`;
+                    link.href = combinedCanvas.toDataURL('image/png');
+                    
+                    Swal.close();
+                    link.click();
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Exportación Completa!',
+                        html: `
+                            <div class="text-left">
+                                <p>Los gráficos se han exportado con información detallada:</p>
+                                <ul class="text-sm">
+                                    <li>✅ Registros por mes con cantidades y porcentajes</li>
+                                    <li>✅ Distribución por edad con número de personas</li>
+                                    <li>✅ Porcentajes y totales generales</li>
+                                </ul>
+                            </div>
+                        `,
+                        timer: 4000,
+                        showConfirmButton: true
+                    });
+                }
+            }
+            
+            // Procesar gráficos con sus tipos específicos
+            processChart(charts.registrosChart, 50, 100, 'Registros por Mes', 'registros');
+            processChart(charts.edadChart, 650, 100, 'Distribución por Edad', 'edad');
+            
+        } catch (error) {
+            console.error('❌ Error en exportación:', error);
+            Swal.close();
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudieron exportar los gráficos: ' + error.message
+            });
+        }
+    }, 500);
+}
+
+// ✅ FUNCIÓN AUXILIAR: Clonar datos del gráfico de forma segura
+function cloneChartDataSafely(data) {
+    if (!data) return {};
+    
+    return {
+        labels: Array.isArray(data.labels) ? [...data.labels] : [],
+        datasets: data.datasets ? data.datasets.map(dataset => ({
+            label: dataset.label || '',
+            data: Array.isArray(dataset.data) ? [...dataset.data] : [],
+            backgroundColor: dataset.backgroundColor,
+            borderColor: dataset.borderColor,
+            borderWidth: dataset.borderWidth || 2,
+            borderRadius: dataset.borderRadius,
+            borderSkipped: dataset.borderSkipped,
+            hoverOffset: dataset.hoverOffset
+        })) : []
+    };
+}
+
+// ✅ FUNCIÓN AUXILIAR: Clonar opciones del gráfico de forma segura
+function cloneChartOptionsSafely(options) {
+    if (!options) return {};
+    
+    // Solo clonar las propiedades necesarias, evitar referencias circulares
+    return {
+        plugins: options.plugins ? {
+            legend: options.plugins.legend ? {
+                display: options.plugins.legend.display !== false,
+                position: options.plugins.legend.position || 'top',
+                labels: options.plugins.legend.labels ? {
+                    padding: options.plugins.legend.labels.padding || 20,
+                    usePointStyle: options.plugins.legend.labels.usePointStyle || false,
+                    pointStyle: options.plugins.legend.labels.pointStyle || 'circle',
+                    font: options.plugins.legend.labels.font ? {
+                        size: options.plugins.legend.labels.font.size || 11
+                    } : { size: 11 }
+                } : {}
+            } : {},
+            tooltip: options.plugins.tooltip ? {
+                mode: options.plugins.tooltip.mode || 'index',
+                intersect: options.plugins.tooltip.intersect || false,
+                backgroundColor: options.plugins.tooltip.backgroundColor || 'rgba(0, 0, 0, 0.8)',
+                titleColor: options.plugins.tooltip.titleColor || '#fff',
+                bodyColor: options.plugins.tooltip.bodyColor || '#fff',
+                borderColor: options.plugins.tooltip.borderColor || '#4e73df',
+                borderWidth: options.plugins.tooltip.borderWidth || 1
+            } : {}
+        } : {},
+        scales: options.scales ? {
+            y: options.scales.y ? {
+                beginAtZero: options.scales.y.beginAtZero !== false,
+                grid: options.scales.y.grid ? {
+                    drawBorder: options.scales.y.grid.drawBorder !== false,
+                    color: options.scales.y.grid.color || 'rgba(0, 0, 0, 0.1)'
+                } : {},
+                ticks: options.scales.y.ticks ? {
+                    precision: options.scales.y.ticks.precision || 0
+                } : {}
+            } : {},
+            x: options.scales.x ? {
+                grid: options.scales.x.grid ? {
+                    display: options.scales.x.grid.display !== false
+                } : {}
+            } : {}
+        } : {},
+        cutout: options.cutout,
+        interaction: options.interaction || {
+            mode: 'nearest',
+            axis: 'x',
+            intersect: false
+        }
+    };
+}
+
+// Función auxiliar para generar gradientes
+function generateGradient(ctx, color1, color2) {
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, color1);
+    gradient.addColorStop(1, color2);
+    return gradient;
+}
+
+// Función auxiliar para generar colores
+function generateColors(count) {
+    const colors = [
+        '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+        '#858796', '#5a5c69', '#6f42c1', '#e83e8c', '#fd7e14'
+    ];
+    
+    return colors.slice(0, count);
+}
 
 // ✅ FUNCIÓN MEJORADA: Inicializar Flatpickr para PDF
 function initializePdfDatepicker() {
@@ -9063,6 +9922,167 @@ input[type="date"] {
     .flatpickr-calendar {
         position: fixed !important;
         transform: translate(-50%, -50%) !important;
+    }
+}
+
+/* ===== ESTILOS MEJORADOS PARA GRÁFICOS ===== */
+
+.chart-container {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 15px;
+    padding: 20px;
+    border: 1px solid #e3e6f0;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    height: 400px; /* Altura fija para consistencia */
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-container .chart-header {
+    border-bottom: 2px solid #f8f9fa;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+    flex-shrink: 0; /* Evita que el header se reduzca */
+}
+
+.chart-container .chart-canvas-container {
+    flex: 1; /* Ocupa el espacio restante */
+    position: relative;
+    min-height: 250px; /* Altura mínima */
+}
+
+.chart-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 300px; /* Altura máxima */
+}
+
+.chart-container .chart-stats {
+    flex-shrink: 0; /* Fija el footer */
+    font-size: 0.85rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 12px 15px;
+    border-radius: 10px;
+    margin-top: 15px;
+    border-left: 4px solid #4e73df;
+}
+
+/* Tamaños específicos para diferentes gráficos */
+.chart-container.registros {
+    height: 450px; /* Un poco más alto para el gráfico de barras */
+}
+
+.chart-container.edad {
+    height: 450px; /* Más compacto para el doughnut */
+}
+
+.chart-container.ciudad {
+    height: 350px; /* Más compacto para el gráfico de ciudades */
+}
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+    .chart-container {
+        height: 350px;
+        padding: 15px;
+        margin-bottom: 25px;
+    }
+    
+    .chart-container.registros {
+        height: 380px;
+    }
+    
+    .chart-container.edad {
+        height: 320px;
+    }
+    
+    .chart-container.ciudad {
+        height: 300px;
+    }
+    
+    .chart-container canvas {
+        max-height: 250px;
+    }
+}
+
+/* Para tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .chart-container {
+        height: 380px;
+    }
+    
+    .chart-container.registros {
+        height: 400px;
+    }
+    
+    .chart-container.edad {
+        height: 360px;
+    }
+}
+
+/* TABLETS PEQUEÑAS (768px - 900px) */
+@media (min-width: 768px) and (max-width: 900px) {
+    .chart-container.edad {
+        height: 400px !important; /* Más alto en tablets pequeñas */
+    }
+    
+    .chart-container.edad .chart-canvas-container {
+        min-height: 320px !important;
+    }
+    
+    .chart-container.edad canvas {
+        height: 300px !important;
+        max-height: 300px !important;
+    }
+}
+
+/* TABLETS MEDIANAS (901px - 1024px) */
+@media (min-width: 901px) and (max-width: 1024px) {
+    .chart-container.edad {
+        height: 400px !important; /* Aún más alto en tablets medianas */
+    }
+    
+    .chart-container.edad .chart-canvas-container {
+        min-height: 380px !important;
+    }
+    
+    .chart-container.edad canvas {
+        height: 350px !important;
+        max-height: 350px !important;
+    }
+}
+
+
+/* Tablets en orientación horizontal (mayor ancho) */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+    .chart-container.edad {
+        height: 450px !important;
+    }
+    
+    .chart-container.edad canvas {
+        height: 320px !important;
+    }
+}
+
+/* Tablets más grandes (1024px - 1200px) */
+@media (min-width: 1024px) and (max-width: 1200px) {
+    .chart-container.edad {
+        height: 480px !important;
+    }
+    
+    .chart-container.edad canvas {
+        height: 340px !important;
+    }
+    
+    .chart-container.registros {
+        height: 460px !important;
+    }
+    
+    .chart-container.registros canvas {
+        height: 320px !important;
     }
 }
 

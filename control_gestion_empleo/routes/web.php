@@ -51,6 +51,11 @@ Route::prefix('admin')->group(function () {
     Route::post('/profile', [AdminController::class, 'updateProfile'])->name('admin.profile.update');
     Route::get('/admin/stats', [AdminController::class, 'getAdminStats'])->name('admin.stats');
 
+    // Rutas para el dashboard de gráficos
+    Route::get('/empleados/estadisticas/graficos', [AdminController::class, 'getEstadisticasGraficos'])->name('admin.empleados.estadisticas.graficos');
+        
+    Route::get('/empleados/estadisticas/anios', [AdminController::class, 'getAniosDisponibles'])->name('admin.empleados.estadisticas.anios');
+
 });
 
 

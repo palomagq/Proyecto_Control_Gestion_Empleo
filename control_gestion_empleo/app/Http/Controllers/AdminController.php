@@ -1564,7 +1564,7 @@ public function getDetallesRegistroAdmin($empleadoId, $registroId)
     /**
      * Actualizar perfil del administrador
      */
-    public function updateProfile(Request $request)
+    /*public function updateProfile(Request $request)
     {
         try {
             $admin = auth()->user();
@@ -1638,7 +1638,7 @@ public function getDetallesRegistroAdmin($empleadoId, $registroId)
                 ->with('error', 'Error al actualizar el perfil: ' . $e->getMessage())
                 ->withInput();
         }
-    }
+    }*/
     
     /**
      * Obtener estadísticas del administrador para el dashboard
@@ -1694,4 +1694,187 @@ public function getDetallesRegistroAdmin($empleadoId, $registroId)
 }
 
 
+
+public function getEstadisticasGraficos(Request $request)
+    {
+        try {
+            Log::info('📊 Solicitando estadísticas de gráficos:', $request->all());
+            
+            $year = $request->get('year', date('Y'));
+            $period = $request->get('period', 'month');
+            
+            $data = [
+                'registrosPorMes' => $this->getRegistrosPorMes($year),
+                'distribucionEdad' => $this->getDistribucionEdad($year),
+            ];
+            
+            Log::info('✅ Estadísticas de gráficos generadas correctamente');
+            
+            return response()->json([
+                'success' => true,
+                'data' => $data
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('❌ Error en getEstadisticasGraficos: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar estadísticas: ' . $e->getMessage(),
+                'data' => [
+                    'registrosPorMes' => ['labels' => [], 'valores' => []],
+                    'distribucionEdad' => ['labels' => [], 'valores' => [], 'colores' => []],
+                ]
+            ], 500);
+        }
+    }
+
+private function getRegistrosPorMes($year)
+    {
+        try {
+            $registros = DB::table('tabla_empleados')
+                ->selectRaw('MONTH(created_at) as mes, COUNT(*) as total')
+                ->whereYear('created_at', $year)
+                ->groupBy('mes')
+                ->orderBy('mes')
+                ->get();
+
+            // Inicializar array con 12 meses (0 valores)
+            $totales = array_fill(0, 12, 0);
+
+            // Llenar con datos reales
+            foreach ($registros as $registro) {
+                if ($registro->mes >= 1 && $registro->mes <= 12) {
+                    $totales[$registro->mes - 1] = $registro->total;
+                }
+            }
+
+            $nombresMeses = [
+                'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+            ];
+
+            return [
+                'labels' => $nombresMeses,
+                'valores' => $totales
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('Error en getRegistrosPorMes: ' . $e->getMessage());
+            return ['labels' => [], 'valores' => []];
+        }
+    }
+
+private function getDistribucionEdad($year = null)
+    {
+        try {
+            $rangos = [
+                '16-25' => [16, 25],
+                '26-35' => [26, 35],
+                '36-45' => [36, 45],
+                '46-55' => [46, 55],
+                '56+' => [56, 100]
+            ];
+            
+            $distribucion = [];
+            $colores = ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'];
+            
+            $i = 0;
+            $query = DB::table('tabla_empleados')
+                ->whereNotNull('fecha_nacimiento');
+            
+            // ✅ FILTRAR POR AÑO si se especifica
+            if ($year) {
+                $query->whereYear('created_at', $year);
+            }
+            
+            $i = 0;
+            foreach ($rangos as $rango => $edades) {
+                $count = (clone $query)
+                    ->whereRaw("TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) BETWEEN ? AND ?", $edades)
+                    ->count();
+                    
+                $distribucion[] = $count;
+                $i++;
+            }
+            
+            return [
+                'labels' => array_keys($rangos),
+                'valores' => $distribucion,
+                'colores' => $colores
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('Error en getDistribucionEdad: ' . $e->getMessage());
+            return ['labels' => [], 'valores' => [], 'colores' => []];
+        }
+    }
+
+    private function getEmpleadosPorCiudad($year = null)
+    {
+        try {
+            $query = DB::table('tabla_empleados')
+                ->select('ciudad', DB::raw('COUNT(*) as cantidad'))
+                ->whereNotNull('ciudad')
+                ->where('ciudad', '!=', '');
+            
+            // ✅ FILTRAR POR AÑO si se especifica
+            if ($year) {
+                $query->whereYear('created_at', $year);
+            }
+            
+            return $query->groupBy('ciudad')
+                ->orderByDesc('cantidad')
+                ->limit(8)
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'ciudad' => $item->ciudad ?: 'Sin especificar',
+                        'cantidad' => $item->cantidad
+                    ];
+                })
+                ->toArray();
+                
+        } catch (\Exception $e) {
+            Log::error('Error en getEmpleadosPorCiudad: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+      /**
+     * Obtener años disponibles con datos
+     */
+    public function getAniosDisponibles()
+    {
+        try {
+            // ✅ CORREGIDO: Usar el nombre correcto de la tabla
+            $anios = DB::table('tabla_empleados')
+                ->selectRaw('YEAR(created_at) as año')
+                ->whereNotNull('created_at')
+                ->groupBy('año')
+                ->orderBy('año', 'desc')
+                ->pluck('año')
+                ->toArray();
+
+            // Si no hay años, devolver el año actual
+            if (empty($anios)) {
+                $anios = [date('Y')];
+            }
+
+            return response()->json([
+                'success' => true,
+                'anios' => $anios
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('❌ Error en getAniosDisponibles: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'anios' => [date('Y')]
+            ]);
+        }
+    }
 }
+
+
