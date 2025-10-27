@@ -10092,5 +10092,96 @@ input[type="date"] {
     }
 }
 
+/* MÓVILES (hasta 767px) */
+@media (max-width: 767px) {
+    .flatpickr-calendar {
+        width: 280px !important;
+        max-width: 90vw !important;
+        transform: scale(0.85) !important;
+        transform-origin: center center !important;
+    }
+    
+    .flatpickr-calendar.open {
+        transform: scale(0.85) translate(-50%, -50%) !important;
+    }
+    
+    .flatpickr-day {
+        width: 32px !important;
+        height: 32px !important;
+        line-height: 32px !important;
+        font-size: 12px !important;
+    }
+    
+    .flatpickr-month {
+        height: 40px !important;
+    }
+    
+    .flatpickr-current-month {
+        font-size: 14px !important;
+        padding-top: 8px !important;
+    }
+    
+    .flatpickr-prev-month,
+    .flatpickr-next-month {
+        padding: 8px !important;
+    }
+    
+    .flatpickr-weekdays {
+        height: 30px !important;
+    }
+    
+    .flatpickr-weekday {
+        font-size: 11px !important;
+    }
+    
+    .flatpickr-months .flatpickr-month {
+        height: 40px !important;
+    }
+}
+
+/* TABLETS (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .flatpickr-calendar {
+        width: 300px !important;
+        max-width: 80vw !important;
+        transform: scale(0.9) !important;
+        transform-origin: center center !important;
+    }
+    
+    .flatpickr-calendar.open {
+        transform: scale(0.9) translate(-50%, -50%) !important;
+    }
+    
+    .flatpickr-day {
+        width: 36px !important;
+        height: 36px !important;
+        line-height: 36px !important;
+        font-size: 13px !important;
+    }
+    
+    .flatpickr-month {
+        height: 45px !important;
+    }
+    
+    .flatpickr-current-month {
+        font-size: 15px !important;
+        padding-top: 10px !important;
+    }
+    
+    .flatpickr-prev-month,
+    .flatpickr-next-month {
+        padding: 10px !important;
+    }
+    
+    .flatpickr-weekdays {
+        height: 35px !important;
+    }
+    
+    .flatpickr-weekday {
+        font-size: 12px !important;
+    }
+}
+
+
 </style>
 @endsection
