@@ -111,7 +111,7 @@
         <!-- Columna derecha - Solo cambio de contraseña e información del sistema -->
         <div class="col-lg-8 col-md-7">
             <!-- Cambio de contraseña -->
-            <div class="card shadow mb-4">
+            <!--<div class="card shadow mb-4">
                 <div class="card-header bg-warning text-dark py-3">
                     <h6 class="m-0 font-weight-bold">
                         <i class="fas fa-lock mr-2"></i>Cambiar Contraseña
@@ -120,7 +120,6 @@
                 <div class="card-body">
                     <form action="{{ route('admin.profile.update') }}" method="POST">
                         @csrf
-                        <!-- Contraseña Actual -->
                         <div class="row">
                             <div class="col-12 col-lg-6">
                                 <div class="form-group">
@@ -137,7 +136,6 @@
                             </div>
                         </div>
 
-                        <!-- Nueva Contraseña y Confirmación -->
                         <div class="row">
                             <div class="col-12 col-lg-6 mb-3 mb-lg-0">
                                 <div class="form-group">
@@ -177,7 +175,7 @@
                         </div>
                     </form>
                 </div>
-            </div>
+            </div>-->
 
             <!-- Información del sistema -->
             <div class="card shadow">
