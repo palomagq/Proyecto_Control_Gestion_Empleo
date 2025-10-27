@@ -9925,6 +9925,12 @@ input[type="date"] {
     }
 }
 
+@media (min-width: 768px) and (max-width: 991px) {
+    .form-control.form-control-sm.form-control-lg-md {
+        width: 100% !important;
+    }
+}
+
 /* ===== ESTILOS MEJORADOS PARA GRÁFICOS ===== */
 
 .chart-container {
