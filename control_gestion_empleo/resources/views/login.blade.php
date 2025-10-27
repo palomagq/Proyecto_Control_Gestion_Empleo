@@ -202,6 +202,165 @@
                 padding: 20px 10px;
             }
         }
+
+/* MEJORAS PARA DISPOSITIVOS MÓVILES Y TABLETS */
+
+/* Ajustes generales para pantallas pequeñas */
+@media (max-width: 991px) {
+    .col-md-9.col-lg-6.col-xl-5 {
+        display: none; /* Ocultar la imagen */
+    }
+    
+    .col-md-8.col-lg-6.col-xl-4.offset-xl-1 {
+        padding: 25px 20px;
+        padding-top: 2rem !important;
+        width: 100%; /* Ocupar todo el ancho disponible */
+        max-width: 500px; /* Limitar el ancho máximo */
+        margin: 0 auto; /* Centrar el formulario */
+    }
+    
+    .h-custom {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+    
+    /* Mejorar el tamaño de fuente para mejor legibilidad */
+    .form-control-lg {
+        font-size: 1rem;
+        padding: 0.75rem 1rem;
+    }
+    
+    .btn-lg {
+        font-size: 1rem;
+        padding: 0.75rem 1.5rem;
+    }
+    
+    /* Ajustar el espaciado entre elementos */
+    .form-outline.mb-4 {
+        margin-bottom: 1rem !important;
+    }
+    
+    .form-outline.mb-3 {
+        margin-bottom: 0.75rem !important;
+    }
+    
+    .text-center.text-lg-start.mt-4.pt-2 {
+        margin-top: 1rem !important;
+        padding-top: 0.5rem !important;
+    }
+    
+    /* Optimizar la sección de instrucciones */
+    .instructions {
+        margin-top: 1.5rem;
+    }
+    
+    .instructions h6 {
+        font-size: 1rem;
+    }
+    
+    .instructions ul {
+        padding-left: 1.25rem;
+        font-size: 0.9rem;
+    }
+    
+    .instructions li {
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Mejorar la sección QR */
+    .qr-section {
+        padding-top: 1.5rem;
+        margin-top: 1.5rem;
+    }
+    
+    .qr-icon {
+        font-size: 1.75rem;
+    }
+    
+    .qr-btn {
+        padding: 0.75rem;
+        font-size: 1rem;
+    }
+}
+
+/* Ajustes específicos para tablets medianas */
+@media (max-width: 768px) {
+    .h-custom {
+        height: auto !important;
+    }
+    
+    .row.d-flex {
+        flex-direction: column;
+    }
+    
+    .col-md-8.col-lg-6.col-xl-4.offset-xl-1 {
+        padding: 20px 15px;
+        padding-top: 1.5rem !important;
+    }
+    
+    /* Botón de login más ancho en móviles */
+    .btn-primary.btn-lg {
+        width: 100%;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    /* Optimizar textos para móviles */
+    .instructions ul {
+        font-size: 0.85rem;
+    }
+    
+    .qr-section h5 {
+        font-size: 1.1rem;
+    }
+    
+    .qr-section p {
+        font-size: 0.9rem;
+    }
+}
+
+/* Ajustes para móviles pequeños */
+@media (max-width: 450px) {
+    .h-custom {
+        height: 100% !important;
+    }
+    
+    .col-md-8.col-lg-6.col-xl-4.offset-xl-1 {
+        padding: 15px 10px;
+        padding-top: 1rem !important;
+    }
+    
+    /* Reducir aún más los tamaños de fuente */
+    .form-control-lg {
+        font-size: 0.9rem;
+        padding: 0.6rem 0.8rem;
+    }
+    
+    .btn-lg {
+        font-size: 0.9rem;
+        padding: 0.6rem 1rem;
+    }
+    
+    /* Ajustar márgenes para ahorrar espacio */
+    .form-outline.mb-4 {
+        margin-bottom: 0.75rem !important;
+    }
+    
+    .login-options {
+        margin: 15px 0;
+    }
+    
+    .qr-section {
+        padding-top: 1rem;
+        margin-top: 1rem;
+    }
+    
+    /* Simplificar instrucciones en móviles muy pequeños */
+    .instructions ul li {
+        font-size: 0.8rem;
+        margin-bottom: 0.4rem;
+    }
+}
     </style>
 </head>
 <body>
