@@ -1767,7 +1767,13 @@ function initializeDataTable() {
                 
                 // Guardar datos originales para filtros
                 let datos = json.data || json;
-                window.empleadosDataOriginal = Array.isArray(datos) ? datos : [];
+                
+                // ✅ CORREGIDO: Asegurar que los datos tengan el formato correcto
+                window.empleadosDataOriginal = Array.isArray(datos) ? datos.map(empleado => ({
+                    ...empleado,
+                    // Asegurar que created_at esté en formato válido
+                    created_at: empleado.created_at || new Date().toISOString()
+                })) : [];
                 
                 console.log('💾 Datos originales guardados:', window.empleadosDataOriginal.length, 'empleados');
                 
@@ -1776,6 +1782,8 @@ function initializeDataTable() {
             },
             error: function(xhr, error, thrown) {
                 console.error('❌ Error cargando DataTable:', error);
+                // Inicializar array vacío en caso de error
+                window.empleadosDataOriginal = [];
             }
         },
         columns: [
@@ -1805,6 +1813,11 @@ function initializeDataTable() {
         initComplete: function(settings, json) {
             console.log('✅ DataTable inicializado correctamente');
             console.log('📊 Total de registros cargados:', window.empleadosDataOriginal?.length || 0);
+            
+            // ✅ Asegurar que los datos estén disponibles
+            if (!window.empleadosDataOriginal || window.empleadosDataOriginal.length === 0) {
+                console.warn('⚠️ No se cargaron datos en el DataTable');
+            }
         }
     });
 }
@@ -1841,9 +1854,9 @@ function aplicarFiltrosClientSide(data) {
             coincide = coincide && nombreCompleto.includes(nombreBusqueda);
         }
         
-        // ✅ Filtrar por Mes (si se especificó)
+        // ✅ Filtrar por Mes (si se especificó) - CORREGIDO
         if (filtros.filterMes && coincide) {
-            let fechaEmpleado = empleado.created_at || empleado.fecha_creacion || empleado.fecha_nacimiento;
+            let fechaEmpleado = empleado.created_at;
             
             if (fechaEmpleado) {
                 try {
@@ -1854,13 +1867,24 @@ function aplicarFiltrosClientSide(data) {
                         
                         const [filtroAño, filtroMes] = filtros.filterMes.split('-');
                         
+                        console.log('📅 Comparando meses:', {
+                            'empleado': `${añoEmpleado}-${mesEmpleado}`,
+                            'filtro': filtros.filterMes,
+                            'coincide': (mesEmpleado === filtroMes && añoEmpleado === filtroAño)
+                        });
+                        
                         const coincideMes = mesEmpleado === filtroMes && añoEmpleado === filtroAño;
                         coincide = coincide && coincideMes;
+                    } else {
+                        console.warn('❌ Fecha inválida del empleado:', fechaEmpleado);
+                        coincide = false;
                     }
                 } catch (e) {
-                    console.warn('Error procesando fecha:', fechaEmpleado, e);
+                    console.warn('❌ Error procesando fecha:', fechaEmpleado, e);
+                    coincide = false;
                 }
             } else {
+                console.warn('❌ Empleado sin fecha de creación:', empleado.id);
                 coincide = false;
             }
         }
@@ -3122,7 +3146,7 @@ function aplicarFiltros() {
     
     // Mostrar información del filtro aplicado si hay mes
     if (filtros.filterMes) {
-        mostrarInfoFiltro($('#filterMes').val().trim());
+        mostrarInfoFiltro(filtros.filterMes);
     } else {
         $('#filtroInfo').hide();
     }
@@ -3145,9 +3169,18 @@ function aplicarFiltros() {
             const mensajeFiltros = [];
             if (filtros.filterDni) mensajeFiltros.push(`DNI: ${filtros.filterDni}`);
             if (filtros.filterNombre) mensajeFiltros.push(`Nombre: ${filtros.filterNombre}`);
-            if (filtros.filterMes) mensajeFiltros.push(`Mes: ${filtros.filterMes}`);
+            if (filtros.filterMes) mensajeFiltros.push(`Mes: ${formatearMesParaDisplay(filtros.filterMes)}`);
             
             console.log('✅ Filtros aplicados:', mensajeFiltros.join(', '));
+            
+            // Mostrar notificación de éxito
+            Swal.fire({
+                icon: 'success',
+                title: 'Filtros aplicados',
+                text: `Se encontraron ${datosFiltrados.length} empleados`,
+                timer: 2000,
+                showConfirmButton: false
+            });
             
         } else {
             table.draw();
@@ -3156,7 +3189,7 @@ function aplicarFiltros() {
             const criterios = [];
             if (filtros.filterDni) criterios.push(`DNI "${filtros.filterDni}"`);
             if (filtros.filterNombre) criterios.push(`nombre "${filtros.filterNombre}"`);
-            if (filtros.filterMes) criterios.push(`mes "${filtros.filterMes}"`);
+            if (filtros.filterMes) criterios.push(`mes "${formatearMesParaDisplay(filtros.filterMes)}"`);
             
             Swal.fire({
                 icon: 'info',
@@ -3187,6 +3220,31 @@ function aplicarFiltros() {
     }
 }
 
+
+// ✅ FUNCIÓN AUXILIAR: Formatear mes para display
+function formatearMesParaDisplay(mes) {
+    if (!mes) return '';
+    
+    try {
+        const partes = mes.split('-');
+        if (partes.length === 2) {
+            const año = partes[0];
+            const mesNum = parseInt(partes[1]);
+            
+            const meses = {
+                1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril',
+                5: 'mayo', 6: 'junio', 7: 'julio', 8: 'agosto',
+                9: 'septiembre', 10: 'octubre', 11: 'noviembre', 12: 'diciembre'
+            };
+            
+            return `${meses[mesNum]} de ${año}`;
+        }
+    } catch (e) {
+        console.error('Error formateando mes:', e);
+    }
+    
+    return mes;
+}
 function prepararDatosFiltros() {
     // Obtener valores directamente de los inputs
     const filterDni = $('#filterDni').val().trim();
@@ -3202,14 +3260,29 @@ function prepararDatosFiltros() {
     // Normalizar DNI (quitar espacios, poner mayúsculas)
     const dniNormalizado = filterDni ? filterDni.toUpperCase().replace(/\s/g, '') : '';
     
-    // Normalizar mes (convertir MM-YYYY o mantener YYYY-MM)
-    let mesNormalizado = filterMes;
-    if (filterMes && filterMes.match(/^(\d{2})-(\d{4})$/)) {
-        // Formato MM-YYYY convertir a YYYY-MM
-        const partes = filterMes.split('-');
-        mesNormalizado = `${partes[1]}-${partes[0]}`;
+    // Normalizar mes (convertir cualquier formato a YYYY-MM)
+    let mesNormalizado = '';
+    if (filterMes) {
+        // Formato MM-YYYY (09-2025) convertir a YYYY-MM
+        if (filterMes.match(/^(\d{1,2})-(\d{4})$/)) {
+            const partes = filterMes.split('-');
+            const mes = partes[0].padStart(2, '0');
+            const año = partes[1];
+            mesNormalizado = `${año}-${mes}`;
+        }
+        // Formato YYYY-MM (2025-09) - dejarlo así
+        else if (filterMes.match(/^(\d{4})-(\d{1,2})$/)) {
+            const partes = filterMes.split('-');
+            const año = partes[0];
+            const mes = partes[1].padStart(2, '0');
+            mesNormalizado = `${año}-${mes}`;
+        }
+        // Si no coincide con ningún formato, usar original
+        else {
+            mesNormalizado = filterMes;
+            console.warn('⚠️ Formato de mes no reconocido:', filterMes);
+        }
     }
-    // Si ya está en formato YYYY-MM, dejarlo así
     
     console.log('🔄 Filtros normalizados:', {
         dni_normalizado: dniNormalizado,
@@ -3235,48 +3308,15 @@ function mostrarInfoFiltro(mes) {
         return;
     }
     
-    const mesLimpio = mes.trim();
+    const mesFormateado = formatearMesParaDisplay(mes);
     
-    // ✅ ACEPTAR AMBOS FORMATOS
-    let año, mesNumero;
-    
-    // Formato YYYY-MM (2025-09)
-    if (mesLimpio.match(/^(\d{4})-(\d{2})$/)) {
-        const partes = mesLimpio.split('-');
-        año = partes[0];
-        mesNumero = partes[1];
-        console.log('✅ Formato YYYY-MM detectado');
-    }
-    // Formato MM-YYYY (09-2025) 
-    else if (mesLimpio.match(/^(\d{2})-(\d{4})$/)) {
-        const partes = mesLimpio.split('-');
-        año = partes[1];
-        mesNumero = partes[0];
-        console.log('✅ Formato MM-YYYY detectado');
-    }
-    else {
-        // Formato no reconocido
-        console.warn('⚠️ Formato no reconocido:', mesLimpio);
-        infoMes.text(`Filtrando por: ${mesLimpio}`);
-        filtroInfo.show();
-        return;
-    }
-    
-    // Mapeo de meses en español
-    const meses = {
-        '01': 'enero', '02': 'febrero', '03': 'marzo', '04': 'abril',
-        '05': 'mayo', '06': 'junio', '07': 'julio', '08': 'agosto',
-        '09': 'septiembre', '10': 'octubre', '11': 'noviembre', '12': 'diciembre'
-    };
-    
-    if (año && mesNumero && meses[mesNumero]) {
-        const mesFormateado = `${meses[mesNumero]} de ${año}`;
+    if (mesFormateado) {
         infoMes.text(mesFormateado);
         filtroInfo.show();
-        console.log('✅ Mes formateado:', mesFormateado);
+        console.log('✅ Mes formateado para info:', mesFormateado);
     } else {
         // Fallback
-        infoMes.text(`Filtrando por: ${mesLimpio}`);
+        infoMes.text(`Filtrando por: ${mes}`);
         filtroInfo.show();
     }
 }

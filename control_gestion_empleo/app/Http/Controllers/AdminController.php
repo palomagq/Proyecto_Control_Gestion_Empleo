@@ -317,56 +317,6 @@ public function getEmpleadosDataTable(Request $request)
 
         Log::info('🔍 Consulta base creada');
 
-        // **OBTENER FILTROS**
-        $filterDni = $request->get('filterDni', '');
-        $filterNombre = $request->get('filterNombre', '');
-        $filterMes = $request->get('filterMes', '');
-
-        Log::info('🎯 Filtros recibidos:', [
-            'dni' => $filterDni,
-            'nombre' => $filterNombre,
-            'mes' => $filterMes
-        ]);
-
-        // ✅ APLICAR FILTROS SI ESTÁN PRESENTES
-        if (!empty($filterDni)) {
-            $query->where('dni', 'like', '%' . $filterDni . '%');
-            Log::info('🔍 Filtro DNI aplicado:', ['dni' => $filterDni]);
-        }
-
-        if (!empty($filterNombre)) {
-            $query->where(function($q) use ($filterNombre) {
-                $q->where('nombre', 'like', '%' . $filterNombre . '%')
-                  ->orWhere('apellidos', 'like', '%' . $filterNombre . '%');
-            });
-            Log::info('🔍 Filtro Nombre aplicado:', ['nombre' => $filterNombre]);
-        }
-
-        if (!empty($filterMes)) {
-            try {
-                // Validar y convertir el formato del mes
-                if (preg_match('/^\d{4}-\d{2}$/', $filterMes)) {
-                    $fechaInicio = Carbon::createFromFormat('Y-m', $filterMes)->startOfMonth();
-                    $fechaFin = Carbon::createFromFormat('Y-m', $filterMes)->endOfMonth();
-                    
-                    $query->whereBetween('created_at', [$fechaInicio, $fechaFin]);
-                    
-                    Log::info('📅 Filtro Mes aplicado:', [
-                        'mes' => $filterMes,
-                        'fecha_inicio' => $fechaInicio->format('Y-m-d H:i:s'),
-                        'fecha_fin' => $fechaFin->format('Y-m-d H:i:s')
-                    ]);
-                } else {
-                    Log::warning('⚠️ Formato de mes inválido:', ['mes' => $filterMes]);
-                }
-            } catch (\Exception $e) {
-                Log::error('❌ Error procesando filtro de mes:', [
-                    'mes' => $filterMes,
-                    'error' => $e->getMessage()
-                ]);
-            }
-        }
-
         // Obtener TODOS los registros (sin paginación para client-side)
         $empleados = $query->orderBy('id', 'asc')->get();
 
@@ -379,7 +329,9 @@ public function getEmpleadosDataTable(Request $request)
             // ✅ Asegurar que sea entero
             $edadEntero = (int) $edad;
 
-            // ✅ CORREGIDO: Usar comillas simples y escapar correctamente
+            // ✅ Asegurar que created_at esté en formato ISO
+            $createdAt = $empleado->created_at ? $empleado->created_at->toISOString() : now()->toISOString();
+
             $accionesHtml = '
             <div class="btn-group btn-group-sm">
                 <button class="btn btn-info" onclick="verEmpleado(' . $empleado->id . ')" title="Ver">
@@ -410,6 +362,7 @@ public function getEmpleadosDataTable(Request $request)
                 'domicilio' => $empleado->domicilio,
                 'telefono' => $empleado->telefono,
                 'username' => $empleado->credencial->username ?? 'N/A',
+                'created_at' => $createdAt, // ✅ FORMATO ISO PARA FILTROS
                 'acciones' => $accionesHtml
             ];
         });
