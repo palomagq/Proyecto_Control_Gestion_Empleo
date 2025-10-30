@@ -3,7 +3,6 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB; // ← AÑADE ESTA LÍNEA
 
 return new class extends Migration
 {
@@ -14,7 +13,14 @@ return new class extends Migration
     {
         //
         Schema::table('tabla_registros_tiempo', function (Blueprint $table) {
-            $table->dateTime('fin')->nullable()->change();
+            // Añadir foreign key
+            $table->foreign('tipo_tarea_id')
+                  ->references('id')
+                  ->on('tabla_tipos_tarea')
+                  ->onDelete('restrict');
+            
+            // Añadir índice para mejor performance
+            $table->index('tipo_tarea_id');
         });
     }
 
@@ -25,7 +31,11 @@ return new class extends Migration
     {
         //
         Schema::table('tabla_registros_tiempo', function (Blueprint $table) {
-            $table->dateTime('fin')->nullable(false)->change();
+            // Eliminar foreign key
+            $table->dropForeign(['tipo_tarea_id']);
+            
+            // Eliminar índice
+            $table->dropIndex(['tipo_tarea_id']);
         });
     }
 };
