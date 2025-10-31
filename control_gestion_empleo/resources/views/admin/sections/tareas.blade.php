@@ -747,6 +747,143 @@
     </div>
 </div>
 
+<!-- Modal para Gestionar Tipos de Tarea -->
+<div class="modal fade" id="tipoTareaModal" tabindex="-1" role="dialog" aria-labelledby="tipoTareaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-info text-white">
+                <h5 class="modal-title" id="tipoTareaModalLabel">
+                    <i class="fas fa-tags mr-2"></i> Gestionar Tipos de Tarea
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Botón para agregar nuevo tipo -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <button type="button" class="btn btn-success btn-sm" onclick="mostrarFormTipoTarea()">
+                            <i class="fas fa-plus mr-1"></i> Nuevo Tipo de Tarea
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Formulario para crear/editar tipo de tarea (inicialmente oculto) -->
+                <div id="formTipoTarea" style="display: none;">
+                    <div class="card mb-4 border-0 shadow-sm">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0 text-dark" id="formTipoTareaTitle">
+                                <i class="fas fa-plus-circle mr-2"></i> Nuevo Tipo de Tarea
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <form id="tipoTareaForm">
+                                @csrf
+                                <input type="hidden" id="tipo_tarea_id" name="id">
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="nombre_tipo" class="font-weight-bold text-dark">
+                                                <i class="fas fa-tag mr-1"></i> Nombre del Tipo *
+                                            </label>
+                                            <input type="text" class="form-control" id="nombre_tipo" name="nombre" 
+                                                   required placeholder="Ej: Reunión, Desarrollo, Documentación...">
+                                            <small class="form-text text-muted">Nombre único para identificar el tipo de tarea</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="color_tipo" class="font-weight-bold text-dark">
+                                                <i class="fas fa-palette mr-1"></i> Color *
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="color" class="form-control" id="color_tipo" name="color" 
+                                                       value="#3498db" required style="height: 38px;">
+                                                <div class="input-group-append">
+                                                    <span class="input-group-text" id="color_preview" 
+                                                          style="background-color: #3498db; width: 40px;"></span>
+                                                </div>
+                                            </div>
+                                            <small class="form-text text-muted">Color para identificar visualmente este tipo</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="descripcion_tipo" class="font-weight-bold text-dark">
+                                        <i class="fas fa-align-left mr-1"></i> Descripción
+                                    </label>
+                                    <textarea class="form-control" id="descripcion_tipo" name="descripcion" 
+                                              rows="3" placeholder="Describe el propósito de este tipo de tarea..."></textarea>
+                                    <small class="form-text text-muted">Esta descripción se mostrará en los selects al crear tareas</small>
+                                </div>
+                                
+                                <div class="alert alert-info py-2">
+                                    <small>
+                                        <i class="fas fa-info-circle mr-1"></i> 
+                                        Los campos marcados con * son obligatorios. La descripción es opcional pero recomendada.
+                                    </small>
+                                </div>
+                                
+                                <div class="text-right">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="ocultarFormTipoTarea()">
+                                        <i class="fas fa-times mr-1"></i> Cancelar
+                                    </button>
+                                    <button type="button" class="btn btn-success btn-sm" onclick="submitTipoTareaForm()">
+                                        <i class="fas fa-save mr-1"></i> Guardar Tipo
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista de tipos de tarea existentes -->
+                <div id="listaTiposTarea">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0 text-dark">
+                                <i class="fas fa-list mr-2"></i> Tipos de Tarea Existentes
+                            </h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-bordered mb-0">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th width="20%">Nombre</th>
+                                            <th width="15%">Color</th>
+                                            <th width="35%">Descripción</th>
+                                            <th width="15%">Estado</th>
+                                            <th width="15%" class="text-center">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tiposTareaBody">
+                                        <!-- Se llenará dinámicamente -->
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted py-4">
+                                                <i class="fas fa-spinner fa-spin mr-2"></i>
+                                                Cargando tipos de tarea...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 <!-- ************************************************************************************************ JS ******************************************************************************************* -->
@@ -1222,20 +1359,54 @@ function eliminarTarea(id) {
 
 function mostrarFormTipoTarea() {
     $('#formTipoTarea').show();
-    $('#formTipoTareaTitle').text('Nuevo Tipo de Tarea');
+    $('#formTipoTareaTitle').html('<i class="fas fa-plus-circle mr-2"></i> Nuevo Tipo de Tarea');
     document.getElementById('tipoTareaForm').reset();
     $('#tipo_tarea_id').val('');
+    $('#color_tipo').val('#3498db');
+    $('#color_preview').css('background-color', '#3498db');
+    
+    // Enfocar el primer campo
+    setTimeout(() => {
+        $('#nombre_tipo').focus();
+    }, 300);
 }
 
 function ocultarFormTipoTarea() {
     $('#formTipoTarea').hide();
+    document.getElementById('tipoTareaForm').reset();
 }
 
+// Actualizar preview del color
+$('#color_tipo').on('change', function() {
+    $('#color_preview').css('background-color', $(this).val());
+});
+
 function submitTipoTareaForm() {
+    const nombre = $('#nombre_tipo').val().trim();
+    const color = $('#color_tipo').val();
+    const descripcion = $('#descripcion_tipo').val().trim();
+
+    // Validaciones
+    if (!nombre) {
+        Swal.fire('Error', 'El nombre del tipo es obligatorio', 'error');
+        $('#nombre_tipo').focus();
+        return;
+    }
+
+    if (!color) {
+        Swal.fire('Error', 'Debe seleccionar un color', 'error');
+        return;
+    }
+
     const formData = new FormData(document.getElementById('tipoTareaForm'));
     const tipoId = $('#tipo_tarea_id').val();
     const url = tipoId ? `/admin/tipos-tarea/${tipoId}` : '{{ route("admin.tipos-tarea.store") }}';
     const method = tipoId ? 'PUT' : 'POST';
+
+    // Mostrar loading
+    const botonGuardar = $('#tipoTareaForm').find('button[type="button"]').filter(':contains("Guardar")');
+    const textoOriginal = botonGuardar.html();
+    botonGuardar.html('<i class="fas fa-spinner fa-spin mr-1"></i> Guardando...').prop('disabled', true);
 
     $.ajax({
         url: url,
@@ -1245,20 +1416,40 @@ function submitTipoTareaForm() {
         contentType: false,
         headers: method === 'PUT' ? { 'X-HTTP-Method-Override': 'PUT' } : {},
         success: function(response) {
+            botonGuardar.html(textoOriginal).prop('disabled', false);
+            
             if (response.success) {
-                Swal.fire('¡Éxito!', response.message, 'success');
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Éxito!',
+                    text: response.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                
                 ocultarFormTipoTarea();
                 cargarTiposTarea();
                 cargarListaTiposTarea();
+                
+                // Cerrar modal después de guardar si es creación nueva
+                if (!tipoId) {
+                    setTimeout(() => {
+                        $('#tipoTareaModal').modal('hide');
+                    }, 1000);
+                }
             } else {
                 Swal.fire('Error', response.message, 'error');
             }
+        },
+        error: function(xhr) {
+            botonGuardar.html(textoOriginal).prop('disabled', false);
+            Swal.fire('Error', 'Error al procesar la solicitud', 'error');
         }
     });
 }
 
 function cargarListaTiposTarea() {
-    console.log('Cargando lista de tipos de tarea para el modal...');
+    console.log('Cargando lista de tipos de tarea...');
     
     $.ajax({
         url: '{{ route("admin.tareas.tipos") }}',
@@ -1266,68 +1457,117 @@ function cargarListaTiposTarea() {
         success: function(response) {
             console.log('Lista de tipos cargada:', response);
             
-            if (response.success && response.data) {
+            if (response.success && response.data && response.data.length > 0) {
                 let html = '';
                 response.data.forEach(tipo => {
-                    // Mostrar descripción en la lista también
-                    const descripcionMostrar = tipo.descripcion || 'Sin descripción';
+                    const descripcionMostrar = tipo.descripcion || '<span class="text-muted">Sin descripción</span>';
+                    const estadoBadge = tipo.activo ? 
+                        '<span class="badge badge-success">Activo</span>' : 
+                        '<span class="badge badge-danger">Inactivo</span>';
+                    
                     html += `
                     <tr>
-                        <td>${tipo.nombre}</td>
-                        <td><span class="badge" style="background-color: ${tipo.color}">${tipo.color}</span></td>
-                        <td>${descripcionMostrar}</td>
-                        <td>${tipo.activo ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>'}</td>
-                        <td>
-                            <button class="btn btn-sm btn-warning" onclick="editarTipoTarea(${tipo.id})">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="eliminarTipoTarea(${tipo.id})">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                        <td class="align-middle">
+                            <strong>${tipo.nombre}</strong>
+                        </td>
+                        <td class="align-middle">
+                            <div class="d-flex align-items-center">
+                                <span class="badge-color mr-2" style="background-color: ${tipo.color}; width: 20px; height: 20px; border-radius: 3px; display: inline-block;"></span>
+                                <small class="text-muted">${tipo.color}</small>
+                            </div>
+                        </td>
+                        <td class="align-middle">${descripcionMostrar}</td>
+                        <td class="align-middle">${estadoBadge}</td>
+                        <td class="align-middle text-center">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn btn-warning btn-sm" onclick="editarTipoTarea(${tipo.id})" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="eliminarTipoTarea(${tipo.id})" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>`;
                 });
                 $('#tiposTareaBody').html(html);
             } else {
-                console.error('Error al cargar lista de tipos:', response);
-                $('#tiposTareaBody').html('<tr><td colspan="5" class="text-center text-muted">No hay tipos de tarea disponibles</td></tr>');
+                $('#tiposTareaBody').html(`
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            <i class="fas fa-inbox mr-2"></i>
+                            No hay tipos de tarea registrados
+                        </td>
+                    </tr>
+                `);
             }
         },
         error: function(xhr, status, error) {
             console.error('Error cargando lista de tipos:', error);
-            $('#tiposTareaBody').html('<tr><td colspan="5" class="text-center text-danger">Error al cargar los tipos de tarea</td></tr>');
+            $('#tiposTareaBody').html(`
+                <tr>
+                    <td colspan="5" class="text-center text-danger py-4">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Error al cargar los tipos de tarea
+                    </td>
+                </tr>
+            `);
         }
     });
 }
 
+
 function editarTipoTarea(id) {
+    console.log('Editando tipo de tarea:', id);
+    
     $.ajax({
         url: `/admin/tipos-tarea/${id}`,
         type: 'GET',
         success: function(response) {
             if (response.success) {
                 const tipo = response.data;
+                
                 $('#tipo_tarea_id').val(tipo.id);
                 $('#nombre_tipo').val(tipo.nombre);
                 $('#color_tipo').val(tipo.color);
-                $('#descripcion_tipo').val(tipo.descripcion);
-                $('#formTipoTareaTitle').text('Editar Tipo de Tarea');
+                $('#descripcion_tipo').val(tipo.descripcion || '');
+                $('#color_preview').css('background-color', tipo.color);
+                
+                $('#formTipoTareaTitle').html('<i class="fas fa-edit mr-2"></i> Editar Tipo de Tarea');
                 $('#formTipoTarea').show();
+                
+                // Scroll al formulario
+                $('html, body').animate({
+                    scrollTop: $('#formTipoTarea').offset().top - 20
+                }, 500);
+                
+                // Enfocar el primer campo
+                setTimeout(() => {
+                    $('#nombre_tipo').focus();
+                }, 300);
+                
+            } else {
+                Swal.fire('Error', 'No se pudo cargar el tipo de tarea', 'error');
             }
+        },
+        error: function(xhr) {
+            Swal.fire('Error', 'Error al cargar el tipo de tarea', 'error');
         }
     });
 }
 
+
 function eliminarTipoTarea(id) {
     Swal.fire({
         title: '¿Estás seguro?',
-        text: "Esta acción no se puede deshacer",
+        text: "Esta acción desactivará el tipo de tarea. Las tareas existentes mantendrán este tipo.",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
+        confirmButtonText: 'Sí, desactivar',
+        cancelButtonText: 'Cancelar',
+        reverseButtons: true
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
@@ -1335,17 +1575,27 @@ function eliminarTipoTarea(id) {
                 type: 'DELETE',
                 success: function(response) {
                     if (response.success) {
-                        Swal.fire('¡Eliminado!', response.message, 'success');
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Desactivado!',
+                            text: response.message,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
                         cargarListaTiposTarea();
-                        cargarTiposTarea();
+                        cargarTiposTarea(); // Actualizar selects
                     } else {
                         Swal.fire('Error', response.message, 'error');
                     }
+                },
+                error: function(xhr) {
+                    Swal.fire('Error', 'Error al eliminar el tipo de tarea', 'error');
                 }
             });
         }
     });
 }
+
 
 // =============================================
 // FUNCIONES AUXILIARES
@@ -1527,6 +1777,11 @@ $(document).ready(function() {
         cargarListaTiposTarea();
     });
 
+    // Limpiar formulario al cerrar el modal
+    $('#tipoTareaModal').on('hidden.bs.modal', function() {
+        ocultarFormTipoTarea();
+    });
+
     $('#tareaModal').on('hidden.bs.modal', function() {
         document.getElementById('tareaForm').reset();
         if (typeof $.fn.select2 !== 'undefined') {
@@ -1565,6 +1820,17 @@ $(document).ready(function() {
     padding: 0.5rem 0.75rem;
 }
 
+.bg-gradient-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+    border-bottom: none !important;
+}
+
+.bg-gradient-info {
+    background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%) !important;
+    border-bottom: none !important;
+}
+
+
 /* Colores para prioridades */
 .badge-prioridad-baja { background-color: #28a745; color: white; }
 .badge-prioridad-media { background-color: #17a2b8; color: white; }
@@ -1600,6 +1866,28 @@ $(document).ready(function() {
 .modal-footer {
     border-top: 1px solid #e3e6f0;
 }
+/* Estilos para el modal de tipos de tarea */
+.badge-color {
+    border: 1px solid #dee2e6;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.card {
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.modal-content {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.btn-group-sm > .btn {
+    padding: 0.25rem 0.5rem;
+}
+
 
 /* Estilos para los badges de empleados */
 .empleado-badge {

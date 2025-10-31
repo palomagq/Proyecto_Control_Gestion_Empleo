@@ -53,6 +53,12 @@ class Admin extends Model
         return self::with(['credencial', 'rol'])->first();
     }
 
+     public function tareasCreadas()
+    {
+        return $this->hasMany(Tarea::class, 'admin_creador_id')
+                    ->where('creador_tipo', 'admin');
+    }
+
     /**
      * Crear un nuevo admin con credenciales
      */
