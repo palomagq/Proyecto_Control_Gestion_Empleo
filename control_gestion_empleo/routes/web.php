@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\EmpleadoController;
+use App\Http\Controllers\LoginQrController;
+
     use Illuminate\Support\Facades\DB;
 
 
@@ -14,6 +16,30 @@ Route::get('/', function () {
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.post');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+
+
+// Rutas para login por QR
+Route::get('/empleado/qr-login/{token}', [App\Http\Controllers\AdminController::class, 'qrLogin'])->name('empleado.qr.login');
+
+// Rutas para gestión de QR
+Route::get('/admin/empleado/{id}/qr-login-url', [App\Http\Controllers\AdminController::class, 'getQrLoginUrl'])->name('admin.empleado.qr-login-url');
+    
+Route::get('/admin/empleado/{id}/qr-login-info', [App\Http\Controllers\AdminController::class, 'getQrLoginInfo'])->name('admin.empleado.qr-login-info');
+    
+Route::post('/admin/empleado/{id}/renovar-qr', [App\Http\Controllers\AdminController::class, 'renovarQr'])->name('admin.empleado.renovar-qr');
+
+Route::prefix('auth')->group(function () {
+    // Generar QR para login
+    Route::get('/qr/generate', [LoginQrController::class, 'generateQr'])->name('login.qr.generate');
+    
+    // Página de escaneo
+    Route::get('/qr/scan/{token}', [LoginQrController::class, 'showScanPage'])->name('login.qr.scan');
+    
+    // Procesar escaneo
+    Route::post('/qr/scan/{token}', [LoginQrController::class, 'processScan'])->name('login.qr.process');
+});
+
+
 
 Route::prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
@@ -41,6 +67,28 @@ Route::prefix('admin')->group(function () {
     Route::get('/empleados/registros/{id}/resumen', [AdminController::class, 'getResumenRegistros'])->name('admin.empleados.registros.resumen');
     Route::get('/empleados/{empleadoId}/registros/{registroId}/detalles', [AdminController::class, 'getDetallesRegistroAdmin']) ->name('admin.empleados.registros.detalles');
 
+
+    // Tareas
+    Route::get('/tareas', [AdminController::class, 'tareas'])->name('admin.tareas');
+
+    // API Tareas
+    Route::get('/tareas/datatable', [AdminController::class, 'getTareasDataTable'])->name('admin.tareas.datatable');
+    Route::get('/tareas/tipos', [AdminController::class, 'getTiposTarea'])->name('admin.tareas.tipos');
+    Route::get('/tareas/empleados', [AdminController::class, 'getEmpleadosParaAsignacion'])->name('admin.tareas.empleados');
+    Route::post('/tareas', [AdminController::class, 'storeTarea'])->name('admin.tareas.store');
+    Route::get('/tareas/{id}', [AdminController::class, 'getTarea'])->name('admin.tareas.show');
+    Route::put('/tareas/{id}', [AdminController::class, 'updateTarea'])->name('admin.tareas.update');
+    Route::delete('/tareas/{id}', [AdminController::class, 'destroyTarea'])->name('admin.tareas.destroy');
+    Route::post('/tareas/{id}/asignar', [AdminController::class, 'asignarEmpleadosTarea'])->name('admin.tareas.asignar');
+
+    // Rutas para Tipos de Tarea
+    Route::get('/tipos-tarea', [AdminController::class, 'getTodosTiposTarea'])->name('admin.tipos-tarea.index');
+    Route::post('/tipos-tarea', [AdminController::class, 'storeTipoTarea'])->name('admin.tipos-tarea.store');
+    Route::get('/tipos-tarea/{id}', [AdminController::class, 'editTipoTarea'])->name('admin.tipos-tarea.edit');
+    Route::put('/tipos-tarea/{id}', [AdminController::class, 'updateTipoTarea'])->name('admin.tipos-tarea.update');
+    Route::delete('/tipos-tarea/{id}', [AdminController::class, 'destroyTipoTarea'])->name('admin.tipos-tarea.destroy');
+
+    //crud empleados
     Route::get('/empleados/{id}/edit', [AdminController::class, 'editEmployee'])->name('admin.empleados.edit');
     Route::put('/empleados/{id}', [AdminController::class, 'updateEmployee'])->name('admin.empleados.update');
     Route::get('/empleados/{id}', [AdminController::class, 'show'])->name('admin.empleados.show');
@@ -55,6 +103,8 @@ Route::prefix('admin')->group(function () {
     Route::get('/empleados/estadisticas/graficos', [AdminController::class, 'getEstadisticasGraficos'])->name('admin.empleados.estadisticas.graficos');
         
     Route::get('/empleados/estadisticas/anios', [AdminController::class, 'getAniosDisponibles'])->name('admin.empleados.estadisticas.anios');
+
+
 
 });
 
