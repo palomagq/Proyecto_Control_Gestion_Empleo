@@ -1570,10 +1570,24 @@ function eliminarTipoTarea(id) {
         reverseButtons: true
     }).then((result) => {
         if (result.isConfirmed) {
+            // Mostrar loading
+            Swal.fire({
+                title: 'Eliminando...',
+                text: 'Por favor espere',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
             $.ajax({
                 url: `/admin/tipos-tarea/${id}`,
                 type: 'DELETE',
+                data: {
+                    _token: '{{ csrf_token() }}' // Asegurar token CSRF
+                },
                 success: function(response) {
+                    Swal.close();
                     if (response.success) {
                         Swal.fire({
                             icon: 'success',
@@ -1588,8 +1602,24 @@ function eliminarTipoTarea(id) {
                         Swal.fire('Error', response.message, 'error');
                     }
                 },
-                error: function(xhr) {
-                    Swal.fire('Error', 'Error al eliminar el tipo de tarea', 'error');
+                error: function(xhr, status, error) {
+                    Swal.close();
+                    console.error('Error en DELETE:', xhr.responseText);
+                    
+                    if (xhr.status === 419) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error de sesión',
+                            text: 'El token de seguridad ha expirado. Por favor, recarga la página e intenta nuevamente.',
+                            confirmButtonText: 'Recargar página'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                location.reload();
+                            }
+                        });
+                    } else {
+                        Swal.fire('Error', 'Error al eliminar el tipo de tarea: ' + error, 'error');
+                    }
                 }
             });
         }
