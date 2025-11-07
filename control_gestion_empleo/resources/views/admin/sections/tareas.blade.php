@@ -137,7 +137,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="filterPrioridad" class="font-weight-bold text-dark">
                                     <i class="fas fa-exclamation-circle mr-1"></i>Prioridad:
@@ -151,7 +151,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="filterTipo" class="font-weight-bold text-dark">
                                     <i class="fas fa-tag mr-1"></i>Tipo:
@@ -162,7 +162,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="form-group">
                                 <label for="filterEmpleados" class="font-weight-bold text-dark">
                                     <i class="fas fa-users mr-1"></i>Empleados:
@@ -170,17 +170,6 @@
                                 <select class="form-control select2-multiple" id="filterEmpleados" multiple="multiple" style="width: 100%;">
                                     <!-- Se llenará dinámicamente -->
                                 </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label class="font-weight-bold text-dark">
-                                    <i class="fas fa-calendar mr-1"></i>Rango de Fechas:
-                                </label>
-                                <div class="input-group">
-                                    <input type="date" class="form-control" id="filterFechaInicio" placeholder="Fecha inicio">
-                                    <input type="date" class="form-control" id="filterFechaFin" placeholder="Fecha fin">
-                                </div>
                             </div>
                         </div>
                     </div>
