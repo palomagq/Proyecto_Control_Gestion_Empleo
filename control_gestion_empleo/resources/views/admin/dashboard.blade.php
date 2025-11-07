@@ -27,6 +27,14 @@
     <!-- DataTables CSS -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/dataTables.bootstrap4.min.css">
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.2.7/css/responsive.bootstrap4.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- AGREGAR Air Datepicker -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/air-datepicker/2.2.3/css/datepicker.min.css" rel="stylesheet">
+
+    <!-- AGREGAR Air Datepicker -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/air-datepicker/2.2.3/js/datepicker.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/air-datepicker/2.2.3/js/i18n/datepicker.es.min.js"></script>
 
     <style>
       body {
@@ -77,9 +85,6 @@
                   <div class="dropdown-divider"></div>
                   <a class="dropdown-item" href="{{ route('admin.profile') }}">
                       <i class="fas fa-user mr-2"></i>Mi Perfil
-                  </a>
-                  <a class="dropdown-item" href="{{ route('admin.empleados') }}">
-                      <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
                   </a>
                   <div class="dropdown-divider"></div>
                   <a class="dropdown-item" href="#" onclick="confirmLogout()">

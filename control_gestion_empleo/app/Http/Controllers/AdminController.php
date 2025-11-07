@@ -693,277 +693,6 @@ public function verificarDatosMes(Request $request)
 }
 
  /**
-     * Generar token QR para login rápido
-     */
-    private function generarTokenQR($empleadoId)
-    {
-        try {
-            $token = bin2hex(random_bytes(32));
-            
-            // Guardar token en la base de datos con expiración
-            DB::table('tabla_empleado_qr_tokens')->updateOrInsert(
-                ['empleado_id' => $empleadoId],
-                [
-                    'token' => $token,
-                    'expires_at' => Carbon::now()->addHours(24), // Válido por 24 horas
-                    'created_at' => Carbon::now(),
-                    'updated_at' => Carbon::now()
-                ]
-            );
-            
-            Log::info('✅ Token QR generado:', [
-                'empleado_id' => $empleadoId,
-                'token' => $token
-            ]);
-            
-            return $token;
-        } catch (\Exception $e) {
-            Log::error('❌ Error generando token QR:', [
-                'empleado_id' => $empleadoId,
-                'error' => $e->getMessage()
-            ]);
-            return null;
-        }
-    }
-
-    /**
-     * Login via QR Code para empleados
-     */
-    public function qrLogin(Request $request, $token)
-    {
-        try {
-            Log::info('🔍 Intentando login por QR:', ['token' => $token]);
-
-            // Buscar token válido
-            $qrToken = DB::table('tabla_empleado_qr_tokens')
-                ->where('token', $token)
-                ->where('expires_at', '>', Carbon::now())
-                ->first();
-
-            if (!$qrToken) {
-                Log::warning('❌ Token QR inválido o expirado:', ['token' => $token]);
-                return redirect('/login')->with('error', 'Código QR inválido o expirado.');
-            }
-
-            // Obtener empleado
-            $empleado = Empleado::with('tabla_credenciales')->find($qrToken->empleado_id);
-
-            if (!$empleado) {
-                Log::error('❌ Empleado no encontrado para token QR:', [
-                    'token' => $token,
-                    'empleado_id' => $qrToken->empleado_id
-                ]);
-                return redirect('/login')->with('error', 'Empleado no encontrado.');
-            }
-
-            // Obtener credenciales del empleado
-            $credencial = $empleado->credencial;
-            if (!$credencial) {
-                Log::error('❌ Credencial no encontrada para empleado:', [
-                    'empleado_id' => $empleado->id
-                ]);
-                return redirect('/login')->with('error', 'Credenciales no encontradas.');
-            }
-
-            // Login automático
-            Auth::loginUsingId($credencial->id);
-
-            // Registrar el acceso por QR
-            DB::table('tabla_accesos_qr')->insert([
-                'empleado_id' => $empleado->id,
-                'token_utilizado' => $token,
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'created_at' => Carbon::now()
-            ]);
-
-            Log::info('✅ Login por QR exitoso:', [
-                'empleado_id' => $empleado->id,
-                'empleado_nombre' => $empleado->nombre,
-                'admin_id' => Auth::id()
-            ]);
-
-            return redirect()->route('empleado.perfil', $empleado->id)
-                ->with('success', '¡Acceso exitoso por QR! Bienvenido ' . $empleado->nombre);
-
-        } catch (\Exception $e) {
-            Log::error('❌ Error en login QR:', [
-                'token' => $token,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return redirect('/login')->with('error', 'Error en el acceso por QR.');
-        }
-    }
-
-    /**
-     * Obtener URL de login por QR para un empleado
-     */
-    public function getQrLoginUrl($empleadoId)
-    {
-        try {
-            $empleado = Empleado::find($empleadoId);
-            if (!$empleado) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Empleado no encontrado'
-                ], 404);
-            }
-
-            // Generar o obtener token existente
-            $token = $this->generarTokenQR($empleadoId);
-            if (!$token) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Error generando token QR'
-                ], 500);
-            }
-
-            $qrUrl = route('empleado.qr.login', ['token' => $token]);
-
-            return response()->json([
-                'success' => true,
-                'qr_url' => $qrUrl,
-                'empleado' => [
-                    'id' => $empleado->id,
-                    'nombre' => $empleado->nombre . ' ' . $empleado->apellidos,
-                    'dni' => $empleado->dni
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('❌ Error obteniendo URL QR:', [
-                'empleado_id' => $empleadoId,
-                'error' => $e->getMessage()
-            ]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al generar URL QR: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Renovar código QR de acceso
-     */
-    public function renovarQr($id)
-    {
-        try {
-            $user = Auth::user();
-            $empleado = Empleado::where('id', $id)->first();
-
-            if (!$empleado) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Empleado no encontrado'
-                ], 404);
-            }
-
-            // Generar nuevo token
-            $nuevoToken = $this->generarTokenQR($empleado->id);
-            if (!$nuevoToken) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Error generando nuevo token QR'
-                ], 500);
-            }
-
-            $nuevaUrl = route('empleado.qr.login', ['token' => $nuevoToken]);
-
-            // Generar código QR con la nueva URL
-            $qrCode = $this->generarQRConUrl($nuevaUrl, $empleado->dni, $empleado->nombre . ' ' . $empleado->apellidos);
-
-            return response()->json([
-                'success' => true,
-                'qr_url' => $nuevaUrl,
-                'qr_code' => $qrCode ? base64_encode($qrCode) : null,
-                'message' => 'Código QR renovado correctamente'
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('❌ Error renovando QR:', [
-                'id' => $id,
-                'error' => $e->getMessage()
-            ]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al renovar código QR: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Generar QR con URL de login
-     */
-    private function generarQRConUrl($url, $dni, $nombreCompleto)
-    {
-        try {
-            // Usar el mismo método que ya tienes pero con la URL de login
-            return $this->generarConSimpleQRCode($url) ??
-                   $this->generarConGoogleCharts($url) ??
-                   $this->generarConAPIExterna($url) ??
-                   $this->generarQRLocalBasico($dni, $nombreCompleto, 'LOGIN_' . time());
-        } catch (\Exception $e) {
-            Log::error('❌ Error generando QR con URL:', [
-                'url' => $url,
-                'error' => $e->getMessage()
-            ]);
-            return null;
-        }
-    }
-
-    /**
-     * Obtener información completa del QR para el empleado
-     */
-    public function getQrLoginInfo($id)
-    {
-        try {
-            $empleado = Empleado::with('tabla_credenciales')->find($id);
-            
-            if (!$empleado) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Empleado no encontrado'
-                ], 404);
-            }
-
-            // Generar URL de login por QR
-            $token = $this->generarTokenQR($empleado->id);
-            $qrUrl = route('empleado.qr.login', ['token' => $token]);
-
-            // Generar código QR
-            $qrCode = $this->generarQRConUrl($qrUrl, $empleado->dni, $empleado->nombre . ' ' . $empleado->apellidos);
-
-            $data = [
-                'empleado_id' => $empleado->id,
-                'nombre_completo' => $empleado->nombre . ' ' . $empleado->apellidos,
-                'dni' => $empleado->dni,
-                'username' => $empleado->credencial->username ?? 'N/A',
-                'qr_url' => $qrUrl,
-                'qr_image' => $qrCode ? base64_encode($qrCode) : null,
-                'fecha_generacion' => Carbon::now()->format('d/m/Y H:i'),
-                'valido_hasta' => Carbon::now()->addHours(24)->format('d/m/Y H:i')
-            ];
-
-            return response()->json([
-                'success' => true,
-                'data' => $data
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('❌ Error obteniendo info QR login:', [
-                'id' => $id,
-                'error' => $e->getMessage()
-            ]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al obtener información del QR: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-
- /**
      * Generar QR de forma automática y eficiente
      */
      private function generarQR($dni, $nombreCompleto)
@@ -1580,9 +1309,11 @@ public function getResumenRegistros(Request $request, $id)
 
         // Calcular estadísticas
         $totalSegundos = 0;
+        $registrosConTiempo = 0;
         foreach ($registros as $registro) {
             if ($registro->tiempo_total && $registro->tiempo_total > 0) {
                 $totalSegundos += $registro->tiempo_total;
+                $registrosConTiempo++;
             }
         }
 
@@ -2164,70 +1895,196 @@ public function tareas()
 public function getTareasDataTable(Request $request)
 {
     try {
-        $query = Tarea::with(['tipoTarea', 'asignaciones.empleado'])
-            ->select('*');
+        Log::info('📊 DataTable tareas solicitado con filtros:', $request->all());
 
-        // Aplicar filtros si existen
-        if ($request->has('estado') && $request->estado) {
+        $query = Tarea::with(['tipoTarea', 'asignaciones.empleado'])
+                    ->select('tabla_tareas.*');
+
+        // Aplicar filtros existentes
+        if ($request->filled('estado')) {
             $query->where('estado', $request->estado);
         }
 
-        if ($request->has('prioridad') && $request->prioridad) {
+        if ($request->filled('prioridad')) {
             $query->where('prioridad', $request->prioridad);
         }
 
-        $tareas = $query->orderBy('created_at', 'desc')->get();
+        if ($request->filled('tipo')) {
+            $query->where('tipo_tarea_id', $request->tipo);
+        }
 
-        $data = $tareas->map(function($tarea) {
-            $empleadosAsignados = $tarea->asignaciones->map(function($asignacion) {
-                return $asignacion->empleado->nombre . ' ' . $asignacion->empleado->apellidos;
-            })->implode(', ');
+        // ✅ NUEVO: Filtro por empleados (múltiple)
+        if ($request->filled('empleados') && is_array($request->empleados) && count($request->empleados) > 0) {
+            $query->whereHas('asignaciones', function($q) use ($request) {
+                $q->whereIn('empleado_id', $request->empleados);
+            });
+        }
 
-            $accionesHtml = '
-            <div class="btn-group btn-group-sm">
-                <button class="btn btn-info" onclick="verTarea(' . $tarea->id . ')" title="Ver">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button class="btn btn-warning" onclick="editarTarea(' . $tarea->id . ')" title="Editar">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn btn-danger" onclick="eliminarTarea(' . $tarea->id . ')" title="Eliminar">
-                    <i class="fas fa-trash"></i>
-                </button>
-                <button class="btn btn-success" onclick="gestionarAsignaciones(' . $tarea->id . ')" title="Asignar Empleados">
-                    <i class="fas fa-users"></i>
-                </button>
-            </div>
-            ';
+        // ✅ NUEVO: Filtro por rango de fechas
+        if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
+            $query->where(function($q) use ($request) {
+                $q->whereBetween('fecha_inicio', [$request->fecha_inicio, $request->fecha_fin])
+                  ->orWhereBetween('fecha_fin', [$request->fecha_inicio, $request->fecha_fin])
+                  ->orWhere(function($q2) use ($request) {
+                      $q2->where('fecha_inicio', '<=', $request->fecha_inicio)
+                         ->where('fecha_fin', '>=', $request->fecha_fin);
+                  });
+            });
+        } elseif ($request->filled('fecha_inicio')) {
+            $query->where('fecha_inicio', '>=', $request->fecha_inicio);
+        } elseif ($request->filled('fecha_fin')) {
+            $query->where('fecha_fin', '<=', $request->fecha_fin);
+        }
 
-            return [
-                'id' => $tarea->id,
-                'titulo' => $tarea->titulo,
-                'tipo_tarea' => $tarea->tipoTarea->nombre ?? 'N/A',
-                'prioridad' => $this->getBadgePrioridad($tarea->prioridad),
-                'estado' => $this->getBadgeEstado($tarea->estado),
-                'fecha_limite' => $tarea->fecha_limite ? \Carbon\Carbon::parse($tarea->fecha_limite)->format('d/m/Y') : 'Sin fecha',
-                'empleados_asignados' => $empleadosAsignados ?: 'Sin asignar',
-                'creador' => $tarea->creador_tipo . ' ID: ' . ($tarea->admin_creador_id ?? $tarea->empleado_creador_id ?? 'N/A'),
-                'created_at' => $tarea->created_at->format('d/m/Y H:i'),
-                'acciones' => $accionesHtml
-            ];
-        });
+        return DataTables::eloquent($query)
+            ->addColumn('tipo_tarea', function($tarea) {
+                if (!$tarea->tipoTarea) {
+                    return '<span class="text-muted">N/A</span>';
+                }
+                
+                $color = $tarea->tipoTarea->color ?: '#6c757d';
+                // ✅ CORREGIDO: Mostrar la descripción si existe, sino el nombre
+                $textoMostrar = $tarea->tipoTarea->descripcion ?: $tarea->tipoTarea->nombre;
+                
+                return '<span class="badge badge-light border" style="border-left: 3px solid '.$color.' !important;">'
+                    . $textoMostrar 
+                    . '</span>';
+            })
+            ->addColumn('empleados_asignados', function($tarea) {
+                if ($tarea->asignaciones->isEmpty()) {
+                    return '<span class="text-muted">Sin asignar</span>';
+                }
+                
+                $nombres = $tarea->asignaciones->take(2)->map(function($asignacion) {
+                    return $asignacion->empleado->nombre . ' ' . $asignacion->empleado->apellidos;
+                })->implode(', ');
+                
+                $extra = $tarea->asignaciones->count() > 2 ? 
+                    ' +' . ($tarea->asignaciones->count() - 2) . ' más' : '';
+                
+                return $nombres . $extra;
+            })
+            ->addColumn('prioridad', function($tarea) {
+                $badges = [
+                    'baja' => '<span class="badge badge-success">Baja</span>',
+                    'media' => '<span class="badge badge-info">Media</span>',
+                    'alta' => '<span class="badge badge-warning">Alta</span>',
+                    'urgente' => '<span class="badge badge-danger">Urgente</span>'
+                ];
+                return $badges[$tarea->prioridad] ?? '<span class="badge badge-secondary">N/A</span>';
+            })
+            ->addColumn('estado', function($tarea) {
+                $badges = [
+                    'pendiente' => '<span class="badge badge-secondary">Pendiente</span>',
+                    'en_progreso' => '<span class="badge badge-primary">En Progreso</span>',
+                    'completada' => '<span class="badge badge-success">Completada</span>',
+                    'cancelada' => '<span class="badge badge-danger">Cancelada</span>'
+                ];
+                return $badges[$tarea->estado] ?? '<span class="badge badge-secondary">N/A</span>';
+            })
+            ->addColumn('fecha_tarea', function($tarea) {
+                return $tarea->fecha_tarea 
+                    ? \Carbon\Carbon::parse($tarea->fecha_tarea)->format('d/m/Y')
+                    : '<span class="text-muted">N/A</span>';
+            })
+            ->addColumn('horas_tarea', function($tarea) {
+                $horas = floatval($tarea->horas_tarea);
+                $horasEntero = floor($horas);
+                $minutos = round(($horas - $horasEntero) * 60);
+                
+                if ($minutos == 60) {
+                    $horasEntero += 1;
+                    $minutos = 0;
+                }
+                
+                $formato = '';
+                if ($horasEntero > 0) {
+                    $formato .= "{$horasEntero}h";
+                }
+                if ($minutos > 0) {
+                    $formato .= $formato ? " {$minutos}m" : "{$minutos}m";
+                }
+                
+                return $formato ?: '<span class="text-muted">0h</span>';
+            })
 
-        return response()->json([
-            'draw' => $request->get('draw', 1),
-            'recordsTotal' => $tareas->count(),
-            'recordsFiltered' => $tareas->count(),
-            'data' => $data
-        ]);
+            ->addColumn('acciones', function($tarea) {
+                return '
+                <div class="btn-group btn-group-sm" role="group">
+                    <button class="btn btn-info btn-sm" onclick="verTarea('.$tarea->id.')" title="Ver Detalles">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-warning btn-sm" onclick="editarTarea('.$tarea->id.')" title="Editar Tarea">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-success btn-sm" onclick="gestionarAsignaciones('.$tarea->id.')" title="Gestionar Asignaciones">
+                        <i class="fas fa-users"></i>
+                    </button>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-right">
+                            <a class="dropdown-item text-danger" href="javascript:void(0)" onclick="eliminarTarea('.$tarea->id.')">
+                                <i class="fas fa-trash mr-2"></i>Eliminar
+                            </a>
+                        </div>
+                    </div>
+                </div>';
+            })
+            ->rawColumns(['tipo_tarea', 'prioridad', 'estado', 'empleados_asignados', 'fecha_inicio', 'fecha_fin', 'acciones'])
+            ->make(true);
 
     } catch (\Exception $e) {
-        Log::error('Error en datatable tareas:', ['error' => $e->getMessage()]);
+        Log::error('❌ Error en datatable tareas:', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
         return response()->json([
             'draw' => $request->get('draw', 1),
             'recordsTotal' => 0,
             'recordsFiltered' => 0,
-            'data' => []
+            'data' => [],
+            'error' => 'Error al cargar los datos: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Obtener estadísticas de tareas
+ */
+public function getTareasEstadisticas()
+{
+    try {
+        $estadisticas = [
+            'total' => Tarea::count(),
+            'pendientes' => Tarea::where('estado', 'pendiente')->count(),
+            'en_progreso' => Tarea::where('estado', 'en_progreso')->count(),
+            'completadas' => Tarea::where('estado', 'completada')->count(),
+        ];
+
+        Log::info('📊 Estadísticas de tareas calculadas:', $estadisticas);
+
+        return response()->json([
+            'success' => true,
+            'data' => $estadisticas
+        ]);
+    } catch (\Exception $e) {
+        Log::error('❌ Error obteniendo estadísticas de tareas:', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al cargar estadísticas',
+            'data' => [
+                'total' => 0,
+                'pendientes' => 0,
+                'en_progreso' => 0,
+                'completadas' => 0
+            ]
         ], 500);
     }
 }
@@ -2253,19 +2110,95 @@ public function getTiposTarea()
 }
 
 /**
- * Obtener empleados para select
+ * Obtener empleados CONECTADOS para asignación de tareas
+ */
+public function getEmpleadosConectadosParaAsignacion()
+{
+    try {
+        Log::info('🔍 Buscando empleados CONECTADOS reales');
+
+        // Solo empleados con en_linea = true Y última conexión en los últimos 3 minutos
+        $limiteTiempo = Carbon::now()->subMinutes(3);
+        
+        $empleadosConectados = DB::table('tabla_empleados')
+            ->where('en_linea', true)
+            ->where('ultima_conexion', '>=', $limiteTiempo)
+            ->select('id', 'nombre', 'apellidos', 'dni', 'en_linea', 'ultima_conexion', 'dispositivo_conectado')
+            ->get();
+
+        Log::info('📊 Empleados conectados encontrados:', [
+            'total' => $empleadosConectados->count(),
+            'limite_tiempo' => $limiteTiempo->format('H:i:s')
+        ]);
+
+        // También obtener el total de empleados para comparar
+        $totalEmpleados = DB::table('tabla_empleados')->count();
+
+        $empleados = $empleadosConectados->map(function($empleado) {
+            $tiempoConectado = Carbon::parse($empleado->ultima_conexion)->diffForHumans();
+            $minutosConectado = Carbon::parse($empleado->ultima_conexion)->diffInMinutes(Carbon::now());
+            
+            return [
+                'id' => $empleado->id,
+                'nombre_completo' => $empleado->nombre . ' ' . $empleado->apellidos,
+                'dni' => $empleado->dni,
+                'en_linea' => true,
+                'ultima_conexion' => $tiempoConectado,
+                'dispositivo' => $empleado->dispositivo_conectado,
+                'estado_badge' => '<span class="badge badge-success">🟢 Conectado</span>',
+                'tiempo_conectado' => $minutosConectado . ' min',
+                'minutos_conectado' => $minutosConectado
+            ];
+        });
+
+        Log::info('✅ Empleados conectados enviados:', [
+            'conectados' => $empleados->count(),
+            'total_empleados' => $totalEmpleados
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $empleados,
+            'total' => $empleados->count(),
+            'total_empleados' => $totalEmpleados,
+            'limite_tiempo' => $limiteTiempo->format('Y-m-d H:i:s'),
+            'message' => $empleados->count() . ' de ' . $totalEmpleados . ' empleados conectados'
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('❌ Error en getEmpleadosConectadosParaAsignacion:', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al cargar empleados conectados: ' . $e->getMessage(),
+            'data' => []
+        ], 500);
+    }
+}
+
+/**
+ * Obtener TODOS los empleados (para compatibilidad)
  */
 public function getEmpleadosParaAsignacion()
 {
     try {
         $empleados = Empleado::with('credencial')
-            ->select('id', 'nombre', 'apellidos', 'dni')
+            ->select('id', 'nombre', 'apellidos', 'dni', 'en_linea', 'ultima_conexion')
             ->get()
             ->map(function($empleado) {
                 return [
                     'id' => $empleado->id,
                     'nombre_completo' => $empleado->nombre . ' ' . $empleado->apellidos,
-                    'dni' => $empleado->dni
+                    'dni' => $empleado->dni,
+                    'en_linea' => $empleado->en_linea,
+                    'ultima_conexion' => $empleado->ultima_conexion ? 
+                        $empleado->ultima_conexion->diffForHumans() : 'Nunca',
+                    'estado_badge' => $empleado->en_linea ? 
+                        '<span class="badge badge-success">🟢 En Línea</span>' : 
+                        '<span class="badge badge-secondary">🔴 Desconectado</span>'
                 ];
             });
 
@@ -2277,6 +2210,86 @@ public function getEmpleadosParaAsignacion()
         return response()->json([
             'success' => false,
             'message' => 'Error al cargar empleados'
+        ], 500);
+    }
+}
+
+/**
+ * Actualizar estado de conexión del empleado
+ */
+public function actualizarEstadoConexion(Request $request, $empleadoId)
+{
+    try {
+        $empleado = Empleado::findOrFail($empleadoId);
+        
+        $validated = $request->validate([
+            'en_linea' => 'required|boolean',
+            'dispositivo' => 'nullable|string|max:255'
+        ]);
+
+        $empleado->update([
+            'en_linea' => $validated['en_linea'],
+            'ultima_conexion' => now(),
+            'dispositivo_conectado' => $validated['dispositivo'] ?? null
+        ]);
+
+        Log::info('Estado de conexión actualizado:', [
+            'empleado_id' => $empleadoId,
+            'en_linea' => $validated['en_linea'],
+            'dispositivo' => $validated['dispositivo'] ?? null
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Estado de conexión actualizado',
+            'data' => [
+                'en_linea' => $empleado->en_linea,
+                'ultima_conexion' => $empleado->ultima_conexion
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Error actualizando estado conexión:', [
+            'empleado_id' => $empleadoId,
+            'error' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al actualizar estado de conexión'
+        ], 500);
+    }
+}
+
+/**
+ * Obtener estadísticas de conexión
+ */
+public function getEstadisticasConexion()
+{
+    try {
+        $totalEmpleados = Empleado::count();
+        $empleadosConectados = Empleado::where('en_linea', true)
+            ->where('ultima_conexion', '>=', now()->subMinutes(5))
+            ->count();
+        
+        $empleadosRecientes = Empleado::where('ultima_conexion', '>=', now()->subHours(24))
+            ->count();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total_empleados' => $totalEmpleados,
+                'empleados_conectados' => $empleadosConectados,
+                'empleados_recientes' => $empleadosRecientes,
+                'porcentaje_conectados' => $totalEmpleados > 0 ? 
+                    round(($empleadosConectados / $totalEmpleados) * 100, 2) : 0
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al cargar estadísticas de conexión'
         ], 500);
     }
 }
@@ -2294,28 +2307,28 @@ public function storeTarea(Request $request)
             'descripcion' => 'nullable|string',
             'tipo_tarea_id' => 'required|exists:tabla_tipos_tarea,id',
             'prioridad' => 'required|in:baja,media,alta,urgente',
-            'fecha_inicio' => 'required|date',
-            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
-            'hora_inicio' => 'nullable|date_format:H:i',
-            'hora_fin' => 'nullable|date_format:H:i',
+            'fecha_tarea' => 'required|date',
+            'horas_tarea' => 'required|numeric|min:0.25|max:24',
             'area' => 'nullable|string|max:255',
             'empleados_asignados' => 'required|array|min:1',
             'empleados_asignados.*' => 'exists:tabla_empleados,id'
+        ], [
+            'horas_tarea.required' => 'El número de horas es obligatorio',
+            'horas_tarea.min' => 'La tarea debe tener al menos 15 minutos (0.25 horas)',
+            'horas_tarea.max' => 'La tarea no puede exceder las 24 horas',
         ]);
 
-        // Crear la tarea como administrador
+        // Usar admin_creador_id = 1
         $tarea = Tarea::create([
             'titulo' => $validated['titulo'],
             'descripcion' => $validated['descripcion'],
             'tipo_tarea_id' => $validated['tipo_tarea_id'],
             'prioridad' => $validated['prioridad'],
-            'fecha_inicio' => $validated['fecha_inicio'],
-            'fecha_fin' => $validated['fecha_fin'],
-            'hora_inicio' => $validated['hora_inicio'],
-            'hora_fin' => $validated['hora_fin'],
+            'fecha_tarea' => $validated['fecha_tarea'],
+            'horas_tarea' => $validated['horas_tarea'],
             'area' => $validated['area'],
             'creador_tipo' => 'admin',
-            'admin_creador_id' => Auth::id(),
+            'admin_creador_id' => 1, // ID fijo del admin
             'estado' => 'pendiente'
         ]);
 
@@ -2402,28 +2415,56 @@ public function getTarea($id)
             return [
                 'id' => $asignacion->empleado->id,
                 'nombre_completo' => $asignacion->empleado->nombre . ' ' . $asignacion->empleado->apellidos,
+                'dni' => $asignacion->empleado->dni,
                 'estado_asignacion' => $asignacion->estado_asignacion
             ];
         });
 
+        // ✅ CORREGIR: Formatear fecha para evitar problemas de timezone
+        $fechaTarea = $tarea->fecha_tarea ? \Carbon\Carbon::parse($tarea->fecha_tarea)->format('Y-m-d') : null;
+
         return response()->json([
             'success' => true,
             'data' => [
-                'tarea' => $tarea,
+                'tarea' => [
+                    'id' => $tarea->id,
+                    'titulo' => $tarea->titulo,
+                    'descripcion' => $tarea->descripcion,
+                    'tipo_tarea_id' => $tarea->tipo_tarea_id,
+                    'tipo_tarea' => $tarea->tipoTarea,
+                    'prioridad' => $tarea->prioridad,
+                    'estado' => $tarea->estado,
+                    'fecha_tarea' => $fechaTarea, // ✅ Usar fecha formateada
+                    'fecha_tarea_original' => $tarea->fecha_tarea, // ✅ Mantener original para debug
+                    'horas_tarea' => $tarea->horas_tarea,
+                    'area' => $tarea->area,
+                    'creador_tipo' => $tarea->creador_tipo,
+                    'admin_creador_id' => $tarea->admin_creador_id,
+                    'created_at' => $tarea->created_at,
+                    'updated_at' => $tarea->updated_at
+                ],
                 'empleados_asignados' => $empleadosAsignados
             ]
         ]);
 
     } catch (\Exception $e) {
+        Log::error('Error obteniendo tarea:', [
+            'id' => $id,
+            'error' => $e->getMessage()
+        ]);
+        
         return response()->json([
             'success' => false,
-            'message' => 'Tarea no encontrada'
+            'message' => 'Tarea no encontrada: ' . $e->getMessage()
         ], 404);
     }
 }
 
 /**
  * Actualizar tarea
+ */
+/**
+ * Actualizar tarea - VERSIÓN CORREGIDA
  */
 public function updateTarea(Request $request, $id)
 {
@@ -2433,15 +2474,13 @@ public function updateTarea(Request $request, $id)
         $tarea = Tarea::findOrFail($id);
 
         $validated = $request->validate([
-            'titulo' => 'required|string|max:255',
+            'titulo' => 'sometimes|required|string|max:255',
             'descripcion' => 'nullable|string',
-            'tipo_tarea_id' => 'required|exists:tabla_tipos_tarea,id',
-            'prioridad' => 'required|in:baja,media,alta,urgente',
-            'estado' => 'required|in:pendiente,en_progreso,completada,cancelada',
-            'fecha_inicio' => 'required|date',
-            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
-            'hora_inicio' => 'nullable|date_format:H:i',
-            'hora_fin' => 'nullable|date_format:H:i',
+            'tipo_tarea_id' => 'sometimes|required|exists:tabla_tipos_tarea,id',
+            'prioridad' => 'sometimes|required|in:baja,media,alta,urgente',
+            'estado' => 'sometimes|required|in:pendiente,en_progreso,completada,cancelada',
+            'fecha_tarea' => 'sometimes|required|date',
+            'horas_tarea' => 'sometimes|required|numeric|min:0.25|max:24',
             'area' => 'nullable|string|max:255',
             'empleados_asignados' => 'sometimes|array',
             'empleados_asignados.*' => 'exists:tabla_empleados,id'
@@ -2449,12 +2488,9 @@ public function updateTarea(Request $request, $id)
 
         $tarea->update($validated);
 
-        // Actualizar asignaciones si se proporcionan
         if ($request->has('empleados_asignados')) {
-            // Eliminar asignaciones anteriores
             AsignacionTarea::where('tarea_id', $id)->delete();
 
-            // Crear nuevas asignaciones
             foreach ($validated['empleados_asignados'] as $empleadoId) {
                 AsignacionTarea::create([
                     'tarea_id' => $id,
@@ -2676,6 +2712,66 @@ public function getTodosTiposTarea()
     }
 }
 
+
+/**
+ * Duplicar una tarea existente
+ */
+public function duplicarTarea($id)
+{
+    try {
+        DB::beginTransaction();
+
+        // Buscar la tarea original
+        $tareaOriginal = Tarea::with(['asignaciones'])->findOrFail($id);
+
+        // Crear nueva tarea duplicada
+        $nuevaTarea = $tareaOriginal->replicate();
+        $nuevaTarea->titulo = $tareaOriginal->titulo . ' (Copia)';
+        $nuevaTarea->estado = 'pendiente';
+        $nuevaTarea->created_at = now();
+        $nuevaTarea->updated_at = now();
+        $nuevaTarea->save();
+
+        // Duplicar las asignaciones si existen
+        if ($tareaOriginal->asignaciones->isNotEmpty()) {
+            foreach ($tareaOriginal->asignaciones as $asignacion) {
+                $nuevaAsignacion = $asignacion->replicate();
+                $nuevaAsignacion->tarea_id = $nuevaTarea->id;
+                $nuevaAsignacion->fecha_asignacion = now();
+                $nuevaAsignacion->created_at = now();
+                $nuevaAsignacion->updated_at = now();
+                $nuevaAsignacion->save();
+            }
+        }
+
+        DB::commit();
+
+        Log::info('Tarea duplicada:', [
+            'original_id' => $tareaOriginal->id,
+            'nueva_id' => $nuevaTarea->id
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tarea duplicada correctamente',
+            'data' => [
+                'nueva_tarea_id' => $nuevaTarea->id
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Error duplicando tarea:', [
+            'id' => $id,
+            'error' => $e->getMessage()
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al duplicar la tarea: ' . $e->getMessage()
+        ], 500);
+    }
+}
 
 }
 

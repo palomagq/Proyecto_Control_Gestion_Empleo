@@ -50,8 +50,8 @@
         }
         
         .img-fluid {
-            width: 100%;
-            height: 100%;
+            /*width: 100%;
+            height: 100%;*/
             object-fit: cover;
         }
         
@@ -429,28 +429,59 @@
                     </div>
 
                     <!-- Sección QR -->
-                    <div class="qr-section text-center">
-                        <div class="qr-icon">
-                            <i class="fas fa-qrcode"></i>
-                        </div>
-                        <h5 class="fw-bold mb-3">Acceso Rápido con QR</h5>
-                        <p class="text-muted mb-4">
-                            Los empleados pueden acceder escaneando su código QR personal
-                        </p>
-                        <button type="button" data-mdb-button-init data-mdb-ripple-init 
-                                class="btn btn-outline-primary btn-lg qr-btn"
-                                onclick="openQRScanner()">
-                            <i class="fas fa-camera me-2"></i>Escanear Código QR
-                        </button>
-                        
-                        <!-- Información adicional sobre QR -->
-                        <div class="mt-3">
-                            <small class="text-muted">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Solicita tu código QR al administrador del sistema
-                            </small>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card border-info">
+                                <div class="card-header bg-info text-white text-center">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-qrcode mr-2"></i>
+                                        Acceso Rápido por QR
+                                    </h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <!-- Botón para mostrar QR - VERSIÓN CORREGIDA -->
+                                    <button id="btn-mostrar-qr" class="btn btn-outline-info btn-lg mb-3">
+                                        <i class="fas fa-qrcode mr-2"></i>
+                                        Mostrar Código QR
+                                    </button>
+
+                                    <!-- Contenedor del QR (oculto inicialmente) -->
+                                    <div id="qr-container" class="mb-3" style="display: none;">
+                                        <div id="qr-loading" class="text-center py-4" style="display: none;">
+                                            <div class="spinner-border text-primary mb-3" role="status">
+                                                <span class="sr-only">Generando QR...</span>
+                                            </div>
+                                            <p class="text-muted">Generando código QR...</p>
+                                        </div>
+                                        
+                                        <div id="qr-image-container" class="mb-3">
+                                            <!-- El QR se cargará aquí -->
+                                        </div>
+                                        
+                                        <div class="qr-instructions">
+                                            <p class="small text-muted mb-2">
+                                                <i class="fas fa-mobile-alt mr-1"></i>
+                                                Escanea este código con tu móvil
+                                            </p>
+                                            <div class="alert alert-info small">
+                                                <i class="fas fa-info-circle mr-1"></i>
+                                                <strong>¿No tienes el QR?</strong> Solicítalo al administrador
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Información del QR -->
+                                    <div id="qr-info" class="mt-3 p-2 bg-light rounded" style="display: none;">
+                                        <small class="text-muted">
+                                            <i class="fas fa-shield-alt mr-1"></i>
+                                            Acceso seguro • Válido por 24 horas
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
+
 
                     <div class="instructions mt-4">
                         <h6 class="fw-bold">Instrucciones de acceso:</h6>
@@ -480,150 +511,193 @@
     <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
     
     <script>
-        // Validación básica del formulario
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            const username = document.getElementById('username');
-            const password = document.getElementById('password');
-            let isValid = true;
+        // Esperar a que jQuery esté completamente cargado
+// Sistema QR con JavaScript puro (sin jQuery)
+         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔧 Inicializando sistema QR Login...');
+            
+            const btnMostrarQr = document.getElementById('btn-mostrar-qr');
+            const qrContainer = document.getElementById('qr-container');
+            const qrInfo = document.getElementById('qr-info');
+            const qrLoading = document.getElementById('qr-loading');
+            const qrImageContainer = document.getElementById('qr-image-container');
 
-            // Validar que los campos no estén vacíos
-            if (username.value.trim() === '') {
-                username.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                username.classList.remove('is-invalid');
+            let isQrVisible = false;
+
+            // Verificar que todos los elementos existan
+            if (!btnMostrarQr) {
+                console.error('❌ No se encontró el botón de QR');
+                return;
             }
 
-            if (password.value.trim() === '') {
-                password.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                password.classList.remove('is-invalid');
+            if (!qrContainer) {
+                console.error('❌ No se encontró el contenedor QR');
+                return;
             }
 
-            if (!isValid) {
-                e.preventDefault();
-            }
-        });
+            console.log('✅ Todos los elementos encontrados correctamente');
 
-        // Eliminar clases de invalid cuando el usuario empiece a escribir
-        document.getElementById('username').addEventListener('input', function() {
-            if (this.value.trim() !== '') {
-                this.classList.remove('is-invalid');
-            }
-        });
+            // Configurar el botón QR
+            btnMostrarQr.addEventListener('click', toggleQR);
 
-        document.getElementById('password').addEventListener('input', function() {
-            if (this.value.trim() !== '') {
-                this.classList.remove('is-invalid');
+            function toggleQR() {
+                console.log('🔄 Cambiando estado QR. Actual:', isQrVisible);
+                if (isQrVisible) {
+                    hideQR();
+                } else {
+                    showQR();
+                }
             }
-        });
 
-        // Función para abrir el escáner QR
-        function openQRScanner() {
-            // Crear modal para el escáner QR
-            const modalHTML = `
-                <div class="modal fade" id="qrScannerModal" tabindex="-1" aria-labelledby="qrScannerModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="qrScannerModalLabel">
-                                    <i class="fas fa-qrcode me-2"></i>Escanear Código QR
-                                </h5>
-                                <button type="button" class="btn-close" data-mdb-dismiss="modal" aria-label="Close"></button>
+            function showQR() {
+                console.log('👁️ Mostrando QR...');
+                
+                // Mostrar contenedores
+                qrContainer.style.display = 'block';
+                qrInfo.style.display = 'block';
+                
+                // Cambiar texto del botón directamente
+                btnMostrarQr.innerHTML = '<i class="fas fa-times mr-2"></i>Ocultar QR';
+                
+                isQrVisible = true;
+                loadQRCode();
+            }
+
+            function hideQR() {
+                console.log('👁️ Ocultando QR...');
+                
+                // Ocultar contenedores
+                qrContainer.style.display = 'none';
+                qrInfo.style.display = 'none';
+                
+                // Cambiar texto del botón directamente
+                btnMostrarQr.innerHTML = '<i class="fas fa-qrcode mr-2"></i>Mostrar Código QR';
+                
+                isQrVisible = false;
+            }
+
+            function loadQRCode() {
+                console.log('🔄 Cargando código QR...');
+                showLoading();
+                qrImageContainer.innerHTML = '';
+
+                // Simular generación de QR
+                setTimeout(() => {
+                    hideLoading();
+                    generateExampleQR();
+                }, 800);
+            }
+
+            function showLoading() {
+                console.log('⏳ Mostrando carga...');
+                if (qrLoading) {
+                    qrLoading.style.display = 'block';
+                }
+            }
+
+            function hideLoading() {
+                console.log('✅ Ocultando carga...');
+                if (qrLoading) {
+                    qrLoading.style.display = 'none';
+                }
+            }
+
+            function generateExampleQR() {
+                console.log('🎨 Generando QR de ejemplo...');
+                
+                // URL de ejemplo para el QR
+                const baseUrl = window.location.origin;
+                const qrData = `${baseUrl}/login?method=qr&time=${Date.now()}`;
+                
+                // Usar API gratuita de QR
+                const qrSize = 250;
+                const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodeURIComponent(qrData)}&format=png&margin=10`;
+                
+                const qrHTML = `
+                    <div class="qr-image-wrapper">
+                        <img src="${qrImageUrl}" 
+                             alt="Código QR para acceso al sistema"
+                             class="img-fluid rounded shadow qr-image">
+                        <div class="mt-3">
+                            <div class="alert alert-success small">
+                                <i class="fas fa-check-circle mr-2"></i>
+                                <strong>QR generado correctamente</strong>
                             </div>
-                            <div class="modal-body text-center">
-                                <div id="qr-reader" style="width: 100%;"></div>
-                                <div id="qr-result" class="mt-3"></div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-mdb-dismiss="modal">Cancelar</button>
-                            </div>
+                            <small class="text-muted d-block">
+                                <i class="fas fa-clock mr-1"></i>
+                                Generado: ${new Date().toLocaleTimeString()}
+                            </small>
                         </div>
                     </div>
-                </div>
-            `;
-            
-            // Agregar modal al body si no existe
-            if (!document.getElementById('qrScannerModal')) {
-                document.body.insertAdjacentHTML('beforeend', modalHTML);
-            }
-            
-            // Mostrar modal
-            const modal = new mdb.Modal(document.getElementById('qrScannerModal'));
-            modal.show();
-            
-            // Inicializar escáner QR cuando el modal se muestre
-            document.getElementById('qrScannerModal').addEventListener('shown.mdb.modal', function () {
-                initializeQRScanner();
-            });
-        }
-
-        // Función para inicializar el escáner QR
-        function initializeQRScanner() {
-            const html5QrcodeScanner = new Html5QrcodeScanner(
-                "qr-reader", 
-                { 
-                    fps: 10, 
-                    qrbox: { width: 250, height: 250 } 
-                },
-                /* verbose= */ false
-            );
-
-            html5QrcodeScanner.render(
-                function(decodedText) {
-                    // Cuando se decodifica un QR
-                    document.getElementById('qr-result').innerHTML = `
-                        <div class="alert alert-success">
-                            <i class="fas fa-check-circle me-2"></i>
-                            Código QR detectado: ${decodedText}
-                        </div>
-                        <div class="mt-2">
-                            <button class="btn btn-primary" onclick="processQRLogin('${decodedText}')">
-                                Iniciar Sesión
-                            </button>
-                        </div>
-                    `;
-                    
-                    // Detener el escáner
-                    html5QrcodeScanner.clear();
-                },
-                function(errorMessage) {
-                    // Manejo de errores opcional
+                `;
+                
+                qrImageContainer.innerHTML = qrHTML;
+                
+                // Agregar efecto de animación
+                const qrImage = qrImageContainer.querySelector('img');
+                if (qrImage) {
+                    qrImage.style.opacity = '0';
+                    qrImage.style.transition = 'opacity 0.5s ease';
+                    setTimeout(() => {
+                        qrImage.style.opacity = '1';
+                    }, 100);
                 }
-            );
-        }
 
-        // Función para procesar el login con QR
-        function processQRLogin(qrData) {
-            // Aquí implementarías la lógica para procesar el QR
-            // Por ejemplo, hacer una petición AJAX al servidor
-            console.log('Procesando QR:', qrData);
-            
-            // Simulación de procesamiento
-            const modal = mdb.Modal.getInstance(document.getElementById('qrScannerModal'));
-            modal.hide();
-            
-            // Mostrar mensaje de éxito
-            alert('Login con QR procesado. Datos: ' + qrData);
-            
-            // En una implementación real, aquí harías:
-            // fetch('/login/qr', {
-            //     method: 'POST',
-            //     headers: {
-            //         'Content-Type': 'application/json',
-            //         'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            //     },
-            //     body: JSON.stringify({ qr_data: qrData })
-            // }).then(response => response.json())
-            // .then(data => {
-            //     if (data.success) {
-            //         window.location.reload();
-            //     } else {
-            //         alert('Error: ' + data.message);
-            //     }
-            // });
-        }
+                console.log('✅ QR generado exitosamente');
+            }
+
+            // Validación básica del formulario
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', function(e) {
+                    const username = document.getElementById('username');
+                    const password = document.getElementById('password');
+                    let isValid = true;
+
+                    // Validar que los campos no estén vacíos
+                    if (username.value.trim() === '') {
+                        username.classList.add('is-invalid');
+                        isValid = false;
+                    } else {
+                        username.classList.remove('is-invalid');
+                    }
+
+                    if (password.value.trim() === '') {
+                        password.classList.add('is-invalid');
+                        isValid = false;
+                    } else {
+                        password.classList.remove('is-invalid');
+                    }
+
+                    if (!isValid) {
+                        e.preventDefault();
+                    }
+                });
+
+                // Eliminar clases de invalid cuando el usuario empiece a escribir
+                document.getElementById('username').addEventListener('input', function() {
+                    if (this.value.trim() !== '') {
+                        this.classList.remove('is-invalid');
+                    }
+                });
+
+                document.getElementById('password').addEventListener('input', function() {
+                    if (this.value.trim() !== '') {
+                        this.classList.remove('is-invalid');
+                    }
+                });
+            }
+
+            console.log('✅ Sistema QR Login inicializado correctamente');
+        });
+
+        // Función global para regenerar QR (si se necesita)
+        window.regenerateQR = function() {
+            const btn = document.getElementById('btn-mostrar-qr');
+            if (btn) {
+                btn.click();
+            }
+        };
     </script>
 </body>
 </html>

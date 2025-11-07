@@ -14,7 +14,7 @@ return new class extends Migration
     {
         Schema::create('tabla_qr', function (Blueprint $table) {
             $table->id();
-            $table->longBinary('imagen_qr'); // Almacena la imagen del QR en formato binario
+            $table->binary('imagen_qr'); // Almacena la imagen del QR en formato binario
             $table->string('codigo_unico')->unique(); // Código único para identificar el QR
             $table->timestamps();
         });

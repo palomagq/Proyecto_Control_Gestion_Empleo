@@ -5,6 +5,7 @@ use App\Http\Controllers\LoginController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\LoginQrController;
+use App\Http\Controllers\TareaController;
 
     use Illuminate\Support\Facades\DB;
 
@@ -55,6 +56,11 @@ Route::prefix('admin')->group(function () {
     Route::get('/empleados/exportar-pdf-mes', [AdminController::class, 'exportarPdfMes'])->name('admin.empleados.exportar-pdf-mes');
     Route::get('/empleados/{id}/exportar-registro-horario', [AdminController::class, 'exportarRegistroHorarioIndividual'])->name('admin.empleados.exportar-registro-horario');
 
+
+    Route::get('/empleados/conectados', [AdminController::class, 'getEmpleadosConectadosParaAsignacion'])->name('admin.empleados.conectados');
+    Route::post('/empleados/{empleado}/conexion', [AdminController::class, 'actualizarEstadoConexion'])->name('admin.empleados.conexion');
+    Route::get('/estadisticas/conexion', [AdminController::class, 'getEstadisticasConexion'])->name('admin.estadisticas.conexion');
+
      // Rutas para gestión de QR
     Route::get('/empleados/{id}/qr-info', [AdminController::class, 'getQRInfo'])->name('admin.empleados.qr-info');
     Route::post('/empleados/generar-qr-preview', [AdminController::class, 'generarQRPreview'])->name('admin.empleados.generar-qr-preview');
@@ -80,13 +86,16 @@ Route::prefix('admin')->group(function () {
     Route::put('/tareas/{id}', [AdminController::class, 'updateTarea'])->name('admin.tareas.update');
     Route::delete('/tareas/{id}', [AdminController::class, 'destroyTarea'])->name('admin.tareas.destroy');
     Route::post('/tareas/{id}/asignar', [AdminController::class, 'asignarEmpleadosTarea'])->name('admin.tareas.asignar');
-
+    Route::post('/tareas/{id}/duplicar', [AdminController::class, 'duplicarTarea'])->name('admin.tareas.duplicar'); 
+    
     // Rutas para Tipos de Tarea
     Route::get('/tipos-tarea', [AdminController::class, 'getTodosTiposTarea'])->name('admin.tipos-tarea.index');
     Route::post('/tipos-tarea', [AdminController::class, 'storeTipoTarea'])->name('admin.tipos-tarea.store');
     Route::get('/tipos-tarea/{id}', [AdminController::class, 'editTipoTarea'])->name('admin.tipos-tarea.edit');
     Route::put('/tipos-tarea/{id}', [AdminController::class, 'updateTipoTarea'])->name('admin.tipos-tarea.update');
     Route::delete('/tipos-tarea/{id}', [AdminController::class, 'destroyTipoTarea'])->name('admin.tipos-tarea.destroy');
+
+    Route::get('tareas/estadisticas', [AdminController::class, 'getTareasEstadisticas'])->name('admin.tareas.estadisticas');
 
     //crud empleados
     Route::get('/empleados/{id}/edit', [AdminController::class, 'editEmployee'])->name('admin.empleados.edit');
@@ -104,8 +113,6 @@ Route::prefix('admin')->group(function () {
         
     Route::get('/empleados/estadisticas/anios', [AdminController::class, 'getAniosDisponibles'])->name('admin.empleados.estadisticas.anios');
 
-
-
 });
 
 
@@ -118,6 +125,9 @@ Route::prefix('empleado')->group(function () {
     Route::get('/empleado/dashboard', function () {
         return redirect()->route('empleado.perfil', ['id' => Auth::user()->empleado->id ?? 1]);
     })->name('empleado.dashboard_empleado');
+
+    Route::post('/{id}/conexion/actualizar', [EmpleadoController::class, 'actualizarConexion'])->name('empleado.conexion.actualizar');
+    Route::get('/{id}/conexion/estado', [EmpleadoController::class, 'getEstadoConexion'])->name('empleado.conexion.estado');
 
     // Rutas para el control de tiempo con ID
     Route::post('/registro/{id}/start', [EmpleadoController::class, 'startTiempo'])->name('empleado.registro.start');
@@ -135,7 +145,6 @@ Route::prefix('empleado')->group(function () {
     Route::get('/registro/{id}/resumen-periodo', [EmpleadoController::class, 'getResumenPeriodo'])->name('empleado.registro.resumen-periodo');
 
     Route::get('/registro/{id}/estadisticas-mes', [EmpleadoController::class, 'getEstadisticasMes']);
-
 
     Route::get('/registro/{empleado}/detalles/{registro}', [EmpleadoController::class, 'getDetallesRegistro'])
     ->name('empleado.registro.detalles');

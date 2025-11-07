@@ -1544,6 +1544,140 @@ public function getProgresoSemanal($id)
     }
 }
 
+/**
+ * Actualizar estado de conexión del empleado
+ */
+public function actualizarEstadoConexion(Request $request, $id)
+{
+    try {
+        $empleado = Empleado::findOrFail($id);
+        
+        $empleado->update([
+            'en_linea' => true,
+            'ultima_conexion' => now(),
+            'dispositivo_conectado' => $request->userAgent()
+        ]);
+
+        Log::info('Estado de conexión actualizado:', [
+            'empleado_id' => $id,
+            'en_linea' => true,
+            'ultima_conexion' => now()
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Estado de conexión actualizado'
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Error actualizando estado conexión:', [
+            'empleado_id' => $id,
+            'error' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al actualizar estado de conexión'
+        ], 500);
+    }
+}
+
+/**
+ * Actualizar estado de conexión cuando el empleado accede a su perfil
+ */
+public function actualizarConexion(Request $request, $id)
+{
+    try {
+        $user = Auth::user();
+        
+        // Verificar que el empleado pertenece al usuario
+        $empleado = DB::table('tabla_empleados')
+            ->where('id', $id)
+            ->where('credencial_id', $user->id)
+            ->first();
+
+        if (!$empleado) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autorizado'
+            ], 403);
+        }
+
+        // Actualizar estado de conexión
+        DB::table('tabla_empleados')
+            ->where('id', $id)
+            ->update([
+                'en_linea' => true,
+                'ultima_conexion' => Carbon::now(),
+                'dispositivo_conectado' => $request->userAgent(),
+                'ip_conexion' => $request->ip(),
+                'updated_at' => Carbon::now()
+            ]);
+
+        Log::info('🟢 EMPLEADO CONECTADO:', [
+            'empleado_id' => $id,
+            'nombre' => $empleado->nombre,
+            'ip' => $request->ip(),
+            'hora' => Carbon::now()->format('H:i:s')
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Conexión actualizada'
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Error actualizando conexión:', [
+            'empleado_id' => $id,
+            'error' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al actualizar conexión'
+        ], 500);
+    }
+}
+
+/**
+ * Obtener estado de conexión del empleado
+ */
+public function getEstadoConexion($id)
+{
+    try {
+        $user = Auth::user();
+        
+        $empleado = DB::table('tabla_empleados')
+            ->where('id', $id)
+            ->where('credencial_id', $user->id)
+            ->select('en_linea', 'ultima_conexion', 'dispositivo_conectado')
+            ->first();
+
+        if (!$empleado) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autorizado'
+            ], 403);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'en_linea' => (bool)$empleado->en_linea,
+                'ultima_conexion' => $empleado->ultima_conexion,
+                'dispositivo_conectado' => $empleado->dispositivo_conectado,
+                'tiempo_desde_ultima_conexion' => $empleado->ultima_conexion ? 
+                    Carbon::parse($empleado->ultima_conexion)->diffForHumans() : 'Nunca'
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al obtener estado de conexión'
+        ], 500);
+    }
+}
     /**
  * Obtener ubicación aproximada por IP
  */

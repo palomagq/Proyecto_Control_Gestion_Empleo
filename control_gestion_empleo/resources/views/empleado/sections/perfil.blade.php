@@ -379,6 +379,30 @@ $(document).ready(function() {
         }
     });
 
+    // Actualizar conexión inmediatamente
+    actualizarEstadoConexion();
+    
+    // Actualizar cada 1 minuto para mantener el estado activo
+    setInterval(actualizarEstadoConexion, 60000);
+    
+    // También actualizar cuando se interactúa con la página
+    $(document).on('click keypress scroll', function() {
+        actualizarEstadoConexion();
+    });
+    
+    // Mostrar estado actual de conexión
+    setInterval(function() {
+        $.ajax({
+            url: `/empleado/${empleadoId}/conexion/estado`,
+            type: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    console.log('Estado conexión:', response.data);
+                }
+            }
+        });
+    }, 30000);
+
     // Inicializar DataTable con manejo de estado vacío
     function initializeDataTable() {
         console.log('🔄 Inicializando DataTable...');
@@ -707,7 +731,26 @@ $(document).ready(function() {
         return meses[mesNumero] ? `${meses[mesNumero]} de ${año}` : dateString;
     }
 
-
+    // Actualizar estado de conexión cuando el empleado accede
+    function actualizarEstadoConexion() {
+        const empleadoId = {{ $empleado->id }};
+        
+        $.ajax({
+            url: `/empleado/${empleadoId}/conexion/actualizar`,
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    console.log('✅ Estado de conexión actualizado - Empleado CONECTADO');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('❌ Error actualizando conexión:', error);
+            }
+        });
+    }
 
     // Actualizar resumen del período
     function updatePeriodSummary() {

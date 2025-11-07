@@ -9,71 +9,64 @@ class Tarea extends Model
 {
     use HasFactory;
 
+    // ✅ ESPECIFICAR EL NOMBRE CORRECTO DE LA TABLA
     protected $table = 'tabla_tareas';
-    
+
     protected $fillable = [
         'titulo',
         'descripcion',
-        'area',
         'tipo_tarea_id',
         'prioridad',
+        'fecha_tarea',
+        'horas_tarea', // Nuevo campo
+        'area',
         'estado',
-        'fecha_limite',
         'creador_tipo',
         'admin_creador_id',
         'empleado_creador_id'
     ];
 
     protected $casts = [
-        'fecha_limite' => 'date'
+        'fecha_tarea' => 'date',
+        'horas_tarea' => 'decimal:2',
     ];
 
-    public function tipo()
+    // Relación con TipoTarea
+    public function tipoTarea()
     {
         return $this->belongsTo(TipoTarea::class, 'tipo_tarea_id');
     }
 
-    public function adminCreador()
-    {
-        return $this->belongsTo(Admin::class, 'admin_creador_id');
-    }
-
-    public function empleadoCreador()
-    {
-        return $this->belongsTo(Empleado::class, 'empleado_creador_id');
-    }
-
+    // Relación con asignaciones
     public function asignaciones()
     {
         return $this->hasMany(AsignacionTarea::class, 'tarea_id');
     }
 
-    public function empleadosAsignados()
+    // Relación con administrador creador (si aplica)
+    public function adminCreador()
     {
-        return $this->belongsToMany(Empleado::class, 'tabla_asignaciones_tareas', 'tarea_id', 'empleado_id')
-                    ->withPivot('estado_asignacion', 'comentarios', 'fecha_completado')
-                    ->withTimestamps();
+        return $this->belongsTo(User::class, 'admin_creador_id');
     }
 
-    // Scope para tareas de admin
-    public function scopeDeAdmin($query, $adminId)
+     // Accesor para formatear las horas
+    public function getHorasTareaFormateadoAttribute()
     {
-        return $query->where('creador_tipo', 'admin')
-                    ->where('admin_creador_id', $adminId);
-    }
-
-    // Scope para tareas de empleado
-    public function scopeDeEmpleado($query, $empleadoId)
-    {
-        return $query->where('creador_tipo', 'empleado')
-                    ->where('empleado_creador_id', $empleadoId);
-    }
-
-    // Scope para tareas asignadas a un empleado
-    public function scopeAsignadasAEmpleado($query, $empleadoId)
-    {
-        return $query->whereHas('asignaciones', function($q) use ($empleadoId) {
-            $q->where('empleado_id', $empleadoId);
-        });
+        $horas = floatval($this->horas_tarea);
+        $horasEntero = floor($horas);
+        $minutos = round(($horas - $horasEntero) * 60);
+        
+        if ($minutos == 60) {
+            $horasEntero += 1;
+            $minutos = 0;
+        }
+        
+        if ($horasEntero > 0 && $minutos > 0) {
+            return "{$horasEntero}h {$minutos}m";
+        } elseif ($horasEntero > 0) {
+            return "{$horasEntero}h";
+        } else {
+            return "{$minutos}m";
+        }
     }
 }

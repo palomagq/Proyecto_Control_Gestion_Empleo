@@ -22,7 +22,7 @@
             <div class="card border-left-primary shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
+                        <div class="col">
                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
                                 Total Tareas
                             </div>
@@ -76,7 +76,7 @@
             <div class="card border-left-success shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
+                        <div class="col">
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
                                 Completadas
                             </div>
@@ -123,10 +123,10 @@
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="form-group">
                                 <label for="filterEstado" class="font-weight-bold text-dark">
-                                    <i class="fas fa-filter mr-1"></i>Filtrar por Estado:
+                                    <i class="fas fa-filter mr-1"></i>Estado:
                                 </label>
                                 <select class="form-control" id="filterEstado">
                                     <option value="">Todos los estados</option>
@@ -137,10 +137,10 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="form-group">
                                 <label for="filterPrioridad" class="font-weight-bold text-dark">
-                                    <i class="fas fa-exclamation-circle mr-1"></i>Filtrar por Prioridad:
+                                    <i class="fas fa-exclamation-circle mr-1"></i>Prioridad:
                                 </label>
                                 <select class="form-control" id="filterPrioridad">
                                     <option value="">Todas las prioridades</option>
@@ -151,10 +151,10 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="form-group">
                                 <label for="filterTipo" class="font-weight-bold text-dark">
-                                    <i class="fas fa-tag mr-1"></i>Filtrar por Tipo:
+                                    <i class="fas fa-tag mr-1"></i>Tipo:
                                 </label>
                                 <select class="form-control" id="filterTipo">
                                     <option value="">Todos los tipos</option>
@@ -164,17 +164,23 @@
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="filterFecha" class="font-weight-bold text-dark">
-                                    <i class="fas fa-calendar mr-1"></i>Filtrar por Fecha:
+                                <label for="filterEmpleados" class="font-weight-bold text-dark">
+                                    <i class="fas fa-users mr-1"></i>Empleados:
                                 </label>
-                                <select class="form-control" id="filterFecha">
-                                    <option value="">Todas las fechas</option>
-                                    <option value="hoy">Hoy</option>
-                                    <option value="semana">Esta semana</option>
-                                    <option value="mes">Este mes</option>
-                                    <option value="proximas">Próximas</option>
-                                    <option value="vencidas">Vencidas</option>
+                                <select class="form-control select2-multiple" id="filterEmpleados" multiple="multiple" style="width: 100%;">
+                                    <!-- Se llenará dinámicamente -->
                                 </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="font-weight-bold text-dark">
+                                    <i class="fas fa-calendar mr-1"></i>Rango de Fechas:
+                                </label>
+                                <div class="input-group">
+                                    <input type="date" class="form-control" id="filterFechaInicio" placeholder="Fecha inicio">
+                                    <input type="date" class="form-control" id="filterFechaFin" placeholder="Fecha fin">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -214,8 +220,8 @@
                                     <th width="10%">Tipo</th>
                                     <th width="8%">Prioridad</th>
                                     <th width="10%">Estado</th>
-                                    <th width="12%">Fecha Inicio</th>
-                                    <th width="12%">Fecha Fin</th>
+                                    <th width="12%">Fecha Tarea</th>
+                                    <th width="12%">Horas Tarea</th>
                                     <th width="15%">Empleados Asignados</th>
                                     <th width="10%">Acciones</th>
                                 </tr>
@@ -287,36 +293,23 @@
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="fecha_inicio" class="font-weight-bold">Fecha Inicio *</label>
-                                <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required>
+                                <label for="fecha_tarea" class="font-weight-bold">Fecha Tarea *</label>
+                                <input type="date" class="form-control" id="fecha_tarea" name="fecha_tarea" required>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="fecha_fin" class="font-weight-bold">Fecha Fin *</label>
-                                <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required>
+                                <label for="horas_tarea" class="font-weight-bold">Horas Tarea *</label>
+                                <input type="number" class="form-control" id="horas_tarea" name="horas_tarea" 
+                                    step="0.25" min="0.25" max="24" required 
+                                    placeholder="Ej: 1.5">
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="area" class="font-weight-bold">Área/Proyecto</label>
                                 <input type="text" class="form-control" id="area" name="area" 
-                                       placeholder="Ej: Desarrollo, Marketing...">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="hora_inicio" class="font-weight-bold">Hora Inicio</label>
-                                <input type="time" class="form-control" id="hora_inicio" name="hora_inicio">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="hora_fin" class="font-weight-bold">Hora Fin</label>
-                                <input type="time" class="form-control" id="hora_fin" name="hora_fin">
+                                    placeholder="Ej: Desarrollo, Marketing...">
                             </div>
                         </div>
                     </div>
@@ -332,7 +325,6 @@
                     <div class="alert alert-info">
                         <small>
                             <i class="fas fa-info-circle"></i> Los campos marcados con * son obligatorios.
-                            La fecha fin debe ser igual o posterior a la fecha inicio.
                         </small>
                     </div>
                 </form>
@@ -505,29 +497,24 @@
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="edit_fecha_inicio" class="font-weight-bold">Fecha Inicio *</label>
-                                <input type="date" class="form-control" id="edit_fecha_inicio" name="fecha_inicio" required>
+                                <label for="edit_fecha_tarea" class="font-weight-bold">Fecha Tarea *</label>
+                                <input type="date" class="form-control" id="edit_fecha_tarea" name="fecha_tarea" required>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="edit_fecha_fin" class="font-weight-bold">Fecha Fin *</label>
-                                <input type="date" class="form-control" id="edit_fecha_fin" name="fecha_fin" required>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="edit_hora_inicio" class="font-weight-bold">Hora Inicio</label>
-                                <input type="time" class="form-control" id="edit_hora_inicio" name="hora_inicio">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="edit_hora_fin" class="font-weight-bold">Hora Fin</label>
-                                <input type="time" class="form-control" id="edit_hora_fin" name="hora_fin">
+                                <label for="edit_horas_tarea" class="font-weight-bold">Horas de Tarea *</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="edit_horas_tarea" name="horas_tarea" 
+                                        step="0.25" min="0.25" max="24" required>
+                                    <div class="input-group-append">
+                                        <span class="input-group-text">horas</span>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle"></i> 
+                                    0.25 = 15min, 0.5 = 30min, 1.5 = 1h 30min
+                                </small>
                             </div>
                         </div>
                     </div>
@@ -594,20 +581,12 @@
                             </div>
                             <div class="card-body">
                                 <div class="row mb-2">
-                                    <div class="col-6 font-weight-bold text-dark">Fecha Inicio:</div>
-                                    <div class="col-6 text-right" id="view_fecha_inicio"></div>
+                                    <div class="col-6 font-weight-bold text-dark">Fecha Tarea:</div>
+                                    <div class="col-6 text-right" id="view_fecha_tarea"></div>
                                 </div>
                                 <div class="row mb-2">
-                                    <div class="col-6 font-weight-bold text-dark">Fecha Fin:</div>
-                                    <div class="col-6 text-right" id="view_fecha_fin"></div>
-                                </div>
-                                <div class="row mb-2">
-                                    <div class="col-6 font-weight-bold text-dark">Hora Inicio:</div>
-                                    <div class="col-6 text-right" id="view_hora_inicio"></div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-6 font-weight-bold text-dark">Hora Fin:</div>
-                                    <div class="col-6 text-right" id="view_hora_fin"></div>
+                                    <div class="col-6 font-weight-bold text-dark">Duración:</div>
+                                    <div class="col-6 text-right" id="view_horas_tarea"></div>
                                 </div>
                             </div>
                         </div>
@@ -911,10 +890,12 @@ function cargarTiposTarea() {
                 $('#tipo_tarea_id').empty().append('<option value="">Seleccione un tipo</option>');
                 $('#edit_tipo_tarea_id').empty().append('<option value="">Seleccione un tipo</option>');
                 
-                // Llenar con datos - MOSTRAR DESCRIPCIÓN EN LUGAR DE NOMBRE
+                // ✅ CORREGIDO: Mostrar DESCRIPCIÓN en lugar de nombre
                 response.data.forEach(function(tipo) {
-                    const textoMostrar = tipo.descripcion || tipo.nombre; // Usar descripción si existe, sino nombre
-                    $('#filterTipo').append(`<option value="${tipo.id}">${tipo.nombre}</option>`);
+                    // Usar la descripción si existe, si no usar el nombre
+                    const textoMostrar = tipo.descripcion || tipo.nombre;
+                    
+                    $('#filterTipo').append(`<option value="${tipo.id}">${textoMostrar}</option>`);
                     $('#tipo_tarea_id').append(`<option value="${tipo.id}" title="${tipo.descripcion || ''}">${textoMostrar}</option>`);
                     $('#edit_tipo_tarea_id').append(`<option value="${tipo.id}" title="${tipo.descripcion || ''}">${textoMostrar}</option>`);
                 });
@@ -1001,6 +982,43 @@ function cargarEmpleados() {
     });
 }
 
+
+function cargarEmpleadosParaFiltros() {
+    console.log('Cargando empleados para filtros...');
+    
+    $.ajax({
+        url: '{{ route("admin.tareas.empleados") }}',
+        type: 'GET',
+        success: function(response) {
+            console.log('Empleados para filtros cargados:', response);
+            
+            if (response.success && response.data && response.data.length > 0) {
+                // Limpiar select de filtros
+                $('#filterEmpleados').empty();
+                
+                // Llenar con datos
+                response.data.forEach(function(empleado) {
+                    const optionText = `${empleado.nombre_completo} - ${empleado.dni}`;
+                    $('#filterEmpleados').append(`<option value="${empleado.id}">${optionText}</option>`);
+                });
+
+                console.log('Empleados cargados en filtro:', response.data.length);
+                
+                // ✅ INICIALIZAR SELECT2 DESPUÉS DE CARGAR DATOS
+                inicializarSelect2Filtros();
+                
+            } else {
+                console.error('No hay empleados disponibles para filtros:', response);
+                $('#filterEmpleados').empty().append('<option value="">No hay empleados disponibles</option>');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error cargando empleados para filtros:', error);
+            $('#filterEmpleados').empty().append('<option value="">Error al cargar empleados</option>');
+        }
+    });
+}
+
 function mostrarEmpleadosVacios() {
     const mensaje = 'No hay empleados disponibles';
     $('#empleados_asignados').empty().append(`<option value="">${mensaje}</option>`);
@@ -1042,6 +1060,35 @@ function inicializarSelect2() {
     });
     
     console.log('Select2 inicializado correctamente');
+}
+
+
+// =============================================
+// FUNCIÓN ESPECÍFICA PARA FILTROS
+// =============================================
+
+function inicializarSelect2Filtros() {
+    if (typeof $.fn.select2 === 'undefined') {
+        console.warn('Select2 no está disponible para filtros');
+        return;
+    }
+    
+    // Destruir cualquier instancia previa
+    if ($('#filterEmpleados').hasClass('select2-hidden-accessible')) {
+        $('#filterEmpleados').select2('destroy');
+    }
+    
+    // Inicializar Select2 para filtro de empleados
+    $('#filterEmpleados').select2({
+        placeholder: "Seleccione empleados",
+        allowClear: true,
+        width: '100%',
+        language: 'es',
+        multiple: true,
+        closeOnSelect: false
+    });
+    
+    console.log('Select2 para filtros inicializado correctamente');
 }
 
 // =============================================
@@ -1156,6 +1203,10 @@ function guardarAsignaciones() {
                 Swal.fire('¡Éxito!', response.message, 'success');
                 $('#asignarEmpleadosModal').modal('hide');
                 window.tareasTable.ajax.reload();
+                
+                // ✅ ACTUALIZAR ESTADÍSTICAS DESPUÉS DE ASIGNAR
+                actualizarEstadisticasDespuesDeAccion();
+
             } else {
                 Swal.fire('Error', response.message, 'error');
             }
@@ -1183,8 +1234,29 @@ function submitTareaForm() {
         return;
     }
 
+    // Validar campos nuevos
+    if (!$('#fecha_tarea').val()) {
+        Swal.fire('Error', 'Debe seleccionar una fecha para la tarea', 'error');
+        return;
+    }
+
+    if (!$('#horas_tarea').val() || $('#horas_tarea').val() <= 0) {
+        Swal.fire('Error', 'Debe ingresar el número de horas de la tarea', 'error');
+        return;
+    }
+
     const formData = new FormData(document.getElementById('tareaForm'));
     
+    // Mostrar loading
+    Swal.fire({
+        title: 'Creando tarea...',
+        text: 'Por favor espere',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
     $.ajax({
         url: '{{ route("admin.tareas.store") }}',
         type: 'POST',
@@ -1192,76 +1264,134 @@ function submitTareaForm() {
         processData: false,
         contentType: false,
         success: function(response) {
+            Swal.close();
             if (response.success) {
                 Swal.fire('¡Éxito!', response.message, 'success');
                 $('#tareaModal').modal('hide');
                 window.tareasTable.ajax.reload();
+                actualizarEstadisticasDespuesDeAccion();
                 document.getElementById('tareaForm').reset();
-                // Limpiar selects múltiples
+                
                 if (typeof $.fn.select2 !== 'undefined') {
                     $('#empleados_asignados').val(null).trigger('change.select2');
-                } else {
-                    $('#empleados_asignados').val(null);
                 }
             } else {
                 Swal.fire('Error', response.message, 'error');
             }
         },
-        error: function(xhr) {
-            Swal.fire('Error', 'Error al crear la tarea', 'error');
+        error: function(xhr, status, error) {
+            Swal.close();
+            
+            let errorMessage = 'Error al crear la tarea';
+            
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                const errors = xhr.responseJSON.errors;
+                let errorList = '';
+                for (const field in errors) {
+                    errorList += `<strong>${field}:</strong> ${errors[field].join(', ')}<br>`;
+                }
+                Swal.fire({
+                    title: 'Errores de validación',
+                    html: errorList,
+                    icon: 'error'
+                });
+                return;
+            }
+
+            Swal.fire('Error', errorMessage, 'error');
         }
     });
 }
 
 function verTarea(id) {
+    console.log('🔍 Solicitando datos de tarea ID:', id);
+    
+    // ✅ GUARDAR EL ID ACTUAL PARA USAR EN EDICIÓN
+    window.tareaActualId = id;
+    
     $.ajax({
         url: `/admin/tareas/${id}`,
         type: 'GET',
         success: function(response) {
+            console.log('✅ Datos de tarea recibidos:', response);
+            
             if (response.success) {
                 const tarea = response.data.tarea;
                 const empleados = response.data.empleados_asignados;
                 
-                // Llenar modal de vista
-                $('#view_titulo').text(tarea.titulo);
+                // Llenar modal de vista con TODOS los datos
+                $('#view_titulo').text(tarea.titulo || 'Sin título');
                 $('#view_descripcion').text(tarea.descripcion || 'Sin descripción');
                 $('#view_prioridad').html(getBadgePrioridad(tarea.prioridad));
                 $('#view_estado').html(getBadgeEstado(tarea.estado));
-                $('#view_fecha_inicio').text(formatFecha(tarea.fecha_inicio));
-                $('#view_fecha_fin').text(formatFecha(tarea.fecha_fin));
-                $('#view_hora_inicio').text(tarea.hora_inicio || 'No especificada');
-                $('#view_hora_fin').text(tarea.hora_fin || 'No especificada');
                 
-                // Mostrar descripción del tipo de tarea
-                const tipoTareaTexto = tarea.tipo_tarea?.descripcion || tarea.tipo_tarea?.nombre || 'N/A';
-                $('#view_tipo_tarea').text(tipoTareaTexto);
+                // Mostrar fecha de la tarea
+                $('#view_fecha_tarea').text(tarea.fecha_tarea ? formatFecha(tarea.fecha_tarea) : 'No especificada');
                 
-                $('#view_area').text(tarea.area || 'No especificada');
-                $('#view_creador').text(tarea.creador_tipo === 'admin' ? 'Administrador' : 'Empleado');
-                $('#view_created_at').text(formatFecha(tarea.created_at));
+                // Mostrar horas formateadas
+                const horas = parseFloat(tarea.horas_tarea);
+                const horasEntero = Math.floor(horas);
+                const minutos = Math.round((horas - horasEntero) * 60);
                 
-                // Llenar empleados asignados
+                let horasTexto = '';
+                if (horasEntero > 0) horasTexto += `${horasEntero}h`;
+                if (minutos > 0) horasTexto += ` ${minutos}m`;
+                $('#view_horas_tarea').text(horasTexto || '0h');
+                
+                // Mostrar tipo de tarea
+                $('#view_tipo_tarea').text(tarea.tipo_tarea ? (tarea.tipo_tarea.descripcion || tarea.tipo_tarea.nombre) : 'No especificado');
+                
+                // Mostrar área/proyecto
+                $('#view_area').text(tarea.area || 'No especificado');
+                
+                // Mostrar creador
+                $('#view_creador').text(tarea.creador_tipo === 'admin' ? 'Administrador' : 'Sistema');
+                
+                // Mostrar fecha de creación
+                $('#view_created_at').text(tarea.created_at ? formatFecha(tarea.created_at) : 'No disponible');
+                
+                // Mostrar empleados asignados
                 let empleadosHtml = '';
-                if (empleados.length > 0) {
+                if (empleados && empleados.length > 0) {
                     empleados.forEach(emp => {
-                        empleadosHtml += `<span class="badge badge-primary mr-1 mb-1">${emp.nombre_completo}</span>`;
+                        empleadosHtml += `
+                            <span class="badge badge-primary mr-1 mb-1 p-2">
+                                <i class="fas fa-user mr-1"></i>
+                                ${emp.nombre_completo}
+                            </span>
+                        `;
                     });
                 } else {
                     empleadosHtml = '<span class="text-muted">No hay empleados asignados</span>';
                 }
                 $('#view_empleados_asignados').html(empleadosHtml);
                 
+                // Mostrar el modal
                 $('#viewTareaModal').modal('show');
+                
+            } else {
+                console.error('❌ Error en respuesta:', response);
+                Swal.fire('Error', response.message || 'No se pudieron cargar los datos de la tarea', 'error');
             }
+        },
+        error: function(xhr, status, error) {
+            console.error('❌ Error cargando tarea:', error);
+            Swal.fire('Error', 'Error al cargar los datos de la tarea', 'error');
         }
     });
 }
 
 function editarTarea(id) {
+    console.log('✏️ Editando tarea ID:', id);
+    
     $.ajax({
         url: `/admin/tareas/${id}`,
         type: 'GET',
         success: function(response) {
+            console.log('✅ Datos para edición recibidos:', response);
+            
             if (response.success) {
                 const tarea = response.data.tarea;
                 const empleados = response.data.empleados_asignados;
@@ -1273,11 +1403,19 @@ function editarTarea(id) {
                 $('#edit_tipo_tarea_id').val(tarea.tipo_tarea_id);
                 $('#edit_prioridad').val(tarea.prioridad);
                 $('#edit_estado').val(tarea.estado);
-                $('#edit_fecha_inicio').val(tarea.fecha_inicio);
-                $('#edit_fecha_fin').val(tarea.fecha_fin);
-                $('#edit_hora_inicio').val(tarea.hora_inicio);
-                $('#edit_hora_fin').val(tarea.hora_fin);
-                $('#edit_area').val(tarea.area);
+                
+                // ✅ CORREGIDO: Mostrar fecha de la tarea en el campo de edición
+                if (tarea.fecha_tarea) {
+                    // Formatear la fecha para el input type="date" (YYYY-MM-DD)
+                    const fecha = new Date(tarea.fecha_tarea);
+                    const fechaFormateada = fecha.toISOString().split('T')[0];
+                    $('#edit_fecha_tarea').val(fechaFormateada);
+                } else {
+                    $('#edit_fecha_tarea').val('');
+                }
+                
+                $('#edit_horas_tarea').val(tarea.horas_tarea);
+                $('#edit_area').val(tarea.area || '');
                 
                 // Seleccionar empleados asignados
                 const empleadosIds = empleados.map(emp => emp.id);
@@ -1288,8 +1426,18 @@ function editarTarea(id) {
                     $('#edit_empleados_asignados').val(empleadosIds);
                 }
                 
+                console.log('📅 Fecha cargada en edición:', $('#edit_fecha_tarea').val());
+                
                 $('#editTareaModal').modal('show');
+                
+            } else {
+                console.error('❌ Error en respuesta:', response);
+                Swal.fire('Error', response.message || 'No se pudieron cargar los datos para editar', 'error');
             }
+        },
+        error: function(xhr, status, error) {
+            console.error('❌ Error cargando tarea para editar:', error);
+            Swal.fire('Error', 'Error al cargar los datos para editar', 'error');
         }
     });
 }
@@ -1312,6 +1460,8 @@ function updateTarea() {
                 Swal.fire('¡Éxito!', response.message, 'success');
                 $('#editTareaModal').modal('hide');
                 window.tareasTable.ajax.reload();
+                // ✅ ACTUALIZAR ESTADÍSTICAS DESPUÉS DE EDITAR
+                actualizarEstadisticasDespuesDeAccion();
             } else {
                 Swal.fire('Error', response.message, 'error');
             }
@@ -1341,6 +1491,8 @@ function eliminarTarea(id) {
                     if (response.success) {
                         Swal.fire('¡Eliminado!', response.message, 'success');
                         window.tareasTable.ajax.reload();
+                        // ✅ ACTUALIZAR ESTADÍSTICAS DESPUÉS DE ELIMINAR
+                        actualizarEstadisticasDespuesDeAccion();
                     } else {
                         Swal.fire('Error', response.message, 'error');
                     }
@@ -1351,6 +1503,27 @@ function eliminarTarea(id) {
             });
         }
     });
+}
+
+/**
+ * Editar tarea desde el modal de vista
+ */
+function editarTareaDesdeVista() {
+    // Cerrar el modal de vista
+    $('#viewTareaModal').modal('hide');
+    
+    // Obtener el ID de la tarea actual (guardado previamente)
+    if (window.tareaActualId) {
+        console.log('🔄 Abriendo edición desde vista, ID:', window.tareaActualId);
+        
+        // Pequeño delay para asegurar que el modal de vista se cierre
+        setTimeout(() => {
+            editarTarea(window.tareaActualId);
+        }, 300);
+    } else {
+        console.error('❌ No se encontró el ID de la tarea actual');
+        Swal.fire('Error', 'No se pudo cargar la tarea para editar', 'error');
+    }
 }
 
 // =============================================
@@ -1651,20 +1824,617 @@ function getBadgeEstado(estado) {
     return badges[estado] || '<span class="badge badge-secondary">N/A</span>';
 }
 
-function formatFecha(fecha) {
-    return new Date(fecha).toLocaleDateString('es-ES');
-}
-
 function aplicarFiltrosTareas() {
+    console.log('🔄 Aplicando filtros...');
+    
+    // Obtener valores de los filtros
+    const filtros = {
+        estado: $('#filterEstado').val(),
+        prioridad: $('#filterPrioridad').val(),
+        tipo: $('#filterTipo').val(),
+        empleados: $('#filterEmpleados').val() || [],
+        fecha_inicio: $('#filterFechaInicio').val(),
+        fecha_fin: $('#filterFechaFin').val()
+    };
+    
+    console.log('Filtros aplicados:', filtros);
+    
+    // Validar rango de fechas
+    if (filtros.fecha_inicio && filtros.fecha_fin) {
+        const fechaInicio = new Date(filtros.fecha_inicio);
+        const fechaFin = new Date(filtros.fecha_fin);
+        
+        if (fechaInicio > fechaFin) {
+            Swal.fire('Error', 'La fecha de inicio no puede ser mayor que la fecha fin', 'error');
+            return;
+        }
+    }
+    
+    // Recargar DataTable con los filtros
     window.tareasTable.ajax.reload();
 }
 
 function limpiarFiltrosTareas() {
+    console.log('🧹 Limpiando filtros...');
+    
+    // Limpiar todos los filtros
     $('#filterEstado').val('');
     $('#filterPrioridad').val('');
     $('#filterTipo').val('');
-    $('#filterFecha').val('');
-    aplicarFiltrosTareas();
+    
+    // Limpiar select2 múltiple
+    if (typeof $.fn.select2 !== 'undefined') {
+        $('#filterEmpleados').val(null).trigger('change.select2');
+    } else {
+        $('#filterEmpleados').val(null);
+    }
+    
+    // Limpiar fechas
+    $('#filterFechaInicio').val('');
+    $('#filterFechaFin').val('');
+    
+    // Recargar DataTable sin filtros
+    window.tareasTable.ajax.reload();
+    
+    Swal.fire({
+        icon: 'success',
+        title: 'Filtros limpiados',
+        text: 'Todos los filtros han sido restablecidos',
+        timer: 1500,
+        showConfirmButton: false
+    });
+}
+
+/**
+ * Cargar estadísticas iniciales
+ */
+/*function cargarEstadisticasIniciales() {
+    console.log('📊 Cargando estadísticas iniciales...');
+    actualizarEstadisticas();
+}
+
+
+function actualizarEstadisticas() {
+    console.log('🔄 Actualizando estadísticas...');
+    
+    // Mostrar estado de carga
+    $('#totalTareas').html('<i class="fas fa-spinner fa-spin"></i>');
+    $('#tareasPendientes').html('<i class="fas fa-spinner fa-spin"></i>');
+    $('#tareasProgreso').html('<i class="fas fa-spinner fa-spin"></i>');
+    $('#tareasCompletadas').html('<i class="fas fa-spinner fa-spin"></i>');
+
+    $.ajax({
+        url: '{{ route("admin.tareas.estadisticas") }}',
+        type: 'GET',
+        success: function(response) {
+            console.log('✅ Estadísticas recibidas:', response);
+            
+            if (response.success && response.data) {
+                const stats = response.data;
+                
+                // Actualizar los valores en las cards
+                $('#totalTareas').text(stats.total || 0);
+                $('#tareasPendientes').text(stats.pendientes || 0);
+                $('#tareasProgreso').text(stats.en_progreso || 0);
+                $('#tareasCompletadas').text(stats.completadas || 0);
+                
+                // Agregar animación de actualización
+                $('.card-body .h5').addClass('text-success');
+                setTimeout(() => {
+                    $('.card-body .h5').removeClass('text-success');
+                }, 1000);
+                
+            } else {
+                console.error('❌ Error en respuesta de estadísticas:', response);
+                mostrarEstadisticasPorDefecto();
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('❌ Error cargando estadísticas:', error);
+            mostrarEstadisticasPorDefecto();
+            
+            // Mostrar notificación de error
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudieron cargar las estadísticas',
+                timer: 3000,
+                showConfirmButton: false
+            });
+        }
+    });
+}*/
+
+
+
+
+
+/**
+ * Calcular estadísticas desde los datos visibles en la DataTable
+ */
+function calcularEstadisticasDesdeDataTable() {
+    try {
+        console.log('🔄 Calculando estadísticas desde DataTable...');
+        
+        if (!window.tareasTable) {
+            console.warn('⚠️ DataTable no está inicializada');
+            mostrarEstadisticasPorDefecto();
+            return;
+        }
+
+        // Obtener datos REALES de la DataTable (no del DOM)
+        const datos = window.tareasTable.rows({ filter: 'applied' }).data();
+        const totalFilas = datos.length;
+        
+        console.log(`📊 Filas en DataTable: ${totalFilas}`);
+
+        if (totalFilas === 0) {
+            console.log('ℹ️ No hay filas en la DataTable');
+            mostrarEstadisticasPorDefecto();
+            return;
+        }
+
+        // Contadores
+        let total = 0;
+        let pendientes = 0;
+        let enProgreso = 0;
+        let completadas = 0;
+
+        // Recorrer datos REALES de la DataTable
+        for (let i = 0; i < totalFilas; i++) {
+            const fila = datos[i];
+            total++;
+            
+            // Contar por estado usando los datos reales
+            if (fila.estado) {
+                const estado = fila.estado.toLowerCase();
+                
+                if (estado.includes('pendiente')) {
+                    pendientes++;
+                } else if (estado.includes('progreso')) {
+                    enProgreso++;
+                } else if (estado.includes('completada')) {
+                    completadas++;
+                }
+            }
+        }
+
+        console.log('📈 Estadísticas calculadas:', {
+            total,
+            pendientes,
+            enProgreso,
+            completadas
+        });
+
+        // Actualizar la interfaz
+        actualizarUIEstadisticas(total, pendientes, enProgreso, completadas);
+
+    } catch (error) {
+        console.error('❌ Error calculando estadísticas:', error);
+        mostrarEstadisticasPorDefecto();
+    }
+}
+
+
+function actualizarUIEstadisticas(total, pendientes, enProgreso, completadas) {
+    $('#totalTareas').text(total);
+    $('#tareasPendientes').text(pendientes);
+    $('#tareasProgreso').text(enProgreso);
+    $('#tareasCompletadas').text(completadas);
+
+    // Animación de actualización
+    $('.card-body .h5').addClass('text-success');
+    setTimeout(() => {
+        $('.card-body .h5').removeClass('text-success');
+    }, 1000);
+}
+
+/**
+ * Mostrar valores por defecto
+ */
+function mostrarEstadisticasPorDefecto() {
+    $('#totalTareas').text('0');
+    $('#tareasPendientes').text('0');
+    $('#tareasProgreso').text('0');
+    $('#tareasCompletadas').text('0');
+}
+
+/**
+ * Actualizar estadísticas después de acciones importantes
+ */
+function actualizarEstadisticasDespuesDeAccion() {
+    console.log('🔄 Actualizando estadísticas después de acción...');
+    
+    // Pequeño delay para asegurar que la base de datos se actualizó
+    setTimeout(() => {
+        calcularEstadisticasDesdeDataTable();
+    }, 500);
+}
+
+function formatFecha(fecha) {
+    if (!fecha) return 'N/A';
+    const date = new Date(fecha);
+    return date.toLocaleDateString('es-ES');
+}
+
+
+/**
+ * Cambiar estado de una tarea
+ */
+function cambiarEstadoTarea(id, nuevoEstado) {
+    console.log(`🔄 Cambiando estado de tarea ${id} a: ${nuevoEstado}`);
+    
+    const estados = {
+        'pendiente': { texto: 'Pendiente', color: 'secondary', icono: 'clock' },
+        'en_progreso': { texto: 'En Progreso', color: 'primary', icono: 'spinner' },
+        'completada': { texto: 'Completada', color: 'success', icono: 'check' },
+        'cancelada': { texto: 'Cancelada', color: 'danger', icono: 'times' }
+    };
+    
+    const estadoInfo = estados[nuevoEstado];
+    
+    if (!estadoInfo) {
+        console.error('❌ Estado no válido:', nuevoEstado);
+        Swal.fire('Error', 'Estado no válido', 'error');
+        return;
+    }
+
+    Swal.fire({
+        title: `¿Cambiar estado a "${estadoInfo.texto}"?`,
+        text: "El estado de la tarea será actualizado inmediatamente",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: `#${nuevoEstado === 'pendiente' ? '6c757d' : nuevoEstado === 'en_progreso' ? '007bff' : nuevoEstado === 'completada' ? '28a745' : 'dc3545'}`,
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: `Sí, cambiar a ${estadoInfo.texto}`,
+        cancelButtonText: 'Cancelar',
+        showLoaderOnConfirm: true,
+        preConfirm: () => {
+            return new Promise((resolve, reject) => {
+                $.ajax({
+                    url: `/admin/tareas/${id}`,
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        _method: 'PUT',
+                        estado: nuevoEstado
+                    },
+                    success: function(response) {
+                        resolve(response);
+                    },
+                    error: function(xhr) {
+                        reject('Error al cambiar el estado');
+                    }
+                });
+            });
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+    }).then((result) => {
+        if (result.isConfirmed) {
+            if (result.value && result.value.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Estado actualizado!',
+                    text: `La tarea ahora está en estado: ${estadoInfo.texto}`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                
+                // Recargar la tabla y actualizar estadísticas
+                window.tareasTable.ajax.reload(null, false); // false para mantener la página actual
+                actualizarEstadisticasDespuesDeAccion();
+                
+            } else {
+                Swal.fire('Error', result.value?.message || 'Error al cambiar el estado', 'error');
+            }
+        }
+    });
+}
+
+
+/**
+ * Duplicar una tarea
+ */
+function duplicarTarea(id) {
+    console.log('📋 Duplicando tarea ID:', id);
+    
+    Swal.fire({
+        title: '¿Duplicar tarea?',
+        text: "Se creará una copia idéntica de esta tarea",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#17a2b8',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, duplicar',
+        cancelButtonText: 'Cancelar',
+        showLoaderOnConfirm: true,
+        preConfirm: () => {
+            return new Promise((resolve, reject) => {
+                $.ajax({
+                    url: `/admin/tareas/${id}/duplicar`,
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        resolve(response);
+                    },
+                    error: function(xhr) {
+                        reject('Error al duplicar la tarea');
+                    }
+                });
+            });
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+    }).then((result) => {
+        if (result.isConfirmed) {
+            if (result.value && result.value.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Tarea duplicada!',
+                    text: result.value.message || 'La tarea ha sido duplicada correctamente',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                
+                // Recargar la tabla y actualizar estadísticas
+                window.tareasTable.ajax.reload();
+                actualizarEstadisticasDespuesDeAccion();
+                
+            } else {
+                Swal.fire('Error', result.value?.message || 'Error al duplicar la tarea', 'error');
+            }
+        }
+    });
+}
+
+
+function cargarEmpleadosConectados() {
+    console.log('Cargando empleados conectados...');
+    
+    $.ajax({
+        url: '/admin/empleados/conectados', // Ahora esta ruta debería funcionar
+        type: 'GET',
+        success: function(response) {
+            console.log('Empleados conectados cargados:', response);
+            
+            if (response.success && response.data && response.data.length > 0) {
+                // Limpiar selects
+                $('#empleados_asignados').empty();
+                $('#edit_empleados_asignados').empty();
+                $('#empleados_asignacion').empty();
+                
+                // Llenar con datos de empleados conectados
+                response.data.forEach(function(empleado) {
+                    const optionText = `${empleado.nombre_completo} - ${empleado.dni} ${empleado.estado_badge} (${empleado.tiempo_conectado})`;
+                    
+                    $('#empleados_asignados').append(`<option value="${empleado.id}">${optionText}</option>`);
+                    $('#edit_empleados_asignados').append(`<option value="${empleado.id}">${optionText}</option>`);
+                    $('#empleados_asignacion').append(`<option value="${empleado.id}">${optionText}</option>`);
+                });
+
+                console.log('Empleados conectados cargados:', response.data.length);
+                
+                // Mostrar notificación de éxito
+                mostrarNotificacionConexion(response.data.length, true);
+                
+            } else {
+                console.warn('No hay empleados conectados disponibles');
+                mostrarNotificacionConexion(0, false);
+                cargarTodosLosEmpleadosComoFallback();
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error cargando empleados conectados:', error);
+            mostrarNotificacionConexion(0, true, true);
+            cargarTodosLosEmpleadosComoFallback();
+        }
+    });
+}
+
+function mostrarNotificacionConexion(total, esConectado, esError = false) {
+    $('#estado-conexion-notification').remove();
+    
+    let mensaje, tipo;
+    
+    if (esError) {
+        mensaje = '⚠️ Usando lista completa de empleados (error en conexiones)';
+        tipo = 'warning';
+    } else if (esConectado) {
+        mensaje = `🟢 ${total} empleados conectados disponibles`;
+        tipo = 'success';
+    } else {
+        mensaje = '🔴 No hay empleados conectados. Usando lista completa.';
+        tipo = 'warning';
+    }
+    
+    const alerta = $(`
+        <div id="estado-conexion-notification" class="alert alert-${tipo} alert-dismissible fade show mt-2">
+            <i class="fas fa-${esConectado ? 'check-circle' : esError ? 'exclamation-triangle' : 'info-circle'} mr-2"></i>
+            ${mensaje}
+            <button type="button" class="close" data-dismiss="alert">
+                <span>&times;</span>
+            </button>
+        </div>
+    `);
+    
+    $('#empleados_asignados').closest('.form-group').after(alerta);
+}
+
+function cargarTodosLosEmpleados() {
+    console.log('Fallback: cargando todos los empleados...');
+    
+    $.ajax({
+        url: '{{ route("admin.tareas.empleados") }}',
+        type: 'GET',
+        success: function(response) {
+            if (response.success && response.data && response.data.length > 0) {
+                // Limpiar selects
+                $('#empleados_asignados').empty();
+                $('#edit_empleados_asignados').empty();
+                $('#empleados_asignacion').empty();
+                
+                // Llenar con todos los empleados
+                response.data.forEach(function(empleado) {
+                    const optionText = `${empleado.nombre_completo} - ${empleado.dni} ${empleado.estado_badge}`;
+                    
+                    $('#empleados_asignados').append(`<option value="${empleado.id}">${optionText}</option>`);
+                    $('#edit_empleados_asignados').append(`<option value="${empleado.id}">${optionText}</option>`);
+                    $('#empleados_asignacion').append(`<option value="${empleado.id}">${optionText}</option>`);
+                });
+
+                // Inicializar Select2
+                if (typeof $.fn.select2 !== 'undefined') {
+                    $('#empleados_asignados').select2({
+                        placeholder: "Busque y seleccione empleados",
+                        allowClear: true,
+                        width: '100%',
+                        language: 'es',
+                        multiple: true
+                    });
+                    
+                    $('#edit_empleados_asignados').select2({
+                        placeholder: "Busque y seleccione empleados",
+                        allowClear: true,
+                        width: '100%',
+                        language: 'es',
+                        multiple: true
+                    });
+                    
+                    $('#empleados_asignacion').select2({
+                        placeholder: "Busque y seleccione empleados",
+                        allowClear: true,
+                        width: '100%',
+                        language: 'es',
+                        multiple: true
+                    });
+                }
+                
+                mostrarEstadisticasConexion(response.data.length, false);
+            } else {
+                mostrarEmpleadosConectadosVacios();
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error en fallback de empleados:', error);
+            mostrarEmpleadosConectadosVacios();
+        }
+    });
+}
+
+function mostrarEstadisticasConexion(totalConectados, soloConectados = true) {
+    const mensaje = soloConectados 
+        ? `🟢 ${totalConectados} empleados conectados disponibles`
+        : `📋 ${totalConectados} empleados totales disponibles`;
+    
+    // Mostrar notificación
+    $('#estado-conexion-empleados').remove();
+    
+    const alerta = $(`
+        <div id="estado-conexion-empleados" class="alert alert-info alert-dismissible fade show mt-2">
+            <i class="fas fa-info-circle mr-2"></i>
+            ${mensaje}
+            <button type="button" class="close" data-dismiss="alert">
+                <span>&times;</span>
+            </button>
+        </div>
+    `);
+    
+    $('#empleados_asignados').closest('.form-group').after(alerta);
+}
+
+function mostrarEmpleadosConectadosVacios() {
+    const mensaje = '❌ No hay empleados conectados disponibles en este momento';
+    $('#empleados_asignados').empty().append(`<option value="">${mensaje}</option>`);
+    $('#edit_empleados_asignados').empty().append(`<option value="">${mensaje}</option>`);
+    $('#empleados_asignacion').empty().append(`<option value="">${mensaje}</option>`);
+    
+    $('#estado-conexion-empleados').remove();
+    const alerta = $(`
+        <div id="estado-conexion-empleados" class="alert alert-warning alert-dismissible fade show mt-2">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            ${mensaje}
+            <button type="button" class="close" data-dismiss="alert">
+                <span>&times;</span>
+            </button>
+        </div>
+    `);
+    
+    $('#empleados_asignados').closest('.form-group').after(alerta);
+}
+
+
+function cargarEmpleadosConectadosParaFiltros() {
+    console.log('Cargando empleados conectados para filtros...');
+    
+    $.ajax({
+        url: '{{ route("admin.empleados.conectados") }}',
+        type: 'GET',
+        success: function(response) {
+            console.log('Empleados para filtros cargados:', response);
+            
+            if (response.success && response.data && response.data.length > 0) {
+                // Limpiar select de filtros
+                $('#filterEmpleados').empty();
+                
+                // Llenar con datos
+                response.data.forEach(function(empleado) {
+                    const optionText = `${empleado.nombre_completo} - ${empleado.dni}`;
+                    $('#filterEmpleados').append(`<option value="${empleado.id}">${optionText}</option>`);
+                });
+
+                console.log('Empleados cargados en filtro:', response.data.length);
+                
+                inicializarSelect2Filtros();
+                
+            } else {
+                console.warn('No hay empleados disponibles para filtros');
+                // Fallback para filtros
+                $.ajax({
+                    url: '{{ route("admin.tareas.empleados") }}',
+                    type: 'GET',
+                    success: function(fallbackResponse) {
+                        if (fallbackResponse.success && fallbackResponse.data) {
+                            $('#filterEmpleados').empty();
+                            fallbackResponse.data.forEach(function(empleado) {
+                                const optionText = `${empleado.nombre_completo} - ${empleado.dni}`;
+                                $('#filterEmpleados').append(`<option value="${empleado.id}">${optionText}</option>`);
+                            });
+                            inicializarSelect2Filtros();
+                        } else {
+                            $('#filterEmpleados').empty().append('<option value="">No hay empleados disponibles</option>');
+                        }
+                    },
+                    error: function() {
+                        $('#filterEmpleados').empty().append('<option value="">Error al cargar empleados</option>');
+                    }
+                });
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error cargando empleados para filtros:', error);
+            // Fallback para filtros
+            $.ajax({
+                url: '{{ route("admin.tareas.empleados") }}',
+                type: 'GET',
+                success: function(fallbackResponse) {
+                    if (fallbackResponse.success && fallbackResponse.data) {
+                        $('#filterEmpleados').empty();
+                        fallbackResponse.data.forEach(function(empleado) {
+                            const optionText = `${empleado.nombre_completo} - ${empleado.dni}`;
+                            $('#filterEmpleados').append(`<option value="${empleado.id}">${optionText}</option>`);
+                        });
+                        inicializarSelect2Filtros();
+                    } else {
+                        $('#filterEmpleados').empty().append('<option value="">No hay empleados disponibles</option>');
+                    }
+                },
+                error: function() {
+                    $('#filterEmpleados').empty().append('<option value="">Error al cargar empleados</option>');
+                }
+            });
+        }
+    });
 }
 
 // =============================================
@@ -1679,7 +2449,10 @@ $(document).ready(function() {
     
     // CARGAR DATOS INICIALES
     cargarTiposTarea();
-    cargarEmpleados();
+    cargarEmpleadosConectados();
+
+    // ✅ NUEVO: CARGAR EMPLEADOS PARA FILTROS
+    cargarEmpleadosConectadosParaFiltros();
 
     // CONFIGURACIÓN DE DATATABLE
     window.tareasTable = $('#tareasTable').DataTable({
@@ -1687,51 +2460,114 @@ $(document).ready(function() {
         serverSide: true,
         ajax: {
             url: '{{ route("admin.tareas.datatable") }}',
+            type: 'GET',
             data: function(d) {
-                d.estado = $('#filterEstado').val();
-                d.prioridad = $('#filterPrioridad').val();
-                d.tipo = $('#filterTipo').val();
-                d.fecha = $('#filterFecha').val();
+                 return {
+                    draw: d.draw,
+                    start: d.start,
+                    length: d.length,
+                    search: {
+                        value: d.search.value,
+                        regex: d.search.regex
+                    },
+                    order: d.order,
+                    columns: d.columns,
+                    estado: $('#filterEstado').val(),
+                    prioridad: $('#filterPrioridad').val(),
+                    tipo: $('#filterTipo').val(),
+                    empleados: $('#filterEmpleados').val() || [], // ✅ NUEVO: Filtro múltiple de empleados
+                    fecha_inicio: $('#filterFechaInicio').val(), // ✅ NUEVO: Fecha inicio
+                    fecha_fin: $('#filterFechaFin').val() // ✅ NUEVO: Fecha fin
+                };
+            },
+            error: function(xhr, error, thrown) {
+                console.error('Error DataTable:', xhr.responseJSON);
+                
+                let errorMsg = 'Error al cargar los datos de la tabla';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMsg = xhr.responseJSON.error;
+                }
+                
+                // Mostrar error en la tabla
+                const tbody = $('#tareasTable tbody');
+                tbody.html(`
+                    <tr>
+                        <td colspan="9" class="text-center text-danger py-4">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                            <h6>Error al cargar los datos</h6>
+                            <p class="small mb-2">${errorMsg}</p>
+                            <button class="btn btn-sm btn-primary" onclick="window.tareasTable.ajax.reload()">
+                                <i class="fas fa-redo mr-1"></i> Reintentar
+                            </button>
+                        </td>
+                    </tr>
+                `);
             }
         },
         columns: [
-            { data: 'id', width: '5%' },
+            { 
+                data: 'id', 
+                name: 'id',
+                width: '5%',
+                className: 'text-center',
+                searchable: true
+            },
             { 
                 data: 'titulo', 
+                name: 'titulo',
                 width: '18%',
                 render: function(data, type, row) {
-                    return '<span class="font-weight-bold text-dark">' + data + '</span>';
-                }
+                    return '<span class="font-weight-bold text-dark">' + (data || 'Sin título') + '</span>';
+                },
+                searchable: true
             },
             { 
                 data: 'tipo_tarea', 
+                name: 'tipoTarea.descripcion',
                 width: '10%',
                 render: function(data, type, row) {
-                    return '<span class="badge badge-light border">' + data + '</span>';
-                }
-            },
-            { data: 'prioridad', width: '8%' },
-            { data: 'estado', width: '10%' },
-            { 
-                data: 'fecha_inicio', 
-                width: '12%',
-                render: function(data) {
-                    return '<span class="text-nowrap">' + data + '</span>';
-                }
+                    return data ?  data + '</span>' : '<span class="text-muted">N/A</span>';
+                },
+                searchable: true
             },
             { 
-                data: 'fecha_fin', 
-                width: '12%',
-                render: function(data) {
-                    return '<span class="text-nowrap">' + data + '</span>';
-                }
+                data: 'prioridad', 
+                name: 'prioridad',
+                width: '8%',
+                orderable: false,
+                searchable: true
+            },
+            { 
+                data: 'estado', 
+                name: 'estado',
+                width: '8%',
+                orderable: false,
+                searchable: true
+            },
+            { 
+                data: 'fecha_tarea', 
+                name: 'fecha_tarea',
+                width: '8%',
+                orderable: true,
+                searchable: true
+            },
+            { 
+                data: 'horas_tarea', 
+                name: 'horas_tarea',
+                width: '8%',
+                orderable: true,
+                searchable: false,
+                className: 'text-center'
             },
             { 
                 data: 'empleados_asignados', 
-                width: '15%',
+                name: 'empleados.nombre_completo',
+                width: '20%',
+                orderable: false,
                 render: function(data) {
                     return data || '<span class="text-muted">Sin asignar</span>';
-                }
+                },
+                searchable: false
             },
             {
                 data: 'acciones', 
@@ -1748,34 +2584,39 @@ $(document).ready(function() {
                         <button class="btn btn-warning btn-sm" onclick="editarTarea(${row.id})" title="Editar Tarea">
                             <i class="fas fa-edit"></i>
                         </button>
+                        <button class="btn btn-danger btn-sm" onclick="eliminarTarea(${row.id})" title="Eliminar Tarea">
+                            <i class="fas fa-trash"></i>
+                        </button>
                         <button class="btn btn-success btn-sm" onclick="gestionarAsignaciones(${row.id})" title="Gestionar Asignaciones">
                             <i class="fas fa-users"></i>
                         </button>
-                        <div class="btn-group btn-group-sm" role="group">
-                            <button type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i class="fas fa-cog"></i>
+                         <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-toggle="dropdown" title="Acciones Rápidas">
+                                <i class="fas fa-clone"></i>
                             </button>
                             <div class="dropdown-menu dropdown-menu-right">
-                                <a class="dropdown-item" href="javascript:void(0)" onclick="duplicarTarea(${row.id})">
-                                    <i class="fas fa-copy mr-2"></i>Duplicar
+                                <a class="dropdown-item text-info" href="javascript:void(0)" onclick="duplicarTarea(${row.id})">
+                                    <i class="fas fa-copy mr-2"></i>Duplicar Tarea
                                 </a>
-                                <div class="dropdown-divider"></div>
+                            </div>
+                        </div> 
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" title="Cambiar Estado">
+                                <i class="fas fa-exchange-alt"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-right">
                                 <h6 class="dropdown-header">Cambiar Estado</h6>
                                 <a class="dropdown-item" href="javascript:void(0)" onclick="cambiarEstadoTarea(${row.id}, 'pendiente')">
-                                    <i class="fas fa-clock mr-2"></i>Pendiente
+                                    <i class="fas fa-clock mr-2 text-secondary"></i>Pendiente
                                 </a>
                                 <a class="dropdown-item" href="javascript:void(0)" onclick="cambiarEstadoTarea(${row.id}, 'en_progreso')">
-                                    <i class="fas fa-spinner mr-2"></i>En Progreso
+                                    <i class="fas fa-spinner mr-2 text-primary"></i>En Progreso
                                 </a>
                                 <a class="dropdown-item" href="javascript:void(0)" onclick="cambiarEstadoTarea(${row.id}, 'completada')">
-                                    <i class="fas fa-check mr-2"></i>Completada
+                                    <i class="fas fa-check mr-2 text-success"></i>Completada
                                 </a>
                                 <a class="dropdown-item" href="javascript:void(0)" onclick="cambiarEstadoTarea(${row.id}, 'cancelada')">
-                                    <i class="fas fa-times mr-2"></i>Cancelada
-                                </a>
-                                <div class="dropdown-divider"></div>
-                                <a class="dropdown-item text-danger" href="javascript:void(0)" onclick="eliminarTarea(${row.id})">
-                                    <i class="fas fa-trash mr-2"></i>Eliminar
+                                    <i class="fas fa-times mr-2 text-danger"></i>Cancelada
                                 </a>
                             </div>
                         </div>
@@ -1784,14 +2625,30 @@ $(document).ready(function() {
             }
         ],
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json'
+            "url": "{{ asset('js/datatables/Spanish.json') }}"
         },
-        order: [[0, 'desc']],
+        order: [[0, 'asc']],
         responsive: true,
         pageLength: 25,
-        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Todos"]]
-    });
-
+        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Todos"]],
+        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        searchDelay: 500, // Delay de 500ms para búsqueda
+        // ✅ CONFIGURACIÓN SIMPLIFICADA PARA ESTADÍSTICAS
+        drawCallback: function(settings) {
+            console.log('🔄 DataTable redibujado');
+            // Calcular estadísticas después de que la tabla se renderice
+            setTimeout(() => {
+                calcularEstadisticasDesdeDataTable();
+            }, 300);
+        },
+        initComplete: function(settings, json) {
+            console.log('✅ DataTable inicializado correctamente');
+            // Calcular estadísticas iniciales
+            setTimeout(() => {
+                calcularEstadisticasDesdeDataTable();
+            }, 500);
+        }
+});
     // EVENT LISTENERS
     $('#tareaModal').on('show.bs.modal', function() {
         // Forzar recarga si es necesario
@@ -1881,7 +2738,7 @@ $(document).ready(function() {
 #tareasTable thead th {
     border-bottom: 2px solid #e3e6f0;
     font-weight: 600;
-    color: #5a5c69;
+    /*color: #5a5c69;*/
 }
 
 #tareasTable tbody tr:hover {
@@ -2051,10 +2908,92 @@ $(document).ready(function() {
     background: #a8a8a8;
 }
 
+#filterFechaFin{
+    margin-left: 0.5rem;
+}
+
+select.form-control[multiple], 
+select.form-control[size] {
+    height: auto !important;
+}
+
 @media (min-width: 1200px) {
     .container, .container-lg, .container-md, .container-sm, .container-xl {
         max-width: 1800px !important;
     }
 }
+
+div.dataTables_wrapper div.dataTables_filter {
+    text-align: right;
+    margin-right: 0.5rem !important;
+    margin-top: 0.5rem !important;
+}
+
+.pagination {
+    display: -ms-flexbox;
+    display: flex;
+    padding-right: 0.5rem !important;
+    list-style: none;
+    border-radius: .25rem;
+}
+
+div.dataTables_wrapper div.dataTables_info {
+    padding-top: .85em;
+    margin-right: 15rem !important;
+}
+div.dataTables_length #tareasTable_length {
+    text-align: left;
+    margin-left: 2rem;
+}
+
+div.dataTables_wrapper div.dataTables_length label {
+    float: left;
+    margin-left: 2rem;
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 767px) {
+    
+    div.dataTables_wrapper div.dataTables_info {
+        padding-top: .85em;
+        margin-right: 0 !important;
+    }
+
+    div.dataTables_wrapper div.dataTables_length label {
+         float: none; 
+         margin-top: 0.5rem;
+    }
+    div.dataTables_wrapper div.dataTables_filter {
+         text-align: center; 
+    }
+}
+
+@media (min-width: 768px) and (max-width: 991px){
+    
+    div.dataTables_wrapper div.dataTables_info {
+        padding-top: .85em;
+        margin-right: 0 !important;
+        margin-left:1.5rem;
+    }
+
+    div.dataTables_wrapper div.dataTables_length label {
+         float: none; 
+         margin-top: 0.5rem !important;
+         margin-right: 2rem;
+    }
+
+    .col-auto {
+        width: -webkit-fill-available !important;
+    }
+}
+
+@media (min-width: 992px){
+    
+    div.dataTables_wrapper div.dataTables_info {
+        padding-top: .85em;
+        margin-right: 0 !important;
+    }
+}
+
 </style>
 @endsection
