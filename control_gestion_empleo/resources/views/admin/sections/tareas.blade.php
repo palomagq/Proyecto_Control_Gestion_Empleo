@@ -1821,9 +1821,7 @@ function aplicarFiltrosTareas() {
         estado: $('#filterEstado').val(),
         prioridad: $('#filterPrioridad').val(),
         tipo: $('#filterTipo').val(),
-        empleados: $('#filterEmpleados').val() || [],
-        fecha_inicio: $('#filterFechaInicio').val(),
-        fecha_fin: $('#filterFechaFin').val()
+        empleados: $('#filterEmpleados').val() || []
     };
     
     console.log('Filtros aplicados:', filtros);
@@ -1857,10 +1855,6 @@ function limpiarFiltrosTareas() {
     } else {
         $('#filterEmpleados').val(null);
     }
-    
-    // Limpiar fechas
-    $('#filterFechaInicio').val('');
-    $('#filterFechaFin').val('');
     
     // Recargar DataTable sin filtros
     window.tareasTable.ajax.reload();
@@ -2465,8 +2459,6 @@ $(document).ready(function() {
                     prioridad: $('#filterPrioridad').val(),
                     tipo: $('#filterTipo').val(),
                     empleados: $('#filterEmpleados').val() || [], // ✅ NUEVO: Filtro múltiple de empleados
-                    fecha_inicio: $('#filterFechaInicio').val(), // ✅ NUEVO: Fecha inicio
-                    fecha_fin: $('#filterFechaFin').val() // ✅ NUEVO: Fecha fin
                 };
             },
             error: function(xhr, error, thrown) {
