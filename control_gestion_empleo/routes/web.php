@@ -149,6 +149,20 @@ Route::prefix('empleado')->group(function () {
     Route::get('/registro/{empleado}/detalles/{registro}', [EmpleadoController::class, 'getDetallesRegistro'])
     ->name('empleado.registro.detalles');
 
+
+     // Obtener tipos de tarea
+    Route::get('/tipos-tarea', [EmpleadoController::class, 'getTiposTareaEmpleado'])->name('empleado.tipos-tarea');
+    
+    // Gestión de tareas del empleado
+    Route::post('/{id}/tareas/crear', [EmpleadoController::class, 'crearTareaEmpleado'])->name('empleado.tareas.crear');
+    Route::post('/{empleadoId}/tareas/{tareaId}/estado', [EmpleadoController::class, 'actualizarEstadoTareaEmpleado'])->name('empleado.tareas.estado');
+    Route::get('/{empleadoId}/tareas/{tareaId}/detalles', [EmpleadoController::class, 'getDetallesTareaEmpleado'])->name('empleado.tareas.detalles');
+    Route::get('/{id}/tareas/estadisticas', [EmpleadoController::class, 'getEstadisticasTareas'])->name('empleado.tareas.estadisticas');
+    Route::put('/{empleado}/tareas/{tarea}/actualizar', [EmpleadoController::class, 'actualizarTareaEmpleado'])->name('empleado.tareas.actualizar');
+     // Eliminar tarea
+    Route::delete('/tareas/{tarea}', [EmpleadoController::class, 'eliminarTareaEmpleado'])->name('empleado.tareas.eliminar');
+    Route::get('/{id}/tareas/datatable', [EmpleadoController::class, 'getTareasDataTable'])->name('empleado.tareas.datatable');
+
     // Redirección por defecto para empleados
     Route::get('/', function () {
         $empleadoId = Auth::user()->empleado->id;

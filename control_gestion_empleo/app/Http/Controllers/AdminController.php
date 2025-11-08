@@ -1897,43 +1897,23 @@ public function getTareasDataTable(Request $request)
     try {
         Log::info('📊 DataTable tareas solicitado con filtros:', $request->all());
 
-        $query = Tarea::with(['tipoTarea', 'asignaciones.empleado'])
+        $query = Tarea::with(['tipoTarea', 'asignaciones.empleado', 'empleadoCreador'])
                     ->select('tabla_tareas.*');
 
-        // Aplicar filtros existentes
+        // Aplicar filtros
         if ($request->filled('estado')) {
             $query->where('estado', $request->estado);
         }
-
         if ($request->filled('prioridad')) {
             $query->where('prioridad', $request->prioridad);
         }
-
         if ($request->filled('tipo')) {
             $query->where('tipo_tarea_id', $request->tipo);
         }
-
-        // ✅ NUEVO: Filtro por empleados (múltiple)
         if ($request->filled('empleados') && is_array($request->empleados) && count($request->empleados) > 0) {
             $query->whereHas('asignaciones', function($q) use ($request) {
                 $q->whereIn('empleado_id', $request->empleados);
             });
-        }
-
-        // ✅ NUEVO: Filtro por rango de fechas
-        if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
-            $query->where(function($q) use ($request) {
-                $q->whereBetween('fecha_inicio', [$request->fecha_inicio, $request->fecha_fin])
-                  ->orWhereBetween('fecha_fin', [$request->fecha_inicio, $request->fecha_fin])
-                  ->orWhere(function($q2) use ($request) {
-                      $q2->where('fecha_inicio', '<=', $request->fecha_inicio)
-                         ->where('fecha_fin', '>=', $request->fecha_fin);
-                  });
-            });
-        } elseif ($request->filled('fecha_inicio')) {
-            $query->where('fecha_inicio', '>=', $request->fecha_inicio);
-        } elseif ($request->filled('fecha_fin')) {
-            $query->where('fecha_fin', '<=', $request->fecha_fin);
         }
 
         return DataTables::eloquent($query)
@@ -1943,7 +1923,6 @@ public function getTareasDataTable(Request $request)
                 }
                 
                 $color = $tarea->tipoTarea->color ?: '#6c757d';
-                // ✅ CORREGIDO: Mostrar la descripción si existe, sino el nombre
                 $textoMostrar = $tarea->tipoTarea->descripcion ?: $tarea->tipoTarea->nombre;
                 
                 return '<span class="badge badge-light border" style="border-left: 3px solid '.$color.' !important;">'
@@ -1964,6 +1943,17 @@ public function getTareasDataTable(Request $request)
                 
                 return $nombres . $extra;
             })
+            ->addColumn('creador_info', function($tarea) {
+                if ($tarea->creador_tipo === 'admin') {
+                    return '<span class="badge badge-info">Creada por Admin</span>';
+                } elseif ($tarea->creador_tipo === 'empleado' && $tarea->empleadoCreador) {
+                    return '<span class="badge badge-warning">Creada por: ' . 
+                           $tarea->empleadoCreador->nombre . ' ' . 
+                           $tarea->empleadoCreador->apellidos . '</span>';
+                } else {
+                    return '<span class="badge badge-secondary">Origen desconocido</span>';
+                }
+            })
             ->addColumn('prioridad', function($tarea) {
                 $badges = [
                     'baja' => '<span class="badge badge-success">Baja</span>',
@@ -1974,13 +1964,8 @@ public function getTareasDataTable(Request $request)
                 return $badges[$tarea->prioridad] ?? '<span class="badge badge-secondary">N/A</span>';
             })
             ->addColumn('estado', function($tarea) {
-                $badges = [
-                    'pendiente' => '<span class="badge badge-secondary">Pendiente</span>',
-                    'en_progreso' => '<span class="badge badge-primary">En Progreso</span>',
-                    'completada' => '<span class="badge badge-success">Completada</span>',
-                    'cancelada' => '<span class="badge badge-danger">Cancelada</span>'
-                ];
-                return $badges[$tarea->estado] ?? '<span class="badge badge-secondary">N/A</span>';
+                // ✅ SOLUCIÓN DEFINITIVA: Enviar SOLO el valor crudo
+                return $tarea->estado; // 'pendiente', 'en_progreso', 'completada', etc.
             })
             ->addColumn('fecha_tarea', function($tarea) {
                 return $tarea->fecha_tarea 
@@ -2007,19 +1992,27 @@ public function getTareasDataTable(Request $request)
                 
                 return $formato ?: '<span class="text-muted">0h</span>';
             })
-
             ->addColumn('acciones', function($tarea) {
-                return '
+                $botonesBase = '
                 <div class="btn-group btn-group-sm" role="group">
                     <button class="btn btn-info btn-sm" onclick="verTarea('.$tarea->id.')" title="Ver Detalles">
                         <i class="fas fa-eye"></i>
-                    </button>
+                    </button>';
+
+                if ($tarea->creador_tipo === 'admin' || auth()->user()->rol_id === 1) {
+                    $botonesBase .= '
                     <button class="btn btn-warning btn-sm" onclick="editarTarea('.$tarea->id.')" title="Editar Tarea">
                         <i class="fas fa-edit"></i>
-                    </button>
+                    </button>';
+                }
+
+                $botonesBase .= '
                     <button class="btn btn-success btn-sm" onclick="gestionarAsignaciones('.$tarea->id.')" title="Gestionar Asignaciones">
                         <i class="fas fa-users"></i>
-                    </button>
+                    </button>';
+
+                if (auth()->user()->rol_id === 1) {
+                    $botonesBase .= '
                     <div class="btn-group btn-group-sm" role="group">
                         <button type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown">
                             <i class="fas fa-cog"></i>
@@ -2029,10 +2022,15 @@ public function getTareasDataTable(Request $request)
                                 <i class="fas fa-trash mr-2"></i>Eliminar
                             </a>
                         </div>
-                    </div>
-                </div>';
+                    </div>';
+                }
+
+                $botonesBase .= '</div>';
+                
+                return $botonesBase;
             })
-            ->rawColumns(['tipo_tarea', 'prioridad', 'estado', 'empleados_asignados', 'fecha_inicio', 'fecha_fin', 'acciones'])
+            ->rawColumns(['tipo_tarea', 'prioridad', 'empleados_asignados', 'creador_info', 'fecha_tarea', 'acciones'])
+            // ✅ NOTA: 'estado' NO está en rawColumns porque ahora es un string crudo
             ->make(true);
 
     } catch (\Exception $e) {
@@ -2062,6 +2060,8 @@ public function getTareasEstadisticas()
             'pendientes' => Tarea::where('estado', 'pendiente')->count(),
             'en_progreso' => Tarea::where('estado', 'en_progreso')->count(),
             'completadas' => Tarea::where('estado', 'completada')->count(),
+            'creadas_por_admin' => Tarea::where('creador_tipo', 'admin')->count(),
+            'creadas_por_empleados' => Tarea::where('creador_tipo', 'empleado')->count(),
         ];
 
         Log::info('📊 Estadísticas de tareas calculadas:', $estadisticas);
@@ -2083,7 +2083,11 @@ public function getTareasEstadisticas()
                 'total' => 0,
                 'pendientes' => 0,
                 'en_progreso' => 0,
-                'completadas' => 0
+                'completadas' => 0,
+                'creadas_por_admin' => 0,
+                'creadas_por_empleados' => 0,
+                'porcentaje_admin' => 0,
+                'porcentaje_empleados' => 0
             ]
         ], 500);
     }

@@ -273,6 +273,91 @@
                     </div>
                 </div>
             </div>
+
+                        <!-- Sección de Tareas del Empleado -->
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                                            <h5 class="mb-0">
+                                                <i class="fas fa-tasks mr-2"></i>Mis Tareas
+                                                <span class="badge badge-light ml-2" id="total-tareas-badge">{{ $tareasEmpleado['estadisticas']['total'] ?? 0 }}</span>
+                                            </h5>
+                                            <button type="button" class="btn btn-light btn-sm" data-toggle="modal" data-target="#crearTareaModal">
+                                                <i class="fas fa-plus mr-1"></i> Nueva Tarea
+                                            </button>
+                                        </div>
+                                        <div class="card-body">
+                                            
+                                            <!-- Estadísticas Rápidas - DEBEN ESTAR FUERA DEL DATATABLE -->
+                                            <div class="row mb-4" id="estadisticas-tareas">
+                                                <div class="col-md-2 col-6 text-center">
+                                                    <div class="stat-card">
+                                                        <div class="stat-number text-primary" id="stat-total">{{ $tareasEmpleado['estadisticas']['total'] ?? 0 }}</div>
+                                                        <div class="stat-label">Total</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2 col-6 text-center">
+                                                    <div class="stat-card">
+                                                        <div class="stat-number text-warning" id="stat-pendientes">{{ $tareasEmpleado['estadisticas']['pendientes'] ?? 0 }}</div>
+                                                        <div class="stat-label">Pendientes</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2 col-6 text-center">
+                                                    <div class="stat-card">
+                                                        <div class="stat-number text-info" id="stat-en-progreso">{{ $tareasEmpleado['estadisticas']['en_progreso'] ?? 0 }}</div>
+                                                        <div class="stat-label">En Progreso</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2 col-6 text-center">
+                                                    <div class="stat-card">
+                                                        <div class="stat-number text-success" id="stat-completadas">{{ $tareasEmpleado['estadisticas']['completadas'] ?? 0 }}</div>
+                                                        <div class="stat-label">Completadas</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2 col-6 text-center">
+                                                    <div class="stat-card">
+                                                        <div class="stat-number text-secondary" id="stat-creadas">{{ $tareasEmpleado['estadisticas']['creadas_count'] ?? 0 }}</div>
+                                                        <div class="stat-label">Creadas por mí</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2 col-6 text-center">
+                                                    <div class="stat-card">
+                                                        <div class="stat-number text-dark" id="stat-asignadas">{{ $tareasEmpleado['estadisticas']['asignadas_count'] ?? 0 }}</div>
+                                                        <div class="stat-label">Asignadas</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- DataTable de Tareas -->
+                                            <div class="table-responsive">
+                                                <table class="table table-hover" id="tareasDataTable">
+                                                    <thead class="thead-light">
+                                                        <tr>
+                                                            <th width="5%">ID</th>
+                                                            <th width="25%">Título</th>
+                                                            <th width="10%">Tipo</th>
+                                                            <th width="10%">Prioridad</th>
+                                                            <th width="10%">Estado</th>
+                                                            <th width="10%">Fecha</th>
+                                                            <th width="10%">Duración</th>
+                                                            <th width="10%">Origen</th>
+                                                            <th width="10%">Acciones</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <!-- Los datos se cargarán via AJAX -->
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -346,6 +431,232 @@
     </div>
 </div>
 
+<!-- Modal para Crear Tarea -->
+<div class="modal fade" id="crearTareaModal" tabindex="-1" role="dialog" aria-labelledby="crearTareaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-success bg-gradient text-white">
+                <h5 class="modal-title" id="crearTareaModalLabel">
+                    <i class="fas fa-plus-circle mr-2"></i> Crear Nueva Tarea
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="crearTareaForm">
+                    @csrf
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label for="titulo_tarea" class="font-weight-bold">Título de la Tarea *</label>
+                                <input type="text" class="form-control" id="titulo_tarea" name="titulo" required 
+                                       placeholder="Ingrese el título de la tarea">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="tipo_tarea_id" class="font-weight-bold">Tipo de Tarea *</label>
+                                <select class="form-control" id="tipo_tarea_id" name="tipo_tarea_id" required>
+                                    <option value="">Seleccione un tipo</option>
+                                    <!-- Se llenará dinámicamente -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="descripcion_tarea" class="font-weight-bold">Descripción</label>
+                        <textarea class="form-control" id="descripcion_tarea" name="descripcion" rows="3" 
+                                  placeholder="Describa los detalles de la tarea..."></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="prioridad_tarea" class="font-weight-bold">Prioridad *</label>
+                                <select class="form-control" id="prioridad_tarea" name="prioridad" required>
+                                    <option value="media">Media</option>
+                                    <option value="baja">Baja</option>
+                                    <option value="alta">Alta</option>
+                                    <option value="urgente">Urgente</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="fecha_tarea" class="font-weight-bold">Fecha Tarea *</label>
+                                <input type="date" class="form-control" id="fecha_tarea" name="fecha_tarea" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="horas_tarea" class="font-weight-bold">Horas Tarea *</label>
+                                <input type="number" class="form-control" id="horas_tarea" name="horas_tarea" 
+                                    step="0.25" min="0.25" max="24" required 
+                                    placeholder="Ej: 1.5">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="area_tarea" class="font-weight-bold">Área/Proyecto</label>
+                                <input type="text" class="form-control" id="area_tarea" name="area" 
+                                    placeholder="Ej: Desarrollo, Marketing...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <small>
+                            <i class="fas fa-info-circle"></i> 
+                            Los campos marcados con * son obligatorios. La tarea se auto-asignará a tu perfil.
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-success" onclick="crearTareaEmpleado()">
+                    <i class="fas fa-save mr-1"></i> Crear Tarea
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Ver Tarea -->
+<div class="modal fade" id="verTareaModal" tabindex="-1" role="dialog" aria-labelledby="verTareaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info bg-gradient text-white">
+                <h5 class="modal-title" id="verTareaModalLabel">
+                    <i class="fas fa-eye mr-2"></i> Detalles de la Tarea
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="contenidoTareaModal">
+                <!-- Contenido cargado dinámicamente -->
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="sr-only">Cargando...</span>
+                    </div>
+                    <p>Cargando detalles de la tarea...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cerrar
+                </button>
+                <button type="button" class="btn btn-warning" id="btnEditarDesdeVista" style="display: none;">
+                    <i class="fas fa-edit mr-1"></i> Editar Tarea
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Editar Tarea -->
+<div class="modal fade" id="editarTareaModal" tabindex="-1" role="dialog" aria-labelledby="editarTareaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-warning bg-gradient text-white">
+                <h5 class="modal-title" id="editarTareaModalLabel">
+                    <i class="fas fa-edit mr-2"></i> Editar Tarea
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editarTareaForm">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" id="editar_tarea_id" name="tarea_id">
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label for="editar_titulo_tarea" class="font-weight-bold">Título de la Tarea *</label>
+                                <input type="text" class="form-control" id="editar_titulo_tarea" name="titulo" required 
+                                       placeholder="Ingrese el título de la tarea">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="editar_tipo_tarea_id" class="font-weight-bold">Tipo de Tarea *</label>
+                                <select class="form-control" id="editar_tipo_tarea_id" name="tipo_tarea_id" required>
+                                    <option value="">Seleccione un tipo</option>
+                                    <!-- Se llenará dinámicamente -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editar_descripcion_tarea" class="font-weight-bold">Descripción</label>
+                        <textarea class="form-control" id="editar_descripcion_tarea" name="descripcion" rows="3" 
+                                  placeholder="Describa los detalles de la tarea..."></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="editar_prioridad_tarea" class="font-weight-bold">Prioridad *</label>
+                                <select class="form-control" id="editar_prioridad_tarea" name="prioridad" required>
+                                    <option value="media">Media</option>
+                                    <option value="baja">Baja</option>
+                                    <option value="alta">Alta</option>
+                                    <option value="urgente">Urgente</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="editar_fecha_tarea" class="font-weight-bold">Fecha Tarea *</label>
+                                <input type="date" class="form-control" id="editar_fecha_tarea" name="fecha_tarea" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="editar_horas_tarea" class="font-weight-bold">Horas Tarea *</label>
+                                <input type="number" class="form-control" id="editar_horas_tarea" name="horas_tarea" 
+                                    step="0.25" min="0.25" max="24" required 
+                                    placeholder="Ej: 1.5">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="editar_area_tarea" class="font-weight-bold">Área/Proyecto</label>
+                                <input type="text" class="form-control" id="editar_area_tarea" name="area" 
+                                    placeholder="Ej: Desarrollo, Marketing...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <small>
+                            <i class="fas fa-info-circle"></i> 
+                            Solo puedes editar tareas que hayas creado tú mismo.
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-warning" onclick="actualizarTareaEmpleado()">
+                    <i class="fas fa-save mr-1"></i> Actualizar Tarea
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 <!-- ***********************************************************************  JS ****************************************************************************************************-->
@@ -402,6 +713,9 @@ $(document).ready(function() {
             }
         });
     }, 30000);
+
+    initializeTareasDataTable();
+
 
     // Inicializar DataTable con manejo de estado vacío
     function initializeDataTable() {
@@ -769,7 +1083,7 @@ $(document).ready(function() {
         }
 
          $.ajax({
-        url: `/empleado/registro/${empleadoId}/resumen-periodo`,
+        url: `empleado/registro/${empleadoId}/resumen-periodo`,
         method: 'GET',
         data: {
             month: month,
@@ -967,7 +1281,6 @@ $(document).ready(function() {
                 });
         });
     }
-
 
     // Función para encontrar la mejor ubicación entre todos los resultados
 function encontrarMejorUbicacion(resultados) {
@@ -2111,6 +2424,1076 @@ function safeParseFloat(value) {
     return 0;
 }
 
+
+// =============================================
+// FUNCIONES PARA GESTIÓN DE TAREAS DEL EMPLEADO
+// =============================================
+
+let tiposTareaCargados = false;
+
+// Cargar tipos de tarea al abrir el modal
+$('#crearTareaModal').on('show.bs.modal', function() {
+    if (!tiposTareaCargados) {
+        cargarTiposTareaEmpleado();
+    }
+});
+
+// Función para cargar tipos de tarea
+function cargarTiposTareaEmpleado() {
+    $.ajax({
+        url: '/empleado/tipos-tarea',
+        type: 'GET',
+        success: function(response) {
+            if (response.success && response.data) {
+                $('#tipo_tarea_id').empty().append('<option value="">Seleccione un tipo</option>');
+                response.data.forEach(function(tipo) {
+                    $('#tipo_tarea_id').append(`<option value="${tipo.id}">${tipo.descripcion || tipo.nombre}</option>`);
+                });
+                tiposTareaCargados = true;
+            }
+        },
+        error: function() {
+            console.error('Error cargando tipos de tarea');
+        }
+    });
+}
+
+// Función para crear tarea
+window.crearTareaEmpleado = function() {
+    console.log('📝 Creando nueva tarea...');
+    
+    const formData = new FormData(document.getElementById('crearTareaForm'));
+    
+    // Validaciones básicas
+    if (!$('#titulo_tarea').val().trim()) {
+        Swal.fire('Error', 'El título es obligatorio', 'error');
+        $('#titulo_tarea').focus();
+        return;
+    }
+
+    if (!$('#tipo_tarea_id').val()) {
+        Swal.fire('Error', 'Debe seleccionar un tipo de tarea', 'error');
+        $('#tipo_tarea_id').focus();
+        return;
+    }
+
+    if (!$('#fecha_tarea').val()) {
+        Swal.fire('Error', 'Debe seleccionar una fecha para la tarea', 'error');
+        $('#fecha_tarea').focus();
+        return;
+    }
+
+    if (!$('#horas_tarea').val() || $('#horas_tarea').val() <= 0) {
+        Swal.fire('Error', 'Debe ingresar el número de horas de la tarea', 'error');
+        $('#horas_tarea').focus();
+        return;
+    }
+
+    // Mostrar loading
+    Swal.fire({
+        title: 'Creando tarea...',
+        text: 'Por favor espere',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    $.ajax({
+        url: `/empleado/{{ $empleado->id }}/tareas/crear`,
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            Swal.close();
+            if (response.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Éxito!',
+                    text: response.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                $('#crearTareaModal').modal('hide');
+                document.getElementById('crearTareaForm').reset();
+                
+                // Recargar el DataTable de tareas
+                recargarTareasDataTable();
+                
+            } else {
+                Swal.fire('Error', response.message, 'error');
+            }
+        },
+        error: function(xhr, status, error) {
+            Swal.close();
+            
+            let errorMessage = 'Error al crear la tarea';
+            
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                const errors = xhr.responseJSON.errors;
+                let errorList = '';
+                for (const field in errors) {
+                    errorList += `<strong>${field}:</strong> ${errors[field].join(', ')}<br>`;
+                }
+                Swal.fire({
+                    title: 'Errores de validación',
+                    html: errorList,
+                    icon: 'error'
+                });
+                return;
+            }
+
+            Swal.fire('Error', errorMessage, 'error');
+        }
+    });
+}
+
+
+// DataTable para Tareas del Empleado
+function initializeTareasDataTable() {
+    const empleadoId = {{ $empleado->id }};
+    
+    window.tareasDataTable = $('#tareasDataTable').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: `/empleado/${empleadoId}/tareas/datatable`,
+            type: 'GET',
+            error: function(xhr, error, thrown) {
+                console.error('Error loading tareas DataTable:', error);
+                // Mostrar mensaje de error en la tabla
+                $('#tareasDataTable tbody').html(`
+                    <tr>
+                        <td colspan="9" class="text-center text-danger py-4">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                            <h6>Error al cargar las tareas</h6>
+                            <button class="btn btn-sm btn-primary" onclick="window.tareasDataTable.ajax.reload()">
+                                <i class="fas fa-redo mr-1"></i> Reintentar
+                            </button>
+                        </td>
+                    </tr>
+                `);
+            }
+        },
+        columns: [
+            { 
+                data: 'id',
+                name: 'id',
+                width: '5%',
+                className: 'text-center',
+                orderable: true
+            },
+            { 
+                data: 'titulo',
+                name: 'titulo',
+                width: '25%',
+                orderable: true,
+                render: function(data, type, row) {
+                    let html = `<strong class="text-dark">${data || 'Sin título'}</strong>`;
+                    if (row.descripcion) {
+                        html += `<br><small class="text-muted">${row.descripcion.substring(0, 50)}${row.descripcion.length > 50 ? '...' : ''}</small>`;
+                    }
+                    return html;
+                }
+            },
+            { 
+                data: 'tipo_tarea',
+                name: 'tipo_tarea',
+                width: '10%',
+                orderable: true,
+                render: function(data, type, row) {
+                    return `<span class="badge badge-light border" style="border-left: 3px solid ${row.color} !important;">${data}</span>`;
+                }
+            },
+            { 
+                data: 'prioridad',
+                name: 'prioridad',
+                width: '10%',
+                orderable: true,
+                render: function(data) {
+                    const badges = {
+                        'baja': 'badge-success',
+                        'media': 'badge-info', 
+                        'alta': 'badge-warning',
+                        'urgente': 'badge-danger'
+                    };
+                    return `<span class="badge ${badges[data] || 'badge-secondary'}">${data.charAt(0).toUpperCase() + data.slice(1)}</span>`;
+                }
+            },
+            { 
+                data: 'estado',
+                name: 'estado',
+                width: '10%',
+                orderable: true,
+                render: function(data) {
+                    const estados = {
+                        'pendiente': 'badge-secondary',
+                        'en_progreso': 'badge-primary',
+                        'completada': 'badge-success',
+                        'cancelada': 'badge-danger'
+                    };
+                    const estadoTexto = data.replace('_', ' ');
+                    return `<span class="badge ${estados[data] || 'badge-secondary'}">${estadoTexto.charAt(0).toUpperCase() + estadoTexto.slice(1)}</span>`;
+                }
+            },
+            { 
+                data: 'fecha_tarea',
+                name: 'fecha_tarea',
+                width: '10%',
+                orderable: true,
+                render: function(data) {
+                    return data ? new Date(data).toLocaleDateString('es-ES') : '-';
+                }
+            },
+            { 
+                data: 'horas_tarea',
+                name: 'horas_tarea',
+                width: '10%',
+                className: 'text-center',
+                orderable: true,
+                render: function(data) {
+                    return `${data}h`;
+                }
+            },
+            { 
+                data: 'creador_tipo',
+                name: 'creador_tipo',
+                width: '10%',
+                orderable: true,
+                render: function(data) {
+                    return data === 'empleado' ? 
+                        '<span class="badge badge-info">Creada por mí</span>' : 
+                        '<span class="badge badge-warning">Asignada</span>';
+                }
+            },
+            {
+                data: 'id',
+                name: 'acciones',
+                width: '10%',
+                orderable: false,
+                searchable: false,
+                className: 'text-center',
+                render: function(data, type, row) {
+                    console.log('Renderizando acciones para tarea:', row);
+                    
+                    // Verificar si el empleado puede editar/eliminar esta tarea
+                    const puedeEditarEliminar = row.creador_tipo === 'empleado';
+                    
+                    return `
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-info" onclick="verTareaEmpleado(${data})" title="Ver detalles">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            ${puedeEditarEliminar ? 
+                                `<button class="btn btn-warning" onclick="editarTareaEmpleado(${data})" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>` : ''
+                            }
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" title="Más acciones">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-right">
+                                    <h6 class="dropdown-header">Cambiar Estado</h6>
+                                    <a class="dropdown-item" href="javascript:void(0)" onclick="cambiarEstadoTarea(${data}, 'pendiente')">
+                                        <i class="fas fa-clock mr-2 text-secondary"></i>Pendiente
+                                    </a>
+                                    <a class="dropdown-item" href="javascript:void(0)" onclick="cambiarEstadoTarea(${data}, 'en_progreso')">
+                                        <i class="fas fa-spinner mr-2 text-primary"></i>En Progreso
+                                    </a>
+                                    <a class="dropdown-item" href="javascript:void(0)" onclick="cambiarEstadoTarea(${data}, 'completada')">
+                                        <i class="fas fa-check mr-2 text-success"></i>Completada
+                                    </a>
+                                    <a class="dropdown-item" href="javascript:void(0)" onclick="cambiarEstadoTarea(${data}, 'cancelada')">
+                                        <i class="fas fa-times mr-2 text-danger"></i>Cancelada
+                                    </a>
+                                    ${puedeEditarEliminar ? `
+                                        <div class="dropdown-divider"></div>
+                                        <a class="dropdown-item text-danger" href="javascript:void(0)" onclick="eliminarTareaEmpleado(${data})">
+                                            <i class="fas fa-trash mr-2"></i>Eliminar
+                                        </a>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        ],
+        language: {
+            url: "{{ asset('js/datatables/Spanish.json') }}",
+            emptyTable: 'No hay tareas registradas',
+            zeroRecords: 'No se encontraron tareas que coincidan'
+        },
+        order: [[0, 'asc']], // ORDEN POR DEFECTO: Columna 0 (ID) ASCENDENTE
+        pageLength: 10,
+        lengthMenu: [[5, 10, 25, 50], [5, 10, 25, 50]],
+        responsive: true,
+        autoWidth: false,
+        drawCallback: function(settings) {
+            // Actualizar estadísticas cuando se carga/recarga la tabla
+            updateTareasStats();
+            
+            // Mostrar información de debug
+            console.log('Tareas DataTable dibujado:', {
+                total: settings.json?.recordsTotal,
+                filtradas: settings.json?.recordsFiltered,
+                mostrando: this.api().rows({page: 'current'}).count()
+            });
+        },
+        initComplete: function(settings, json) {
+            console.log('Tareas DataTable inicializado correctamente');
+            // Actualizar estadísticas iniciales
+            updateTareasStats();
+        }
+    });
+}
+
+
+// Función para actualizar estadísticas
+function updateTareasStats() {
+    const empleadoId = {{ $empleado->id }};
+    
+    $.ajax({
+        url: `/empleado/${empleadoId}/tareas/estadisticas`,
+        type: 'GET',
+        success: function(response) {
+            if (response.success && response.data) {
+                const stats = response.data;
+                
+                // Actualizar todas las estadísticas
+                $('#total-tareas-badge').text(stats.total || 0);
+                $('#stat-total').text(stats.total || 0);
+                $('#stat-pendientes').text(stats.pendientes || 0);
+                $('#stat-en-progreso').text(stats.en_progreso || 0);
+                $('#stat-completadas').text(stats.completadas || 0);
+                $('#stat-creadas').text(stats.creadas_count || 0);
+                $('#stat-asignadas').text(stats.asignadas_count || 0);
+                
+                console.log('Estadísticas de tareas actualizadas:', stats);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error actualizando estadísticas de tareas:', error);
+            // Mantener los valores iniciales de Blade si hay error
+        }
+    });
+}
+// Función para recargar el DataTable después de acciones
+function recargarTareasDataTable() {
+    if (window.tareasDataTable) {
+        window.tareasDataTable.ajax.reload(null, false);
+    }
+}
+
+// Función para ver detalles de tarea
+// =============================================
+// FUNCIONES PARA GESTIÓN DE TAREAS - EMPLEADO
+// =============================================
+
+// Función para ver tarea (empleado)
+window.verTareaEmpleado = function(tareaId) {
+    console.log('🔍 Empleado viendo tarea ID:', tareaId);
+    
+    // Guardar el ID para uso posterior
+    window.tareaActualId = tareaId;
+    
+    // Mostrar loading
+    Swal.fire({
+        title: 'Cargando tarea...',
+        text: 'Por favor espere',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    
+    //$('#verTareaModal').modal('show');
+    
+    // Obtener datos de la tarea
+    $.ajax({
+        url: '/empleado/' + {{ $empleado->id }} + '/tareas/' + tareaId + '/detalles',
+        type: 'GET',
+        success: function(response) {
+            console.log('✅ Datos de tarea recibidos:', response);
+            
+            if (response.success && response.data) {
+                const tarea = response.data.tarea;
+                const empleados = response.data.empleados_asignados || [];
+                
+                // Determinar si el empleado puede editar esta tarea
+                const puedeEditar = tarea.creador_tipo === 'empleado' && tarea.empleado_creador_id === {{ $empleado->id }};
+                
+                // Construir el contenido
+                let contenidoHTML = `
+                <div class="container-fluid">
+                    <style>
+                        .modal-tarea-card {
+                            border: 1px solid #e0e0e0;
+                            border-radius: 10px;
+                            margin-bottom: 20px;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        }
+                        .modal-tarea-header {
+                            padding: 15px 20px;
+                            border-radius: 10px 10px 0 0;
+                            font-weight: 600;
+                            margin: -1px -1px 15px -1px;
+                            border-bottom: 2px solid;
+                        }
+                        .header-fechas {
+                            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+                            color: #0d47a1;
+                            border-bottom-color: #2196f3;
+                        }
+                        .header-adicional {
+                            background: linear-gradient(135deg, #e8f5e8, #c8e6c9);
+                            color: #1b5e20;
+                            border-bottom-color: #4caf50;
+                        }
+                        .header-empleados {
+                            background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+                            color: #e65100;
+                            border-bottom-color: #ff9800;
+                        }
+                        .modal-tarea-body {
+                            padding: 20px;
+                        }
+                        .info-row {
+                            display: flex;
+                            justify-content: space-between;
+                            margin-bottom: 10px;
+                            padding: 8px 0;
+                            border-bottom: 1px solid #f5f5f5;
+                        }
+                        .info-label {
+                            font-weight: 600;
+                            color: #495057;
+                        }
+                        .info-value {
+                            color: #6c757d;
+                            text-align: right;
+                        }
+                        .badge-modal {
+                            padding: 6px 12px;
+                            border-radius: 20px;
+                            font-weight: 600;
+                        }
+                        .tarea-titulo {
+                            color: #4361ee;
+                            font-weight: 700;
+                            margin-bottom: 10px;
+                        }
+                        .tarea-descripcion {
+                            color: #6c757d;
+                            line-height: 1.6;
+                            margin-bottom: 20px;
+                        }
+                    </style>
+
+                    <!-- Título y Descripción -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h4 class="tarea-titulo">${tarea.titulo || 'Sin título'}</h4>
+                            <p class="tarea-descripcion">${tarea.descripcion || 'Sin descripción'}</p>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- Información de Fechas -->
+                        <div class="col-md-6">
+                            <div class="modal-tarea-card">
+                                <div class="modal-tarea-header header-fechas">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-calendar-alt mr-2"></i>Información de Fechas
+                                    </h6>
+                                </div>
+                                <div class="modal-tarea-body">
+                                    <div class="info-row">
+                                        <div class="info-label">Fecha Tarea:</div>
+                                        <div class="info-value">${formatFecha(tarea.fecha_tarea) || 'No especificada'}</div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label">Duración:</div>
+                                        <div class="info-value">${formatHorasTarea(tarea.horas_tarea)}</div>
+                                    </div>
+                                    <div class="info-row" style="border-bottom: none;">
+                                        <div class="info-label">Fecha Creación:</div>
+                                        <div class="info-value">${formatFechaCompleta(tarea.created_at)}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Información Adicional -->
+                        <div class="col-md-6">
+                            <div class="modal-tarea-card">
+                                <div class="modal-tarea-header header-adicional">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-info-circle mr-2"></i>Información Adicional
+                                    </h6>
+                                </div>
+                                <div class="modal-tarea-body">
+                                    <div class="info-row">
+                                        <div class="info-label">Tipo de Tarea:</div>
+                                        <div class="info-value">
+                                            <span class="badge badge-modal" style="background: ${tarea.tipo_tarea_color || '#6c757d'}; color: black;">
+                                                ${tarea.tipo_tarea_nombre || 'No especificado'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label">Prioridad:</div>
+                                        <div class="info-value">${getBadgePrioridad(tarea.prioridad)}</div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label">Estado:</div>
+                                        <div class="info-value">${getBadgeEstado(tarea.estado)}</div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label">Área/Proyecto:</div>
+                                        <div class="info-value">${tarea.area || 'No especificado'}</div>
+                                    </div>
+                                    <div class="info-row" style="border-bottom: none;">
+                                        <div class="info-label">Creada por:</div>
+                                        <div class="info-value">
+                                            <span class="badge ${tarea.creador_tipo === 'empleado' ? 'badge-info' : 'badge-warning'} badge-modal">
+                                                ${tarea.creador_tipo === 'empleado' ? 'Yo mismo' : 'Administrador'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Empleados Asignados -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="modal-tarea-card">
+                                <div class="modal-tarea-header header-empleados">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-users mr-2"></i>Empleados Asignados
+                                    </h6>
+                                </div>
+                                <div class="modal-tarea-body">
+                `;
+
+                if (empleados.length > 0) {
+                    contenidoHTML += '<div class="d-flex flex-wrap gap-2">';
+                    empleados.forEach(function(emp) {
+                        contenidoHTML += `
+                            <span class="badge badge-primary badge-modal">
+                                <i class="fas fa-user mr-1"></i>
+                                ${emp.nombre_completo || 'Empleado'}
+                            </span>
+                        `;
+                    });
+                    contenidoHTML += '</div>';
+                } else {
+                    contenidoHTML += `
+                        <p class="text-muted mb-0 text-center">
+                            <i class="fas fa-users fa-lg mb-2 d-block"></i>
+                            No hay empleados asignados a esta tarea.
+                        </p>
+                    `;
+                }
+
+                contenidoHTML += `
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                `;
+
+                $('#contenidoTareaModal').html(contenidoHTML);
+                
+                // Mostrar/ocultar botón de editar
+                if (puedeEditar) {
+                    $('#btnEditarDesdeVista').show().off('click').on('click', function() {
+                        $('#verTareaModal').modal('hide');
+                        setTimeout(function() {
+                            editarTareaEmpleado(tareaId);
+                        }, 300);
+                    });
+                } else {
+                    $('#btnEditarDesdeVista').hide();
+                }
+                
+            } else {
+                $('#contenidoTareaModal').html(`
+                    <div class="text-center py-4">
+                        <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                        <h5>Error al cargar la tarea</h5>
+                        <p class="text-muted">${response.message || 'No se pudieron cargar los detalles de la tarea'}</p>
+                        <button class="btn btn-secondary mt-2" data-dismiss="modal">Cerrar</button>
+                    </div>
+                `);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('❌ Error cargando tarea:', error);
+            $('#contenidoTareaModal').html(`
+                <div class="text-center py-4">
+                    <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                    <h5>Error de conexión</h5>
+                    <p class="text-muted">No se pudo cargar la información de la tarea.</p>
+                    <button class="btn btn-secondary mt-2" data-dismiss="modal">Cerrar</button>
+                </div>
+            `);
+        }
+    });
+};
+
+// Función para editar tarea (empleado)
+window.editarTareaEmpleado = function(tareaId) {
+    console.log('✏️ Abriendo modal de edición para tarea ID:', tareaId);
+    
+    // Mostrar loading
+    Swal.fire({
+        title: 'Cargando tarea...',
+        text: 'Por favor espere',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    // Obtener datos de la tarea
+    $.ajax({
+        url: `/empleado/{{ $empleado->id }}/tareas/${tareaId}/detalles`,
+        type: 'GET',
+        success: function(response) {
+            Swal.close();
+            
+            if (response.success && response.data) {
+                const tarea = response.data.tarea;
+                
+                console.log('📋 Datos de tarea recibidos:', {
+                    id: tarea.id,
+                    titulo: tarea.titulo,
+                    tipo_tarea_id: tarea.tipo_tarea_id,
+                    fecha_tarea: tarea.fecha_tarea,
+                    fecha_original: tarea.fecha_tarea
+                });
+                
+                // Verificar que el empleado puede editar esta tarea
+                if (tarea.creador_tipo !== 'empleado') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'No autorizado',
+                        text: 'Solo puedes editar tareas que hayas creado tú mismo.'
+                    });
+                    return;
+                }
+
+                // Llenar los campos básicos primero
+                $('#editar_tarea_id').val(tarea.id);
+                $('#editar_titulo_tarea').val(tarea.titulo);
+                $('#editar_descripcion_tarea').val(tarea.descripcion || '');
+                $('#editar_prioridad_tarea').val(tarea.prioridad);
+                $('#editar_horas_tarea').val(tarea.horas_tarea);
+                $('#editar_area_tarea').val(tarea.area || '');
+                
+                // CORREGIR FECHA: Manejar zona horaria
+                if (tarea.fecha_tarea) {
+                    // Crear fecha en UTC para evitar desfase
+                    const fechaUTC = new Date(tarea.fecha_tarea + 'T00:00:00Z');
+                    const fechaFormateada = fechaUTC.toISOString().split('T')[0];
+                    $('#editar_fecha_tarea').val(fechaFormateada);
+                    
+                    console.log('📅 Corrección fecha:', {
+                        'original': tarea.fecha_tarea,
+                        'utc': fechaUTC,
+                        'formateada': fechaFormateada,
+                        'input_value': $('#editar_fecha_tarea').val()
+                    });
+                }
+                
+                // Cargar tipos de tarea y establecer el valor
+                cargarTiposTareaParaEdicion(tarea.tipo_tarea_id);
+                
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: response.message || 'No se pudieron cargar los datos de la tarea'
+                });
+            }
+        },
+        error: function(xhr, status, error) {
+            Swal.close();
+            console.error('❌ Error cargando tarea:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de conexión',
+                text: 'No se pudo cargar la información de la tarea: ' + error
+            });
+        }
+    });
+}
+
+// Función para cargar tipos de tarea en el modal de edición
+function cargarTiposTareaParaEdicion(tipoTareaId = null) {
+    console.log('🔄 Cargando tipos de tarea para edición, ID a establecer:', tipoTareaId);
+    
+    $.ajax({
+        url: '/empleado/tipos-tarea',
+        type: 'GET',
+        success: function(response) {
+            if (response.success && response.data) {
+                $('#editar_tipo_tarea_id').empty().append('<option value="">Seleccione un tipo</option>');
+                
+                // Log de todos los tipos disponibles
+                console.log('📊 Tipos de tarea disponibles:', response.data);
+                
+                response.data.forEach(function(tipo) {
+                    $('#editar_tipo_tarea_id').append(
+                        `<option value="${tipo.id}">${tipo.descripcion || tipo.nombre}</option>`
+                    );
+                });
+                
+                // Establecer el valor y verificar
+                if (tipoTareaId) {
+                    setTimeout(() => {
+                        $('#editar_tipo_tarea_id').val(tipoTareaId);
+                        
+                        // Verificar que se estableció correctamente
+                        const valorEstablecido = $('#editar_tipo_tarea_id').val();
+                        console.log('✅ Intento de establecer tipo:', {
+                            'esperado': tipoTareaId,
+                            'establecido': valorEstablecido,
+                            'coincide': valorEstablecido == tipoTareaId
+                        });
+                        
+                        // Si no coincide, forzar selección
+                        if (valorEstablecido != tipoTareaId) {
+                            console.warn('⚠️ El valor no se estableció correctamente, forzando...');
+                            $('#editar_tipo_tarea_id option').each(function() {
+                                if ($(this).val() == tipoTareaId) {
+                                    $(this).prop('selected', true);
+                                    console.log('🔄 Valor forzado:', $(this).val());
+                                    return false;
+                                }
+                            });
+                        }
+                        
+                        // Mostrar el modal cuando todo esté listo
+                        $('#editarTareaModal').modal('show');
+                        
+                    }, 200);
+                } else {
+                    $('#editarTareaModal').modal('show');
+                }
+                
+            } else {
+                console.error('❌ No se pudieron cargar los tipos de tarea');
+                $('#editarTareaModal').modal('show');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('❌ Error cargando tipos de tarea para edición:', error);
+            $('#editarTareaModal').modal('show');
+        }
+    });
+}
+
+// Función para actualizar la tarea
+window.actualizarTareaEmpleado = function() {
+    const tareaId = $('#editar_tarea_id').val();
+    const formData = new FormData(document.getElementById('editarTareaForm'));
+    
+    console.log('🔄 Actualizando tarea ID:', tareaId);
+    
+    // Validaciones básicas
+    if (!$('#editar_titulo_tarea').val().trim()) {
+        Swal.fire('Error', 'El título es obligatorio', 'error');
+        $('#editar_titulo_tarea').focus();
+        return;
+    }
+
+    if (!$('#editar_tipo_tarea_id').val()) {
+        Swal.fire('Error', 'Debe seleccionar un tipo de tarea', 'error');
+        $('#editar_tipo_tarea_id').focus();
+        return;
+    }
+
+    if (!$('#editar_fecha_tarea').val()) {
+        Swal.fire('Error', 'Debe seleccionar una fecha para la tarea', 'error');
+        $('#editar_fecha_tarea').focus();
+        return;
+    }
+
+    if (!$('#editar_horas_tarea').val() || $('#editar_horas_tarea').val() <= 0) {
+        Swal.fire('Error', 'Debe ingresar el número de horas de la tarea', 'error');
+        $('#editar_horas_tarea').focus();
+        return;
+    }
+
+    // Mostrar loading
+    Swal.fire({
+        title: 'Actualizando tarea...',
+        text: 'Por favor espere',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    $.ajax({
+        url: `/empleado/{{ $empleado->id }}/tareas/${tareaId}/actualizar`,
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            Swal.close();
+            if (response.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Éxito!',
+                    text: response.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                $('#editarTareaModal').modal('hide');
+                
+                // Recargar el DataTable de tareas
+                recargarTareasDataTable();
+                
+            } else {
+                Swal.fire('Error', response.message, 'error');
+            }
+        },
+        error: function(xhr, status, error) {
+            Swal.close();
+            
+            let errorMessage = 'Error al actualizar la tarea';
+            
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                const errors = xhr.responseJSON.errors;
+                let errorList = '';
+                for (const field in errors) {
+                    errorList += `<strong>${field}:</strong> ${errors[field].join(', ')}<br>`;
+                }
+                Swal.fire({
+                    title: 'Errores de validación',
+                    html: errorList,
+                    icon: 'error'
+                });
+                return;
+            }
+
+            Swal.fire('Error', errorMessage, 'error');
+        }
+    });
+}
+
+// Cargar tipos de tarea cuando se abre el modal de edición
+$('#editarTareaModal').on('show.bs.modal', function() {
+    if ($('#editar_tipo_tarea_id option').length <= 1) {
+        cargarTiposTareaParaEdicion();
+    }
+});
+
+// Limpiar formulario cuando se cierra el modal
+$('#editarTareaModal').on('hidden.bs.modal', function() {
+    $('#editarTareaForm')[0].reset();
+    $('#editar_tarea_id').val('');
+});
+
+// FUNCIONES AUXILIARES - TAMBIÉN DEBEN ESTAR EN EL ÁMBITO GLOBAL
+function formatFechaCompleta(fecha) {
+    if (!fecha) return 'N/A';
+    const date = new Date(fecha);
+    return date.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function formatHorasTarea(horas) {
+    if (!horas || horas == 0) return '0h';
+    
+    const horasEntero = Math.floor(horas);
+    const minutos = Math.round((horas - horasEntero) * 60);
+    
+    let resultado = '';
+    if (horasEntero > 0) resultado += `${horasEntero}h`;
+    if (minutos > 0) resultado += ` ${minutos}m`;
+    
+    return resultado || '0h';
+}
+
+// Función para obtener badge de prioridad
+function getBadgePrioridad(prioridad) {
+    const badges = {
+        'baja': '<span class="badge badge-success badge-modal">Baja</span>',
+        'media': '<span class="badge badge-info badge-modal">Media</span>',
+        'alta': '<span class="badge badge-warning badge-modal">Alta</span>',
+        'urgente': '<span class="badge badge-danger badge-modal">Urgente</span>'
+    };
+    return badges[prioridad] || '<span class="badge badge-secondary badge-modal">N/A</span>';
+}
+
+// Función para obtener badge de estado (INCLUYE CANCELADA)
+function getBadgeEstado(estado) {
+    const badges = {
+        'pendiente': '<span class="badge badge-secondary badge-modal">Pendiente</span>',
+        'en_progreso': '<span class="badge badge-primary badge-modal">En Progreso</span>',
+        'completada': '<span class="badge badge-success badge-modal">Completada</span>',
+        'cancelada': '<span class="badge badge-danger badge-modal">Cancelada</span>'
+    };
+    return badges[estado] || '<span class="badge badge-secondary badge-modal">N/A</span>';
+}
+
+// Función para formatear fecha simple
+function formatFecha(fecha) {
+    if (!fecha) return 'N/A';
+    const date = new Date(fecha);
+    return date.toLocaleDateString('es-ES');
+}
+
+// Función para cambiar estado de tarea
+function cambiarEstadoTarea(tareaId, nuevoEstado) {
+    const estados = {
+        'pendiente': { texto: 'Pendiente', color: 'secondary', icono: 'clock' },
+        'en_progreso': { texto: 'En Progreso', color: 'primary', icono: 'spinner' },
+        'completada': { texto: 'Completada', color: 'success', icono: 'check' },
+        'cancelada': { texto: 'Cancelada', color: 'danger', icono: 'times' }
+    };
+    
+    const estadoInfo = estados[nuevoEstado];
+    
+    if (!estadoInfo) {
+        console.error('❌ Estado no válido:', nuevoEstado);
+        Swal.fire('Error', 'Estado no válido', 'error');
+        return;
+    }
+
+    Swal.fire({
+        title: `¿Cambiar estado a "${estadoInfo.texto}"?`,
+        text: "El estado de la tarea será actualizado inmediatamente",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: `#${nuevoEstado === 'pendiente' ? '6c757d' : nuevoEstado === 'en_progreso' ? '007bff' : nuevoEstado === 'completada' ? '28a745' : 'dc3545'}`,
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: `Sí, cambiar a ${estadoInfo.texto}`,
+        cancelButtonText: 'Cancelar',
+        showLoaderOnConfirm: true,
+        preConfirm: () => {
+            return new Promise((resolve, reject) => {
+                $.ajax({
+                    url: `/empleado/{{ $empleado->id }}/tareas/${tareaId}/estado`,
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        estado: nuevoEstado
+                    },
+                    success: function(response) {
+                        resolve(response);
+                    },
+                    error: function(xhr) {
+                        reject('Error al cambiar el estado');
+                    }
+                });
+            });
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+    }).then((result) => {
+        if (result.isConfirmed) {
+            if (result.value && result.value.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Estado actualizado!',
+                    text: `La tarea ahora está en estado: ${estadoInfo.texto}`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                
+                // Después de cambiar estado exitosamente, agregar:
+                setTimeout(() => {
+                    recargarTareasDataTable();
+                }, 500);
+                            
+            } else {
+                Swal.fire('Error', result.value?.message || 'Error al cambiar el estado', 'error');
+            }
+        }
+    });
+}
+
+// Función para eliminar tarea (solo las creadas por el empleado)
+window.eliminarTareaEmpleado = function(tareaId) {
+    console.log('🗑️ Empleado eliminando tarea ID:', tareaId);
+    
+    Swal.fire({
+        title: '¿Estás seguro?',
+        text: "Esta acción no se puede deshacer. La tarea será eliminada permanentemente.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Mostrar loading
+            Swal.fire({
+                title: 'Eliminando...',
+                text: 'Por favor espere',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            $.ajax({
+                url: `/empleado/{{ $empleado->id }}/tareas/${tareaId}`,
+                type: 'DELETE',
+                data: {
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    Swal.close();
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Eliminada!',
+                            text: response.message,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        // Recargar el DataTable
+                        recargarTareasDataTable();
+                    } else {
+                        Swal.fire('Error', response.message, 'error');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    Swal.close();
+                    Swal.fire('Error', 'Error al eliminar la tarea: ' + error, 'error');
+                }
+            });
+        }
+    });
+}
+
+
 // Función para mostrar detalles completos en el modal - CORREGIDA
 function mostrarDetallesCompletos(registro, estadisticasDia) {
     console.log('📊 Mostrando detalles completos:', registro);
@@ -3122,6 +4505,15 @@ function imprimirDetalles() {
 .bg-secondary { background: linear-gradient(135deg, #6c757d, #495057) !important; }
 .bg-dark { background: linear-gradient(135deg, #343a40, #212529) !important; }
 
+.bg-gradient {
+    background-image: var(--bs-gradient) !important;
+}
+
+/* Para personalizar el gradiente si no te gusta el por defecto */
+.modal-header.bg-info.bg-gradient {
+    background: linear-gradient(45deg, #17a2b8, #138496) !important;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .achievements-grid {
@@ -3132,6 +4524,79 @@ function imprimirDetalles() {
     .achievement-item {
         padding: 12px;
     }
+}
+
+@media (min-width: 1200px) {
+    body .container, body .container-lg, body .container-md, body .container-sm, body .container-xl {
+        max-width: 1900px !important;
+    }
+}
+
+.bg-gradient-info {
+    background: linear-gradient(45deg, #17a2b8, #138496) !important;
+}
+
+/* Agrega esto a tu sección de estilos CSS general */
+#verTareaModal .modal-header.bg-gradient-info {
+    background: linear-gradient(45deg, #17a2b8, #138496) !important;
+    color: white;
+}
+
+#verTareaModal .modal-content {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+#verTareaModal .modal-body {
+    padding: 25px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    #verTareaModal .modal-body {
+        padding: 15px;
+    }
+    
+    .info-row {
+        flex-direction: column;
+    }
+    
+    .info-value {
+        text-align: left !important;
+        margin-top: 5px;
+    }
+}
+/* Estilos para el modal de edición */
+#editarTareaModal .modal-header.bg-warning.bg-gradient {
+    background: linear-gradient(45deg, #ffc107, #ff8f00) !important;
+    color: white;
+}
+
+#editarTareaModal .modal-content {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+#editarTareaModal .form-control:focus {
+    border-color: #ffc107;
+    box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+}
+
+#editarTareaModal .btn-warning {
+    background: linear-gradient(45deg, #ffc107, #ff8f00);
+    border: none;
+    color: white;
+    font-weight: 600;
+}
+
+#editarTareaModal .btn-warning:hover {
+    background: linear-gradient(45deg, #ff8f00, #ff6f00);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
 }
 
 </style>

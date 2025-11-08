@@ -267,7 +267,7 @@
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table id="empleadosTable" class="table table-hover table-bordered mb-0 display responsive nowrap" style="width:100%"> <!-- Clase responsive -->
+                        <table id="empleadosTable" class="table table-hover table-bordered mb-0" style="width:100%"> <!-- Clase responsive -->
                             <thead class="thead-dark">
                                 <tr>
                                     <th width="5%" class="all">ID</th> <!-- Clase 'all' para mostrar siempre -->
@@ -308,7 +308,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form id="employeeForm">
+                <form id="employeeForm" onsubmit="event.preventDefault(); submitEmployeeForm();">
                     @csrf
                     <div class="row">
                         <div class="col-md-6">
@@ -1102,16 +1102,10 @@
 <!-- DataTables JS -->
 <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
 <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap4.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/responsive/2.2.7/js/dataTables.responsive.min.js"></script>
 
 <!-- Bootstrap (asegúrate de que esté después de jQuery) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- Flatpickr -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css">
 
 
 <!-- ✅ AGREGAR Chart.js -->
@@ -1145,7 +1139,18 @@ let chartTypes = {
 // Esperar a que jQuery esté completamente cargado
 $(document).ready(function() {
     console.log('✅ jQuery cargado, versión:', $.fn.jquery);
-    initializeMonthPickers();
+
+    initializeDataTable();
+    loadStats(); // Cargar estadísticas al inicio
+
+    // Inicializar dashboard después de un pequeño delay
+        setTimeout(() => {
+                initializeChartsDashboard();
+        }, 1000);
+     // Esperar un poco para asegurar que Air Datepicker esté cargado
+    setTimeout(() => {
+        initializeAirDatepickers();
+    }, 500);
 
     // Limpiar el modal cuando se cierre (Excel)
     $('#exportExcelModal').on('hidden.bs.modal', function () {
@@ -1171,13 +1176,7 @@ $(document).ready(function() {
         }
     });
 
-    initializeDataTable();
-    loadStats(); // Cargar estadísticas al inicio
-
-    // Inicializar dashboard después de un pequeño delay
-        setTimeout(() => {
-                initializeChartsDashboard();
-            }, 1000);
+    
             
     $('#detailsModal').on('hidden.bs.modal', function () {
         console.log('🔙 Modal de detalles cerrado - Restaurando vista de empleado...');
@@ -1218,6 +1217,91 @@ $(document).ready(function() {
         $(this).find('.modal-body').css('overflow-y', 'auto');
     });
 });
+
+
+// ✅ VERIFICAR SI AIR DATEPICKER ESTÁ CARGADO
+function checkAirDatepickerLoaded() {
+    if (typeof Datepicker === 'undefined') {
+        console.error('❌ Air Datepicker no está cargado');
+        return false;
+    }
+    console.log('✅ Air Datepicker cargado correctamente');
+    return true;
+}
+
+// ✅ FUNCIÓN CORREGIDA: Inicializar Air Datepicker
+function initializeAirDatepickers() {
+    console.log('📅 Inicializando Air Datepickers...');
+    
+    // Verificar que la librería esté cargada
+    /*if (!checkAirDatepickerLoaded()) {
+        console.error('No se puede inicializar Air Datepicker - librería no disponible');
+        // Fallback: usar inputs nativos
+        setupNativeDateInputs();
+        return;
+    }*/
+
+    // Configuración común
+    const datepickerOptions = {
+        language: 'es',
+        dateFormat: 'yyyy-mm',
+        minView: 'months',
+        view: 'months',
+        selectDates: true,
+        autoClose: true
+    };
+
+    // Inicializar cada datepicker
+    const datepickerSelectors = [
+        '#filterMes',
+        '#view_filter_mes', 
+        '#export_mes',
+        '#export_pdf_mes'
+    ];
+
+    datepickerSelectors.forEach(selector => {
+        try {
+            const element = document.querySelector(selector);
+            if (element) {
+                // Destruir instancia anterior si existe
+                if (element.datepicker) {
+                    element.datepicker.destroy();
+                }
+                
+                // Forzar type text para prevenir datepicker nativo
+                element.type = 'text';
+                
+                // Inicializar Air Datepicker
+                new AirDatepicker(selector, datepickerOptions);
+                console.log(`✅ Air Datepicker inicializado para: ${selector}`);
+            }
+        } catch (error) {
+            console.error(`❌ Error inicializando ${selector}:`, error);
+        }
+    });
+}
+
+// ✅ FALLBACK: Usar inputs nativos si Air Datepicker falla
+function setupNativeDateInputs() {
+    console.log('🔄 Configurando fallback con inputs nativos...');
+    
+    const dateInputs = [
+        'filterMes',
+        'view_filter_mes', 
+        'export_mes',
+        'export_pdf_mes'
+    ];
+
+    dateInputs.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.type = 'month';
+            element.placeholder = 'MM-AAAA';
+            element.className += ' form-control form-control-sm form-control-lg-md';
+            console.log(`✅ Fallback configurado para: #${id}`);
+        }
+    });
+}
 
 
 function reinicializarMapaDespuesDeDetalles() {
@@ -1348,28 +1432,20 @@ function initializeMonthPickers() {
         }
     });
 
-    // Configuración optimizada para Flatpickr
+    // Configuración para Air Datepicker
     const monthPickerOptions = {
-        plugins: [
-            new monthSelectPlugin({
-                shorthand: true,
-                dateFormat: "Y-m",
-                altFormat: "F Y",
-                theme: "material_blue"
-            })
-        ],
-        locale: "es",
-        static: false,
-        disableMobile: false, // ✅ IMPORTANTE: Deshabilitar el datepicker móvil nativo
-        clickOpens: true,
-        allowInput: true,
-        position: "auto", // ✅ Dejar en auto para mejor posicionamiento
-        positionElement: undefined, // ✅ No forzar elemento específico
-        onReady: function(selectedDates, dateStr, instance) {
-            console.log('✅ Flatpickr listo:', instance.element.id);
+        language: 'es',
+        dateFormat: 'yyyy-mm',
+        minView: 'months',
+        view: 'months',
+        selectDates: true,
+        onShow: function(dp, animationCompleted) {
+            if (!animationCompleted) {
+                console.log('📅 Air Datepicker abierto:', dp.$el[0].id);
+            }
         },
-        onOpen: function(selectedDates, dateStr, instance) {
-            console.log('📅 Flatpickr abierto:', instance.element.id);
+        onSelect: function(formattedDate, date, inst) {
+            console.log('📅 Fecha seleccionada:', formattedDate);
         }
     };
 
@@ -1447,30 +1523,34 @@ function initializeSingleDatepicker(elementId, options) {
 function initializeExcelDatepicker() {
     const selector = '#export_mes';
     
-    // Destruir instancia anterior si existe
-    const existingInput = document.querySelector(selector);
-    if (existingInput && existingInput._flatpickr) {
-        existingInput._flatpickr.destroy();
-    }
-    
     try {
-        flatpickr(selector, {
-            plugins: [
-                new monthSelectPlugin({
-                    shorthand: true,
-                    dateFormat: "Y-m",
-                    altFormat: "F Y",
-                    theme: "material_blue"
-                })
-            ],
-            locale: "es",
-            static: true,
-            disableMobile: true
+        // Verificar que Air Datepicker esté disponible
+        if (typeof Datepicker === 'undefined') {
+            console.warn('Air Datepicker no disponible para Excel');
+            const element = document.querySelector(selector);
+            if (element) {
+                element.type = 'month';
+            }
+            return;
+        }
+        
+        const existingInput = document.querySelector(selector);
+        if (existingInput && existingInput.datepicker) {
+            existingInput.datepicker.destroy();
+        }
+        
+        new Datepicker(selector, {
+            language: 'es',
+            dateFormat: 'yyyy-mm',
+            minView: 'months',
+            view: 'months',
+            selectDates: true,
+            autoClose: true
         });
-        console.log('✅ Flatpickr Excel inicializado correctamente');
+        console.log('✅ Air Datepicker Excel inicializado correctamente');
     } catch (error) {
         console.error('❌ Error inicializando datepicker Excel:', error);
-        setupFallbackMonthInput(selector);
+        setupNativeDateInput(selector);
     }
 }
 
@@ -1667,19 +1747,18 @@ function exportarRegistroHorario(empleadoId) {
         confirmButtonColor: '#6c757d',
         width: '500px',
         didOpen: () => {
-            // Inicializar datepicker
-            flatpickr("#individual_export_mes", {
-                plugins: [
-                    new monthSelectPlugin({
-                        shorthand: true,
-                        dateFormat: "Y-m",
-                        altFormat: "F Y",
-                        theme: "material_blue"
-                    })
-                ],
-                locale: "es",
-                defaultDate: "today"
-            });
+            // Inicializar Air Datepicker
+            try {
+                new Datepicker('#individual_export_mes', {
+                    language: 'es',
+                    dateFormat: 'yyyy-mm',
+                    minView: 'months',
+                    view: 'months',
+                    selectDates: true
+                });
+            } catch (error) {
+                console.error('Error inicializando datepicker individual:', error);
+            }
         },
         preConfirm: () => {
             const mesSeleccionado = document.getElementById('individual_export_mes').value;
@@ -1862,7 +1941,7 @@ function initializeDataTable() {
     table = $('#empleadosTable').DataTable({
         serverSide: false, // ✅ CLIENT-SIDE processing
         processing: true,
-        responsive: true,
+        
         language: {
             "url": "{{ asset('js/datatables/Spanish.json') }}"
         },
@@ -1894,25 +1973,77 @@ function initializeDataTable() {
             }
         },
         columns: [
-            { data: 'id', name: 'id' },
-            { data: 'dni', name: 'dni' },
-            { data: 'nombre', name: 'nombre' },
-            { data: 'apellidos', name: 'apellidos' },
-            { data: 'fecha_nacimiento', name: 'fecha_nacimiento' },
-            { data: 'edad', name: 'edad', orderable: false, searchable: false },
-            { data: 'domicilio', name: 'domicilio' },            
-            { data: 'telefono', name: 'telefono' },
-            { data: 'username', name: 'username' },
             { 
-                data: 'acciones', 
-                name: 'acciones', 
+                data: 'id', 
+                name: 'id',
+                className: 'dtr-control', // ✅ IMPORTANTE: Esta clase activa el control de expandir/colapsar
+            },
+            { 
+                data: 'dni', 
+                name: 'dni',
+            },
+            { 
+                data: 'nombre', 
+                name: 'nombre',
+            },
+            { 
+                data: 'apellidos', 
+                name: 'apellidos',
+                visible: true // ✅ Visible por defecto, pero se ocultará en responsive
+            },
+            { 
+                data: 'fecha_nacimiento', 
+                name: 'fecha_nacimiento',
+            },
+            { 
+                data: 'edad', 
+                name: 'edad', 
                 orderable: false, 
                 searchable: false,
-                className: 'text-center'
+            },
+            { 
+                data: 'domicilio', 
+                name: 'domicilio',
+            },            
+            { 
+                data: 'telefono', 
+                name: 'telefono',
+            },
+            { 
+                data: 'username', 
+                name: 'username',
+            },
+            { 
+                data: 'acciones', 
+                orderable: false, 
+                searchable: false,
+                className: 'text-center',
+                render: function(data, type, row) {
+
+                    return `
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button class="btn btn-info btn-sm" onclick="verEmpleado(${row.id})" title="Ver">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-warning btn-sm" onclick="editarEmpleado(${row.id})" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="eliminarEmpleado(${row.id})" title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="imprimirQR(${row.id})" title="Visualizar QR">
+                            <i class="fas fa-qrcode"></i>
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="exportarRegistroHorario(${row.id})" title="Exportar Registro Horario">
+                            <i class="fas fa-file-contract"></i>
+                        </button>
+                    </div>`;
+                }
             }
         ],
         order: [[0, 'asc']], // ✅ Ordenar por ID ascendente
         pageLength: 10,
+        responsive: true,
         drawCallback: function(settings) {
             console.log('📊 DataTable dibujado - Registros visibles:', settings.aoData.length);
             updateStats();
@@ -2008,30 +2139,34 @@ function aplicarFiltrosClientSide(data) {
 document.addEventListener("DOMContentLoaded", function() {
     // Fecha de nacimiento con restricción de +16 años
     // ✅ CORREGIDO: Fecha de nacimiento con restricción exacta de +16 años
-    flatpickr("#fecha_nacimiento", {
-        dateFormat: "d-m-Y",
-        maxDate: new Date(new Date().setFullYear(new Date().getFullYear() - 16)), // Exactamente 16 años atrás
-        locale: "es",
-        disableMobile: true,
-        errorHandler: function(error) {
-            console.log('Error de fecha:', error);
-        }
-    });
+    const fechaNacimientoInput = document.getElementById('fecha_nacimiento');
+    if (fechaNacimientoInput) {
+        /*new Datepicker('#fecha_nacimiento', {
+            language: 'es',
+            dateFormat: 'dd-mm-yyyy',
+            maxDate: new Date(new Date().setFullYear(new Date().getFullYear() - 16)),
+            onShow: function(dp, animationCompleted) {
+                if (!animationCompleted) {
+                    console.log('📅 Selector de fecha de nacimiento abierto');
+                }
+            }
+        });*/
+    }
 
-    // Selector de mes completo (mantener igual)
-    flatpickr("#filterMes", {
-        plugins: [
-            new monthSelectPlugin({
-                shorthand: true,
-                dateFormat: "m-Y",
-                altFormat: "F Y",
-                theme: "material_blue"
-            })
-        ],
-        locale: "es"
-    });
+    // Inicializar otros datepickers
+    //initializeMonthPickers();
+
     // Limpiar el modal cuando se cierra
-    $('#employeeModal').on('hidden.bs.modal', function () {
+    $('#employeeModal').on('hidden.bs.modal', function (e) {
+
+        // Prevenir comportamiento por defecto
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        console.log('🔒 Cerrando modal sin recargar página');
+
         document.getElementById('employeeForm').reset();
         document.getElementById('username').value = '';
         document.getElementById('password-display').value = '';
@@ -2041,6 +2176,8 @@ document.addEventListener("DOMContentLoaded", function() {
         inputs.forEach(input => {
             input.classList.remove('is-invalid');
         });
+        // ✅ EVITAR CUALQUIER POSIBLE RECARGA
+        return false;
     });
 
     const passwordInput = document.getElementById('password-display');
@@ -2302,7 +2439,8 @@ function validarCoordenadas() {
 
 // ✅ FUNCIÓN MEJORADA: submitEmployeeForm con validaciones completas
 function submitEmployeeForm() {
-    
+    // ✅ PREVENIR COMPORTAMIENTO POR DEFECTO
+    event.preventDefault();
     console.log('=== INICIANDO VALIDACIÓN ===');
     
 
@@ -2462,6 +2600,11 @@ function submitEmployeeForm() {
 function enviarDatosAlServidor(empleadoData, edadEmpleado) {
     console.log('🚀 Enviando datos al servidor...', empleadoData);
     
+// ✅ PREVENIR COMPORTAMIENTO POR DEFECTO SI SE LLAMA DESDE UN EVENTO
+    if (event) {
+        event.preventDefault();
+    }
+
     const submitBtn = document.querySelector('#employeeModal .btn-success');
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Creando...';
@@ -5160,7 +5303,13 @@ function generarQRPreview() {
 // ✅ NUEVA FUNCIÓN: Generar QR desde el servidor
 function generarQRDesdeServidor(dni, nombre, apellidos) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    
+        
+        // Validar que tenemos el token
+        if (!csrfToken) {
+            console.error('❌ Token CSRF no encontrado');
+            mostrarErrorQR('Error de seguridad: token CSRF no disponible');
+            return;
+        }    
     fetch('/admin/empleados/generar-qr-preview', {
         method: 'POST',
         headers: {
@@ -5171,7 +5320,10 @@ function generarQRDesdeServidor(dni, nombre, apellidos) {
         body: JSON.stringify({
             dni: dni,
             nombre: nombre,
-            apellidos: apellidos
+            apellidos: apellidos,
+            // ✅ AGREGAR credenciales únicas
+            username: document.getElementById('username').value,
+            empleado_id: 'temp_' + Date.now() // Temporal hasta guardar en BD
         })
     })
     .then(response => response.json())
@@ -6160,32 +6312,90 @@ function descargarQR(empleadoId) {
 }
 
 
+function mostrarAdvertenciaEmpleadosConectados() {
+    const mensaje = 'No hay empleados conectados en este momento';
+    const option = `<option value="" disabled selected>${mensaje}</option>`;
+    
+    $('#empleados_asignados').html(option);
+    $('#edit_empleados_asignados').html(option);
+    $('#empleados_asignacion').html(option);
+    
+    // Mostrar alerta
+    Swal.fire({
+        icon: 'warning',
+        title: 'Sin empleados conectados',
+        text: 'No hay empleados en línea en este momento. Puede asignar la tarea y se notificará cuando se conecten.',
+        timer: 5000,
+        showConfirmButton: true
+    });
+}
+
+// Función para cargar estadísticas de conexión
+function cargarEstadisticasConexion() {
+    $.ajax({
+        url: '{{ route("admin.estadisticas.conexion") }}',
+        type: 'GET',
+        success: function(response) {
+            if (response.success) {
+                const stats = response.data;
+                console.log('Estadísticas de conexión:', stats);
+                
+                // Actualizar UI si es necesario
+                $('#stats-empleados-conectados').text(stats.empleados_conectados);
+                $('#stats-total-empleados').text(stats.total_empleados);
+                $('#stats-porcentaje-conectados').text(stats.porcentaje_conectados + '%');
+            }
+        }
+    });
+}
+
+
+
+
 // Variables globales para el modal de vista
 let viewRegistrosTable = null; // Para la tabla de registros en el modal de vista
 let currentEmployeeId = null;
 
+
 // Función para inicializar el datepicker del filtro de mes
 function initializeViewDatepicker() {
-    flatpickr("#view_filter_mes", {
-        plugins: [
-            new monthSelectPlugin({
-                shorthand: true,
-                dateFormat: "Y-m",  // Formato YYYY-MM
-                altFormat: "F Y",   // Formato visual: Mes Año
-                theme: "material_blue"
-            })
-        ],
-        locale: "es",
-        defaultDate: "today",
-        disableMobile: true, // ✅ CRÍTICO: Deshabilitar el datepicker nativo móvil
-        onChange: function(selectedDates, dateStr, instance) {
-            console.log('📅 Mes seleccionado:', dateStr);
-            // Recargar automáticamente al cambiar el mes
-            setTimeout(() => {
-                cargarRegistrosEmpleado();
-            }, 300);
+    const element = document.getElementById('view_filter_mes');
+    if (!element) return;
+    
+    try {
+        // Verificar que Air Datepicker esté disponible
+        if (typeof Datepicker === 'undefined') {
+            console.warn('Air Datepicker no disponible para view_filter_mes');
+            element.type = 'month';
+            return;
         }
-    });
+        
+        // Destruir instancia anterior si existe
+        if (element.datepicker) {
+            element.datepicker.destroy();
+        }
+        
+        element.type = 'text';
+        
+        new Datepicker('#view_filter_mes', {
+            language: 'es',
+            dateFormat: 'yyyy-mm',
+            minView: 'months',
+            view: 'months',
+            selectDates: true,
+            autoClose: true,
+            onSelect: function(formattedDate, date, inst) {
+                console.log('📅 Mes seleccionado en vista:', formattedDate);
+                setTimeout(() => {
+                    cargarRegistrosEmpleado();
+                }, 300);
+            }
+        });
+    } catch (error) {
+        console.error('❌ Error inicializando view datepicker:', error);
+        // Fallback
+        element.type = 'month';
+    }
 }
 
 // Función para cargar los registros del empleado - VERSIÓN CORREGIDA
@@ -6457,7 +6667,10 @@ function cargarRegistrosEmpleado() {
             responsive: true,
             drawCallback: function(settings) {
                 // Cargar resumen después de cargar los datos
-                cargarResumenRegistros(currentEmployeeId, mes, año);
+                if (currentEmployeeId && mes && año) {
+                    console.log('🔄 Llamando a resumen desde drawCallback');
+                    cargarResumenRegistros(currentEmployeeId, mes, año);
+                }
                 
                 // Manejar estado vacío
                 if (settings.json && settings.json.recordsTotal === 0) {
@@ -7028,17 +7241,26 @@ function cargarResumenRegistros(empleadoId, mes, año) {
         url: `/admin/empleados/registros/${empleadoId}/resumen`,
         method: 'GET',
         data: {
-            month: mes,  // CORRECCIÓN: 'month' en lugar de 'mes'
-            year: año    // CORRECCIÓN: 'year' en lugar de 'año'
+            mes: mes,  // CORRECCIÓN: 'month' en lugar de 'mes'
+            año: año    // CORRECCIÓN: 'year' en lugar de 'año'
         },
         success: function(response) {
             console.log('✅ Respuesta resumen:', response);
             if (response.success) {
-                $('#view_total_horas_mes').html(formatTotalHoursWithDays(response.total_horas));
-                $('#view_total_registros_mes').text(response.total_registros);
-                $('#view_promedio_diario_mes').html(formatDecimalHoursToHM(response.promedio_diario));
-                $('#view_dias_trabajados_mes').text(response.dias_trabajados);
+                // ✅ CORREGIDO: Usar los nombres de campos correctos
+                $('#view_total_horas_mes').html(formatTotalHoursWithDays(response.total_horas || '0.00'));
+                $('#view_total_registros_mes').text(response.total_registros || '0');
+                $('#view_promedio_diario_mes').html(formatDecimalHoursToHM(response.promedio_diario || '0.00'));
+                $('#view_dias_trabajados_mes').text(response.dias_trabajados || '0');
                 $('#view_registros_resumen').show();
+
+                console.log('📊 Resumen actualizado:', {
+                    total_horas: response.total_horas,
+                    total_registros: response.total_registros,
+                    promedio_diario: response.promedio_diario,
+                    dias_trabajados: response.dias_trabajados
+                });
+
             } else {
                 console.error('❌ Error en respuesta de resumen:', response);
             }
@@ -8007,32 +8229,47 @@ function generateColors(count) {
 function initializePdfDatepicker() {
     const selector = '#export_pdf_mes';
     
-    // Destruir instancia anterior si existe
-    const existingInput = document.querySelector(selector);
-    if (existingInput && existingInput._flatpickr) {
-        existingInput._flatpickr.destroy();
-    }
-    
     try {
-        flatpickr(selector, {
-            plugins: [
-                new monthSelectPlugin({
-                    shorthand: true,
-                    dateFormat: "Y-m",
-                    altFormat: "F Y",
-                    theme: "material_blue"
-                })
-            ],
-            locale: "es",
-            static: true,
-            disableMobile: true
+        // Verificar que Air Datepicker esté disponible
+        if (typeof Datepicker === 'undefined') {
+            console.warn('Air Datepicker no disponible para PDF');
+            const element = document.querySelector(selector);
+            if (element) {
+                element.type = 'month';
+            }
+            return;
+        }
+        
+        const existingInput = document.querySelector(selector);
+        if (existingInput && existingInput.datepicker) {
+            existingInput.datepicker.destroy();
+        }
+        
+        new Datepicker(selector, {
+            language: 'es',
+            dateFormat: 'yyyy-mm',
+            minView: 'months',
+            view: 'months',
+            selectDates: true,
+            autoClose: true
         });
-        console.log('✅ Flatpickr PDF inicializado correctamente');
+        console.log('✅ Air Datepicker PDF inicializado correctamente');
     } catch (error) {
         console.error('❌ Error inicializando datepicker PDF:', error);
-        setupFallbackMonthInput(selector);
+        setupNativeDateInput(selector);
     }
 }
+
+// ✅ FUNCIÓN AUXILIAR para fallback individual
+function setupNativeDateInput(selector) {
+    const element = document.querySelector(selector);
+    if (element) {
+        element.type = 'month';
+        element.placeholder = 'MM-AAAA';
+        console.log(`✅ Fallback nativo para: ${selector}`);
+    }
+}
+
 
 // ✅ FUNCIÓN MEJORADA: Confirmar exportación PDF
 function confirmarExportacionPdf() {
@@ -10137,6 +10374,11 @@ input[type="date"] {
     .flatpickr-months .flatpickr-month {
         height: 40px !important;
     }
+    .table.dataTable.dtr-inline.collapsed>tbody>tr>td.dtr-control:before, table.dataTable.dtr-inline.collapsed>tbody>tr>th.dtr-control:before {
+    
+        margin-top: 0 !important; 
+
+    }
 }
 
 /* TABLETS (768px - 1024px) */
@@ -10182,6 +10424,208 @@ input[type="date"] {
     }
 }
 
+
+ /* ===== ESTILOS PARA CHILD ROWS EN MÓVIL ===== */
+
+/* Ocultar columnas no prioritarias en móvil */
+/*@media (max-width: 767.98px) {
+    #empleadosTable tbody td:nth-child(n+4) {
+        display: none !important;
+    }
+    
+    #empleadosTable thead th:nth-child(-n+3),
+    #empleadosTable tbody td:nth-child(-n+3) {
+        display: table-cell !important;
+    }
+}*/
+
+/* Estilos para los child rows */
+table.dataTable.dtr-inline.collapsed>tbody>tr>td.dtr-control,
+table.dataTable.dtr-inline.collapsed>tbody>tr>th.dtr-control {
+    position: relative;
+    padding-left: 30px !important;
+}
+
+table.dataTable.dtr-inline.collapsed>tbody>tr>td.dtr-control:before,
+table.dataTable.dtr-inline.collapsed>tbody>tr>th.dtr-control:before {
+    content: '+';
+    background-color: #4e73df !important;
+    color: white !important;
+    border: 2px solid white !important;
+    box-shadow: 0 0 3px #444 !important;
+    box-sizing: content-box !important;
+    text-align: center !important;
+    text-indent: 0 !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 16px !important;
+    font-weight: bold !important;
+    line-height: 18px !important;
+    display: inline-block !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 8px !important;
+    width: 20px !important;
+    height: 20px !important;
+    margin-top: -10px !important;
+    border-radius: 50% !important;
+}
+
+table.dataTable.dtr-inline.collapsed>tbody>tr.parent>td.dtr-control:before,
+table.dataTable.dtr-inline.collapsed>tbody>tr.parent>th.dtr-control:before {
+    content: '-' !important;
+    background-color: #dc3545 !important;
+}
+
+/* Estilos para los detalles expandidos */
+.dtr-details {
+    width: 100% !important;
+    background: #f8f9fa !important;
+    border-left: 4px solid #4e73df !important;
+    padding: 15px !important;
+    margin: 10px 0 !important;
+    border-radius: 0 8px 8px 0 !important;
+}
+
+.dtr-details li {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 8px 0 !important;
+    border-bottom: 1px solid #e9ecef !important;
+}
+
+.dtr-details li:last-child {
+    border-bottom: none !important;
+}
+
+.dtr-title {
+    font-weight: 600 !important;
+    color: #495057 !important;
+    min-width: 120px !important;
+    font-size: 0.9rem !important;
+}
+
+.dtr-data {
+    text-align: right !important;
+    flex: 1 !important;
+    font-size: 0.9rem !important;
+    color: #6c757d !important;
+}
+
+/* Botones de acción en child rows */
+.dtr-details .btn-action-group {
+    display: flex !important;
+    gap: 5px !important;
+    justify-content: flex-end !important;
+    margin-top: 10px !important;
+}
+
+.dtr-details .btn-action-group .btn {
+    font-size: 0.75rem !important;
+    padding: 0.3rem 0.6rem !important;
+}
+
+/* Mejorar la visualización de los datos en child rows */
+.dtr-details .badge {
+    font-size: 0.7rem !important;
+    padding: 0.3em 0.6em !important;
+}
+
+/* Asegurar que el child row ocupe todo el ancho */
+.child .dtr-details {
+    margin-left: -15px !important;
+    margin-right: -15px !important;
+}
+
+/* Estilos específicos para diferentes tamaños de pantalla */
+@media (max-width: 575.98px) {
+    .dtr-details {
+        padding: 10px !important;
+    }
+    
+    .dtr-details li {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+    }
+    
+    .dtr-title {
+        min-width: auto !important;
+        margin-bottom: 5px !important;
+        font-size: 0.85rem !important;
+    }
+    
+    .dtr-data {
+        text-align: left !important;
+        width: 100% !important;
+        font-size: 0.85rem !important;
+    }
+    
+    .dtr-details .btn-action-group {
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+    }
+}
+
+/* Animación suave para expandir/colapsar */
+.dtr-details {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+    }
+    to {
+        opacity: 1;
+        max-height: 500px;
+    }
+}
+
+/* ✅ ESTILOS MEJORADOS PARA AIR DATEPICKER */
+.datepicker {
+    z-index: 9999 !important;
+}
+
+.datepicker--cell-month {
+    border-radius: 8px;
+    margin: 2px;
+}
+
+.datepicker--cell-month.-selected- {
+    background: #4e73df !important;
+    color: white !important;
+}
+
+.datepicker--cell-month:hover {
+    background: #4e73df !important;
+    color: white !important;
+}
+
+/* Prevenir problemas en móviles */
+@media (max-width: 767px) {
+    .datepicker {
+        width: 280px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+    }
+    
+    .datepicker--cell {
+        height: 40px !important;
+        line-height: 40px !important;
+    }
+}
+
+/* Ocultar inputs nativos de fecha */
+/*input[type="month"] {
+    display: none !important;
+}*/
+
+/* Estilos para los inputs de Air Datepicker */
+.air-datepicker-input {
+    background-color: white !important;
+    cursor: pointer !important;
+}
 
 </style>
 @endsection

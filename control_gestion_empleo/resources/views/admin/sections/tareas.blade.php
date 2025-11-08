@@ -18,7 +18,7 @@
 
     <!-- Stats Cards -->
     <div class="row mb-4">
-        <div class="col-md-3 mb-3">
+        <div class="col-md-2 mb-3">
             <div class="card border-left-primary shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -36,7 +36,7 @@
             </div>
         </div>
 
-        <div class="col-md-3 mb-3">
+        <div class="col-md-2 mb-3">
             <div class="card border-left-warning shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -54,7 +54,7 @@
             </div>
         </div>
 
-        <div class="col-md-3 mb-3">
+        <div class="col-md-2 mb-3">
             <div class="card border-left-info shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -72,7 +72,7 @@
             </div>
         </div>
 
-        <div class="col-md-3 mb-3">
+        <div class="col-md-2 mb-3">
             <div class="card border-left-success shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -84,6 +84,43 @@
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ NUEVAS CARDS PARA CREADORES -->
+        <div class="col-md-2 mb-3">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Creadas por Admin
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="tareasAdmin">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-shield fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-2 mb-3">
+            <div class="card border-left-secondary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col">
+                            <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                                Creadas por Empleados
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="tareasEmpleados">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
                         </div>
                     </div>
                 </div>
@@ -209,6 +246,7 @@
                                     <th width="10%">Tipo</th>
                                     <th width="8%">Prioridad</th>
                                     <th width="10%">Estado</th>
+                                    <th width="10%">Creador</th>
                                     <th width="12%">Fecha Tarea</th>
                                     <th width="12%">Horas Tarea</th>
                                     <th width="15%">Empleados Asignados</th>
@@ -598,7 +636,9 @@
                                 </div>
                                 <div class="row mb-2">
                                     <div class="col-6 font-weight-bold text-dark">Creada por:</div>
-                                    <div class="col-6 text-right" id="view_creador"></div>
+                                    <div class="col-6 text-right" id="view_creador">
+                                        <!-- Se llenará dinámicamente -->
+                                    </div>
                                 </div>
                                 <div class="row">
                                     <div class="col-6 font-weight-bold text-dark">Fecha Creación:</div>
@@ -1336,8 +1376,18 @@ function verTarea(id) {
                 $('#view_area').text(tarea.area || 'No especificado');
                 
                 // Mostrar creador
-                $('#view_creador').text(tarea.creador_tipo === 'admin' ? 'Administrador' : 'Sistema');
-                
+                 let creadorHtml = '';
+                if (tarea.creador_tipo === 'admin') {
+                    creadorHtml = '<span class="badge badge-info">Administrador</span>';
+                } else if (tarea.creador_tipo === 'empleado' && tarea.empleado_creador) {
+                    creadorHtml = `
+                        <span class="badge badge-warning">Empleado</span><br>
+                        <small>${tarea.empleado_creador.nombre} ${tarea.empleado_creador.apellidos}</small>
+                    `;
+                } else {
+                    creadorHtml = '<span class="text-muted">Desconocido</span>';
+                }
+                $('#view_creador').html(creadorHtml);
                 // Mostrar fecha de creación
                 $('#view_created_at').text(tarea.created_at ? formatFecha(tarea.created_at) : 'No disponible');
                 
@@ -1804,13 +1854,30 @@ function getBadgePrioridad(prioridad) {
 }
 
 function getBadgeEstado(estado) {
+    console.log('🔍 getBadgeEstado recibió:', estado, 'tipo:', typeof estado);
+    
+    if (!estado) {
+        console.warn('❌ Estado vacío o undefined');
+        return '<span class="badge badge-secondary">N/A</span>';
+    }
+    
+    const estadoStr = estado.toString().toLowerCase().trim();
+    console.log('🔍 Estado procesado:', estadoStr);
+    
     const badges = {
         'pendiente': '<span class="badge badge-secondary">Pendiente</span>',
         'en_progreso': '<span class="badge badge-primary">En Progreso</span>',
+        'en progreso': '<span class="badge badge-primary">En Progreso</span>',
         'completada': '<span class="badge badge-success">Completada</span>',
-        'cancelada': '<span class="badge badge-danger">Cancelada</span>'
+        'completado': '<span class="badge badge-success">Completada</span>',
+        'cancelada': '<span class="badge badge-danger">Cancelada</span>',
+        'cancelado': '<span class="badge badge-danger">Cancelada</span>'
     };
-    return badges[estado] || '<span class="badge badge-secondary">N/A</span>';
+    
+    const resultado = badges[estadoStr] || '<span class="badge badge-secondary">N/A</span>';
+    console.log('✅ Badge generado para', estadoStr, ':', resultado);
+    
+    return resultado;
 }
 
 function aplicarFiltrosTareas() {
@@ -1937,67 +2004,138 @@ function actualizarEstadisticas() {
  */
 function calcularEstadisticasDesdeDataTable() {
     try {
-        console.log('🔄 Calculando estadísticas desde DataTable...');
-        
         if (!window.tareasTable) {
-            console.warn('⚠️ DataTable no está inicializada');
+            console.log('❌ DataTable no disponible para estadísticas');
             mostrarEstadisticasPorDefecto();
             return;
         }
 
-        // Obtener datos REALES de la DataTable (no del DOM)
+        // Obtener datos VISIBLES (con filtros aplicados)
         const datos = window.tareasTable.rows({ filter: 'applied' }).data();
-        const totalFilas = datos.length;
+        console.log('🔍 Calculando estadísticas con', datos.length, 'tareas visibles');
         
-        console.log(`📊 Filas en DataTable: ${totalFilas}`);
-
-        if (totalFilas === 0) {
-            console.log('ℹ️ No hay filas en la DataTable');
-            mostrarEstadisticasPorDefecto();
-            return;
-        }
-
-        // Contadores
         let total = 0;
         let pendientes = 0;
         let enProgreso = 0;
         let completadas = 0;
+        let creadasPorAdmin = 0;
+        let creadasPorEmpleados = 0;
 
-        // Recorrer datos REALES de la DataTable
-        for (let i = 0; i < totalFilas; i++) {
-            const fila = datos[i];
+        // Contar por estado y creador
+        for (let i = 0; i < datos.length; i++) {
+            const tarea = datos[i];
             total++;
+
+            // ✅ CORREGIDO: Obtener el estado de forma más robusta
+            let estado = '';
             
-            // Contar por estado usando los datos reales
-            if (fila.estado) {
-                const estado = fila.estado.toLowerCase();
-                
-                if (estado.includes('pendiente')) {
-                    pendientes++;
-                } else if (estado.includes('progreso')) {
-                    enProgreso++;
-                } else if (estado.includes('completada')) {
-                    completadas++;
+            // Intentar diferentes formas de obtener el estado
+            if (tarea.estado) {
+                estado = tarea.estado.toString().toLowerCase().trim();
+            } else if (tarea.estado_raw) {
+                estado = tarea.estado_raw.toString().toLowerCase().trim();
+            } else {
+                // Buscar en todos los campos
+                for (let key in tarea) {
+                    if (typeof tarea[key] === 'string' && 
+                        (tarea[key].includes('Pendiente') || 
+                         tarea[key].includes('Progreso') || 
+                         tarea[key].includes('Completada'))) {
+                        estado = tarea[key].toLowerCase().trim();
+                        break;
+                    }
                 }
+            }
+
+            console.log(`Tarea ${tarea.id}: Estado detectado = "${estado}"`);
+
+            // ✅ CONTAR POR ESTADO - CORREGIDO
+            if (estado.includes('pendiente')) {
+                pendientes++;
+            } else if (estado.includes('progreso')) {
+                enProgreso++;
+            } else if (estado.includes('completada')) {
+                completadas++;
+            } else {
+                console.warn(`❓ Estado no reconocido: "${estado}" para tarea ${tarea.id}`);
+                // Por defecto contar como pendiente
+                pendientes++;
+            }
+
+            // ✅ CONTAR POR CREADOR (esto ya funciona bien)
+            if (tarea.creador_info) {
+                const html = tarea.creador_info.toLowerCase();
+                
+                if (html.includes('admin') || html.includes('administrador') || html.includes('badge-info')) {
+                    creadasPorAdmin++;
+                } else if (html.includes('empleado') || html.includes('creada por:') || html.includes('badge-warning')) {
+                    creadasPorEmpleados++;
+                } else {
+                    creadasPorAdmin++;
+                }
+            } else {
+                creadasPorAdmin++;
             }
         }
 
-        console.log('📈 Estadísticas calculadas:', {
+        console.log('📊 ESTADÍSTICAS FINALES:', {
             total,
             pendientes,
-            enProgreso,
-            completadas
+            enProgreso, 
+            completadas,
+            creadasPorAdmin,
+            creadasPorEmpleados
         });
 
-        // Actualizar la interfaz
-        actualizarUIEstadisticas(total, pendientes, enProgreso, completadas);
+        // ✅ VERIFICAR INTEGRIDAD
+        const sumaEstados = pendientes + enProgreso + completadas;
+        if (total !== sumaEstados) {
+            console.warn(`⚠️ Discrepancia: total=${total}, sumaEstados=${sumaEstados}`);
+            // Ajustar para evitar inconsistencias
+            const diferencia = total - sumaEstados;
+            if (diferencia > 0) {
+                pendientes += diferencia; // Asignar la diferencia a pendientes
+                console.log(`🔧 Ajustado: +${diferencia} a pendientes`);
+            }
+        }
+
+        // Actualizar UI
+        actualizarUIEstadisticasCompletas(
+            total, 
+            pendientes, 
+            enProgreso, 
+            completadas,
+            creadasPorAdmin,
+            creadasPorEmpleados
+        );
 
     } catch (error) {
-        console.error('❌ Error calculando estadísticas:', error);
+        console.error('❌ Error crítico en cálculo de estadísticas:', error);
         mostrarEstadisticasPorDefecto();
     }
 }
 
+
+function actualizarUIEstadisticasCompletas(total, pendientes, enProgreso, completadas, creadasPorAdmin, creadasPorEmpleados, porcentajeAdmin, porcentajeEmpleados) {
+    // Estadísticas principales
+    $('#totalTareas').text(total);
+    $('#tareasPendientes').text(pendientes);
+    $('#tareasProgreso').text(enProgreso);
+    $('#tareasCompletadas').text(completadas);
+    
+    // ✅ NUEVO: Estadísticas de creadores
+    $('#tareasAdmin').text(creadasPorAdmin);
+    $('#tareasEmpleados').text(creadasPorEmpleados);
+
+    // Animación de actualización
+    $('.card-body .h5').addClass('text-success');
+    setTimeout(() => {
+        $('.card-body .h5').removeClass('text-success');
+    }, 1000);
+    
+    // Log para debugging
+    console.log('✅ UI actualizada con estadísticas completas');
+}
 
 function actualizarUIEstadisticas(total, pendientes, enProgreso, completadas) {
     $('#totalTareas').text(total);
@@ -2020,8 +2158,9 @@ function mostrarEstadisticasPorDefecto() {
     $('#tareasPendientes').text('0');
     $('#tareasProgreso').text('0');
     $('#tareasCompletadas').text('0');
+    $('#tareasAdmin').text('0');
+    $('#tareasEmpleados').text('0');
 }
-
 /**
  * Actualizar estadísticas después de acciones importantes
  */
@@ -2523,7 +2662,17 @@ $(document).ready(function() {
                 name: 'estado',
                 width: '8%',
                 orderable: false,
-                searchable: true
+                searchable: true,
+                render: function(data, type, row) {
+                    // ✅ AHORA 'data' es el string crudo: 'pendiente', 'en_progreso', etc.
+                    return getBadgeEstado(data);
+                }
+            },
+            { 
+                data: 'creador_info', 
+                name: 'creador_tipo', 
+                width: '10%', 
+                orderable: false 
             },
             { 
                 data: 'fecha_tarea', 

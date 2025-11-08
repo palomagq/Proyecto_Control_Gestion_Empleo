@@ -18,10 +18,10 @@ class Tarea extends Model
         'tipo_tarea_id',
         'prioridad',
         'fecha_tarea',
-        'horas_tarea', // Nuevo campo
+        'horas_tarea',
         'area',
         'estado',
-        'creador_tipo',
+        'creador_tipo', // 'admin' o 'empleado'
         'admin_creador_id',
         'empleado_creador_id'
     ];
@@ -42,11 +42,22 @@ class Tarea extends Model
     {
         return $this->hasMany(AsignacionTarea::class, 'tarea_id');
     }
+    
+    public function empleadosAsignados()
+    {
+        return $this->belongsToMany(Empleado::class, 'tarea_empleado', 'tarea_id', 'empleado_id');
+    }
 
     // Relación con administrador creador (si aplica)
     public function adminCreador()
     {
         return $this->belongsTo(User::class, 'admin_creador_id');
+    }
+
+    // Relación con el empleado creador (si es empleado)
+    public function empleadoCreador()
+    {
+        return $this->belongsTo(Empleado::class, 'empleado_creador_id');
     }
 
      // Accesor para formatear las horas
@@ -68,5 +79,20 @@ class Tarea extends Model
         } else {
             return "{$minutos}m";
         }
+    }
+
+    // Scope para tareas creadas por empleado
+    public function scopeCreadasPorEmpleado($query, $empleadoId)
+    {
+        return $query->where('creador_tipo', 'empleado')
+                    ->where('empleado_creador_id', $empleadoId);
+    }
+
+    // Scope para tareas asignadas al empleado
+    public function scopeAsignadasAEmpleado($query, $empleadoId)
+    {
+        return $query->whereHas('asignaciones', function($q) use ($empleadoId) {
+            $q->where('empleado_id', $empleadoId);
+        });
     }
 }
