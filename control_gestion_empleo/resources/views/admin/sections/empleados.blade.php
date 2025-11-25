@@ -270,15 +270,15 @@
                         <table id="empleadosTable" class="table table-hover table-bordered mb-0" style="width:100%"> <!-- Clase responsive -->
                             <thead class="thead-dark">
                                 <tr>
-                                    <th width="5%" class="all">ID</th> <!-- Clase 'all' para mostrar siempre -->
-                                    <th width="8%" class="all"><i class="fas fa-id-card mr-1"></i> DNI</th> <!-- Ocultar en móvil -->
-                                    <th width="12%" class="all">Nombre</th>
-                                    <th width="15%" class="min-tablet">Apellidos</th>
-                                    <th width="8%" class="min-desktop">Fecha Nac.</th> <!-- Ocultar en tablets pequeñas -->
-                                    <th width="8%" class="all">Edad</th>
-                                    <th width="18%" class="min-tablet">Domicilio</th>
-                                    <th width="8%" class="min-tablet">Telefono</th>
-                                    <th width="8%" class="min-desktop">Username</th>
+                                    <th width="5%" class="all">ID</th>
+                                    <th width="8%" class="all"><i class="fas fa-id-card mr-1"></i> DNI</th>
+                                    <th width="12%" class="min-tablet">Nombre</th> <!-- ✅ VISIBLE EN TABLETS -->
+                                    <th width="15%" class="min-tablet">Apellidos</th> <!-- ✅ VISIBLE EN TABLETS -->
+                                    <th width="8%" class="min-desktop">Fecha Nac.</th>
+                                    <th width="8%" class="min-desktop">Edad</th> <!-- ✅ OCULTAR EN TABLETS -->
+                                    <th width="18%" class="min-desktop">Domicilio</th> <!-- ✅ OCULTAR EN TABLETS -->
+                                    <th width="8%" class="min-desktop">Telefono</th> <!-- ✅ OCULTAR EN TABLETS -->
+                                    <th width="8%" class="min-desktop">Username</th> <!-- ✅ OCULTAR EN TABLETS -->
                                     <th width="15%" class="all">Acciones</th>
                                 </tr>
                             </thead>
@@ -878,16 +878,16 @@
                                     <table id="view_empleado_registros_table" class="table table-hover table-sm" style="width:100%">
                                         <thead class="thead-dark">
                                             <tr>
-                                                <th>Fecha</th>
-                                                <th>Hora Inicio</th>
-                                                <th>Hora Fin</th>
-                                                <th>Pausa Inicio</th>
-                                                <th>Pausa Fin</th>
-                                                <th>Tiempo Pausa</th>
-                                                <th>Duración</th>
-                                                <th>Dirección</th>
-                                                <th>Estado</th>
-                                                <th>Acciones</th>
+                                                <th class="all">Fecha</th>
+                                                <th class="all">Hora Inicio</th>
+                                                <th class="min-tablet">Hora Fin</th>
+                                                <th class="min-desktop">Pausa Inicio</th>
+                                                <th class="min-desktop">Pausa Fin</th>
+                                                <th class="min-tablet-lg">Tiempo Pausa</th>
+                                                <th class="min-tablet">Duración</th>
+                                                <th class="min-desktop">Dirección</th>
+                                                <th class="min-tablet-lg">Estado</th>
+                                                <th class="min-desktop">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -1092,6 +1092,9 @@
 <!-- jQuery completo (NO slim) -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
+<!-- Bootstrap (asegúrate de que esté después de jQuery) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+
 <!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -1104,12 +1107,14 @@
 <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap4.min.js"></script>
 <script type="text/javascript" src="https://cdn.datatables.net/responsive/2.2.7/js/dataTables.responsive.min.js"></script>
 
-<!-- Bootstrap (asegúrate de que esté después de jQuery) -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
 
 
 <!-- ✅ AGREGAR Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Air Datepicker (después de jQuery) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/air-datepicker/2.2.3/js/datepicker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/air-datepicker/2.2.3/js/i18n/datepicker.es.min.js"></script>
 
 <!-- Google Maps API -->
 <script src="https://maps.googleapis.com/maps/api/js?key={{ env('GOOGLE_MAPS_API_KEY') }}&libraries=places" async defer></script>
@@ -1141,67 +1146,106 @@ $(document).ready(function() {
     console.log('✅ jQuery cargado, versión:', $.fn.jquery);
 
     initializeDataTable();
-    loadStats(); // Cargar estadísticas al inicio
-
-    // Inicializar dashboard después de un pequeño delay
-        setTimeout(() => {
-                initializeChartsDashboard();
-        }, 1000);
-     // Esperar un poco para asegurar que Air Datepicker esté cargado
+    loadStats();
+    // Agregar estilos personalizados
+    //addCustomDatepickerStyles();
+    
+    // Inicializar datepickers después de un pequeño delay
     setTimeout(() => {
         initializeAirDatepickers();
+        initializeChartsDashboard();
     }, 500);
 
-    // Limpiar el modal cuando se cierre (Excel)
+    // Limpiar modales cuando se cierren
     $('#exportExcelModal').on('hidden.bs.modal', function () {
         $('#export_mes').val('');
     });
     
-    // Reinicializar cuando se abra el modal Excel
+    $('#exportPdfModal').on('hidden.bs.modal', function () {
+        $('#export_pdf_mes').val('');
+    });
+    
+    // Reinicializar datepickers cuando se abran los modales
     $('#exportExcelModal').on('show.bs.modal', function () {
-        // Pequeño delay para asegurar que el DOM esté listo
         setTimeout(() => {
             const excelInput = document.querySelector('#export_mes');
-            if (excelInput && !excelInput._flatpickr) {
-                initializeExcelDatepicker();
+            if (excelInput && !excelInput.datepicker) {
+                initializeSingleDatepicker('#export_mes');
             }
         }, 100);
     });
     
-    // Permitir Enter en el campo de mes (Excel)
-    $('#export_mes').on('keypress', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            confirmarExportacion();
-        }
+    $('#exportPdfModal').on('show.bs.modal', function () {
+        setTimeout(() => {
+            const pdfInput = document.querySelector('#export_pdf_mes');
+            if (pdfInput && !pdfInput.datepicker) {
+                initializeSingleDatepicker('#export_pdf_mes');
+            }
+        }, 100);
     });
 
     
             
-    $('#detailsModal').on('hidden.bs.modal', function () {
-        console.log('🔙 Modal de detalles cerrado - Restaurando vista de empleado...');
+    $('#detailsModal').on('hidden.bs.modal', function(e) {
+        console.log('🔙 Modal de detalles cerrado - reinicializando DataTable...');
         
-        // Limpiar el estado de Bootstrap
-        $('body').removeClass('modal-open');
-        $('.modal-backdrop').remove();
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
         
-        // Esperar un poco para asegurar la transición
-        setTimeout(() => {
-            console.log('🔄 Reabriendo modal de empleado...');
+        // ✅ SOLUCIÓN: Reinicializar completamente el DataTable
+        if (currentEmployeeId && viewRegistrosTable) {
+            console.log('🔄 Reinicializando DataTable de registros...');
             
-            // Reabrir el modal de empleado
-            $('#viewEmployeeModal').modal('show');
+            // 1. Guardar el filtro actual
+            const mesActual = $('#view_filter_mes').val();
             
-            // Restaurar el scroll
-            $('body').addClass('modal-open');
+            // 2. Destruir completamente el DataTable existente
+            viewRegistrosTable.destroy();
+            viewRegistrosTable = null;
             
-            // ✅ CRÍTICO: Reinicializar el mapa después de reabrir
+            // 3. Limpiar la tabla
+            $('#view_empleado_registros_table').empty();
+            
+            // 4. Recrear la tabla con la estructura original
+            $('#view_empleado_registros_table').html(`
+                <thead class="thead-dark">
+                    <tr>
+                        <th class="all">Fecha</th>
+                        <th class="all">Hora Inicio</th>
+                        <th class="min-tablet">Hora Fin</th>
+                        <th class="min-desktop">Pausa Inicio</th>
+                        <th class="min-desktop">Pausa Fin</th>
+                        <th class="min-tablet-lg">Tiempo Pausa</th>
+                        <th class="min-tablet">Duración</th>
+                        <th class="min-desktop">Dirección</th>
+                        <th class="min-tablet-lg">Estado</th>
+                        <th class="min-desktop">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Los datos se cargarán via AJAX -->
+                </tbody>
+            `);
+            
+            // 5. Pequeño delay para asegurar que el DOM esté listo
             setTimeout(() => {
-                reinicializarMapaDespuesDeDetalles();
-            }, 300);
-            
-        }, 400);
+                // 6. Volver a cargar los registros
+                cargarRegistrosEmpleado();
+                
+                // 7. Restaurar el filtro
+                if (mesActual) {
+                    $('#view_filter_mes').val(mesActual);
+                }
+                
+                console.log('✅ DataTable reinicializado completamente');
+            }, 100);
+        }
+        
+        return false;
     });
+
 
     // ✅ MANEJADOR ADICIONAL para cuando se muestra el modal de detalles
     $('#detailsModal').on('show.bs.modal', function () {
@@ -1220,37 +1264,58 @@ $(document).ready(function() {
 
 
 // ✅ VERIFICAR SI AIR DATEPICKER ESTÁ CARGADO
-function checkAirDatepickerLoaded() {
+/*function checkAirDatepickerLoaded() {
     if (typeof Datepicker === 'undefined') {
         console.error('❌ Air Datepicker no está cargado');
         return false;
     }
     console.log('✅ Air Datepicker cargado correctamente');
     return true;
-}
+}*/
 
 // ✅ FUNCIÓN CORREGIDA: Inicializar Air Datepicker
 function initializeAirDatepickers() {
-    console.log('📅 Inicializando Air Datepickers...');
+    //console.log('📅 Inicializando Air Datepickers...');
     
-    // Verificar que la librería esté cargada
-    /*if (!checkAirDatepickerLoaded()) {
-        console.error('No se puede inicializar Air Datepicker - librería no disponible');
+    // Verificar que la librería esté cargada - USANDO EL NOMBRE CORRECTO
+    if (typeof $.fn.datepicker === 'undefined') {
+        console.error('❌ Air Datepicker no está cargado. Verifica que el script esté incluido correctamente.');
+        console.log('Disponible:', typeof $().datepicker);
+        
         // Fallback: usar inputs nativos
-        setupNativeDateInputs();
+        //setupNativeDateInputs();
         return;
-    }*/
+    }
 
-    // Configuración común
-    const datepickerOptions = {
+    //console.log('✅ Air Datepicker cargado correctamente');
+
+    // Configuración común para todos los datepickers de mes
+    const baseMonthPickerOptions  = {
         language: 'es',
         dateFormat: 'yyyy-mm',
-        minView: 'months',
-        view: 'months',
-        selectDates: true,
-        autoClose: true
+        view: 'months',        // Solo mostrar vista de meses
+        minView: 'months', 
+        minDate: new Date(2020, 0, 1), // Desde enero 2020
+        maxDate: new Date(2030, 11, 31), // Hasta diciembre 2030
+        autoClose: true,
+        onSelect: function(formattedDate, date, inst) {
+            console.log('📅 Fecha seleccionada:', formattedDate);
+        }
     };
-
+ // ✅ CONFIGURACIÓN ESPECÍFICA PARA CONTROLAR LAS FILAS Y COLUMNAS
+    const monthPickerOptions = {
+        ...baseMonthPickerOptions,
+        // Esta es la clave: controlar cómo se muestran los meses
+        onShow: function(inst, animationCompleted) {
+            if (!animationCompleted) {
+                // Esperar a que el datepicker esté completamente renderizado
+                setTimeout(() => {
+                    adjustDatepickerLayout(inst);
+                }, 10);
+            }
+        }
+    };
+    
     // Inicializar cada datepicker
     const datepickerSelectors = [
         '#filterMes',
@@ -1261,46 +1326,111 @@ function initializeAirDatepickers() {
 
     datepickerSelectors.forEach(selector => {
         try {
-            const element = document.querySelector(selector);
-            if (element) {
+            const element = $(selector);
+            if (element.length > 0) {
                 // Destruir instancia anterior si existe
-                if (element.datepicker) {
-                    element.datepicker.destroy();
+                if (element.data('datepicker')) {
+                    element.datepicker().destroy();
                 }
                 
                 // Forzar type text para prevenir datepicker nativo
-                element.type = 'text';
+                element.attr('type', 'text');
                 
                 // Inicializar Air Datepicker
-                new AirDatepicker(selector, datepickerOptions);
+                element.datepicker(monthPickerOptions);
                 console.log(`✅ Air Datepicker inicializado para: ${selector}`);
+            } else {
+                console.warn(`⚠️ Elemento no encontrado: ${selector}`);
             }
         } catch (error) {
             console.error(`❌ Error inicializando ${selector}:`, error);
+            // Fallback individual
+            //setupNativeDateInput(selector);
         }
     });
+
+    // Configuración especial para fecha de nacimiento
+    const fechaNacimientoInput = $('#fecha_nacimiento');
+    if (fechaNacimientoInput.length > 0) {
+        try {
+            // Calcular fecha máxima (16 años atrás desde hoy)
+            const maxDate = new Date();
+            maxDate.setFullYear(maxDate.getFullYear() - 16);
+            
+            fechaNacimientoInput.datepicker({
+                language: 'es',
+                dateFormat: 'yyyy-mm-dd',
+                maxDate: maxDate,
+                autoClose: true,
+                onSelect: function(formattedDate, date, inst) {
+                    console.log('📅 Fecha de nacimiento seleccionada:', formattedDate);
+                    validarEdadMinima();
+                }
+            });
+            console.log('✅ Air Datepicker para fecha de nacimiento inicializado');
+        } catch (error) {
+            console.error('❌ Error inicializando datepicker de fecha de nacimiento:', error);
+        }
+    }
 }
 
-// ✅ FALLBACK: Usar inputs nativos si Air Datepicker falla
-function setupNativeDateInputs() {
-    console.log('🔄 Configurando fallback con inputs nativos...');
-    
-    const dateInputs = [
-        'filterMes',
-        'view_filter_mes', 
-        'export_mes',
-        'export_pdf_mes'
-    ];
 
-    dateInputs.forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.type = 'month';
-            element.placeholder = 'MM-AAAA';
-            element.className += ' form-control form-control-sm form-control-lg-md';
-            console.log(`✅ Fallback configurado para: #${id}`);
-        }
-    });
+// ✅ FUNCIÓN PARA AJUSTAR EL LAYOUT DEL DATEPICKER
+function adjustDatepickerLayout(inst) {
+    if (!inst || !inst.$datepicker) return;
+    
+    const $datepicker = inst.$datepicker;
+    
+    // Aplicar a diferentes vistas
+    const $monthsContainer = $datepicker.find('.datepicker--cells-months');
+    const $yearsContainer = $datepicker.find('.datepicker--cells-years');
+    
+    if ($monthsContainer.length > 0) {
+        console.log('🔄 Ajustando layout de meses...');
+        
+        // Forzar el layout grid para meses
+        $monthsContainer.css({
+            'display': 'grid',
+            'grid-template-columns': 'repeat(4, 1fr)',
+            'grid-template-rows': 'repeat(3, 1fr)',
+            'gap': '5px',
+            'padding': '10px'
+        });
+        
+        // Ajustar celdas de mes
+        $monthsContainer.find('.datepicker--cell-month').css({
+            'width': '100%',
+            'height': '60px',
+            'margin': '0',
+            'display': 'flex',
+            'align-items': 'center',
+            'justify-content': 'center',
+            'border-radius': '8px'
+        });
+    }
+    
+    if ($yearsContainer.length > 0) {
+        console.log('🔄 Ajustando layout de años...');
+        
+        // Layout para años (si es necesario)
+        $yearsContainer.css({
+            'display': 'grid',
+            'grid-template-columns': 'repeat(4, 1fr)',
+            'grid-template-rows': 'repeat(4, 1fr)',
+            'gap': '5px',
+            'padding': '10px'
+        });
+        
+        $yearsContainer.find('.datepicker--cell-year').css({
+            'width': '100%',
+            'height': '50px',
+            'margin': '0',
+            'display': 'flex',
+            'align-items': 'center',
+            'justify-content': 'center',
+            'border-radius': '8px'
+        });
+    }
 }
 
 
@@ -1421,7 +1551,7 @@ function reinicializarMapaDespuesDeDetalles() {
 }
 
 
-function initializeMonthPickers() {
+/*function initializeMonthPickers() {
     console.log('📅 Inicializando selectores de mes CORREGIDA...');
     
     // Destruir TODAS las instancias existentes primero
@@ -1461,101 +1591,59 @@ function initializeMonthPickers() {
         initializeSingleDatepicker(id, options);
     });
 
-    console.log('✅ Todos los datepickers inicializados');
-}
+    console.log('✅ Todos los air datepickers inicializados');
+}*/
 
 // ✅ FUNCIÓN AUXILIAR: Inicializar un datepicker individual
-function initializeSingleDatepicker(elementId, options) {
-    const element = document.getElementById(elementId);
-    
-    if (!element) {
-        console.warn(`⚠️ Elemento #${elementId} no encontrado`);
-        return;
-    }
-
-    // Verificar si ya está inicializado
-    if (element._flatpickr) {
-        console.log(`⚠️ ${elementId} ya estaba inicializado, destruyendo...`);
-        element._flatpickr.destroy();
-    }
-
+function initializeSingleDatepicker(selector) {
     try {
-        // ✅ CRÍTICO: Cambiar el type a text para prevenir datepicker nativo
+        const element = document.querySelector(selector);
+        if (!element) {
+            console.warn(`⚠️ Elemento ${selector} no encontrado`);
+            return;
+        }
+
+        // Destruir instancia anterior si existe
+        if (element.datepicker) {
+            element.datepicker.destroy();
+        }
+
         element.type = 'text';
         
-        // ✅ AGREGAR clase para identificar
-        element.classList.add('flatpickr-custom');
-        
-        // ✅ FORZAR estilos para prevenir datepicker nativo
-        element.style.webkitAppearance = 'none';
-        element.style.mozAppearance = 'none';
-        element.style.appearance = 'none';
-        
-        // Inicializar Flatpickr con configuración móvil mejorada
-        const fp = flatpickr(`#${elementId}`, {
-            ...options,
-            disableMobile: true, // ✅ IMPORTANTE
-            clickOpens: true,
-            allowInput: true,
-            static: true
+        // Usar la misma configuración que en initializeAirDatepickers
+        $(element).datepicker({
+            language: 'es',
+            dateFormat: 'yyyy-mm',
+            view: 'months',
+            minView: 'months',
+            minDate: new Date(2020, 0, 1),
+            maxDate: new Date(2030, 11, 31),
+            onShow: function(inst, animationCompleted) {
+                if (!animationCompleted) {
+                    setTimeout(() => {
+                        adjustDatepickerLayout(inst);
+                    }, 10);
+                }
+            },
+            onSelect: function(formattedDate, date, inst) {
+                console.log(`📅 Fecha seleccionada en ${selector}:`, formattedDate);
+            }
         });
         
-        console.log(`✅ Flatpickr inicializado para: #${elementId}`);
-
-        // ✅ MANEJADOR ADICIONAL para prevenir comportamiento nativo
-        element.addEventListener('focus', function(e) {
-            e.preventDefault();
-            fp.open();
-        });
-        
-        element.addEventListener('click', function(e) {
-            e.preventDefault();
-            fp.open();
-        });
-
+        console.log(`✅ Air Datepicker inicializado para: ${selector}`);
     } catch (error) {
-        console.error(`❌ Error inicializando ${elementId}:`, error);
-        //setupFallbackMonthInput(elementId);
+        console.error(`❌ Error inicializando ${selector}:`, error);
     }
 }
 
 // ✅ FUNCIÓN MEJORADA: Inicializar Flatpickr para Excel
 function initializeExcelDatepicker() {
     const selector = '#export_mes';
-    
-    try {
-        // Verificar que Air Datepicker esté disponible
-        if (typeof Datepicker === 'undefined') {
-            console.warn('Air Datepicker no disponible para Excel');
-            const element = document.querySelector(selector);
-            if (element) {
-                element.type = 'month';
-            }
-            return;
-        }
-        
-        const existingInput = document.querySelector(selector);
-        if (existingInput && existingInput.datepicker) {
-            existingInput.datepicker.destroy();
-        }
-        
-        new Datepicker(selector, {
-            language: 'es',
-            dateFormat: 'yyyy-mm',
-            minView: 'months',
-            view: 'months',
-            selectDates: true,
-            autoClose: true
-        });
-        console.log('✅ Air Datepicker Excel inicializado correctamente');
-    } catch (error) {
-        console.error('❌ Error inicializando datepicker Excel:', error);
-        setupNativeDateInput(selector);
-    }
+    initializeSingleDatepicker(selector);
 }
 
 // ✅ FALLBACK para cuando Flatpickr falle
-function setupFallbackMonthInput(selector) {
+/*function setupFallbackMonthInput(selector) {
     console.log('🔄 Configurando fallback para:', selector);
     
     const input = document.querySelector(selector);
@@ -1569,7 +1657,7 @@ function setupFallbackMonthInput(selector) {
     input.placeholder = 'MM-AAAA';
     
     console.log('✅ Fallback configurado para:', selector);
-}
+}*/
 
 // ✅ SOLUCIÓN PARA MÓVILES Y TABLETS
 function solucionMovilParaModal() {
@@ -1939,7 +2027,7 @@ function initializeDataTable() {
     }
     
     table = $('#empleadosTable').DataTable({
-        serverSide: false, // ✅ CLIENT-SIDE processing
+        serverSide: false,
         processing: true,
         
         language: {
@@ -1950,25 +2038,17 @@ function initializeDataTable() {
             type: 'GET',
             dataSrc: function (json) {
                 console.log('📥 Datos recibidos del servidor:', json);
-                
-                // Guardar datos originales para filtros
                 let datos = json.data || json;
                 
-                // ✅ CORREGIDO: Asegurar que los datos tengan el formato correcto
                 window.empleadosDataOriginal = Array.isArray(datos) ? datos.map(empleado => ({
                     ...empleado,
-                    // Asegurar que created_at esté en formato válido
                     created_at: empleado.created_at || new Date().toISOString()
                 })) : [];
                 
-                console.log('💾 Datos originales guardados:', window.empleadosDataOriginal.length, 'empleados');
-                
-                // Devolver todos los datos inicialmente
                 return window.empleadosDataOriginal;
             },
             error: function(xhr, error, thrown) {
                 console.error('❌ Error cargando DataTable:', error);
-                // Inicializar array vacío en caso de error
                 window.empleadosDataOriginal = [];
             }
         },
@@ -1976,88 +2056,681 @@ function initializeDataTable() {
             { 
                 data: 'id', 
                 name: 'id',
-                className: 'dtr-control', // ✅ IMPORTANTE: Esta clase activa el control de expandir/colapsar
+                className: 'text-center',
+                width: '8%',
+                orderable: true,
+                render: function(data, type, row, meta) {
+                    if (type === 'display') {
+                        return '<span class="expand-icon" data-row="' + meta.row + '">+</span> ' + data;
+                    }
+                    return data;
+                }
             },
             { 
                 data: 'dni', 
                 name: 'dni',
+                width: '12%'
             },
             { 
                 data: 'nombre', 
                 name: 'nombre',
+                width: '10%',
+                className: 'min-tablet'
             },
             { 
                 data: 'apellidos', 
                 name: 'apellidos',
-                visible: true // ✅ Visible por defecto, pero se ocultará en responsive
+                width: '12%',
+                className: 'min-tablet'
             },
             { 
                 data: 'fecha_nacimiento', 
                 name: 'fecha_nacimiento',
+                width: '10%',
+                className: 'min-desktop'
             },
             { 
                 data: 'edad', 
                 name: 'edad', 
                 orderable: false, 
                 searchable: false,
+                width: '6%',
+                className: 'text-center min-desktop'
             },
             { 
                 data: 'domicilio', 
                 name: 'domicilio',
+                width: '15%',
+                className: 'min-desktop'
             },            
             { 
                 data: 'telefono', 
                 name: 'telefono',
+                width: '10%',
+                className: 'min-desktop'
             },
             { 
                 data: 'username', 
                 name: 'username',
+                width: '10%',
+                className: 'min-desktop'
             },
             { 
                 data: 'acciones', 
                 orderable: false, 
                 searchable: false,
                 className: 'text-center',
-                render: function(data, type, row) {
-
-                    return `
-                    <div class="btn-group btn-group-sm" role="group">
-                        <button class="btn btn-info btn-sm" onclick="verEmpleado(${row.id})" title="Ver">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-warning btn-sm" onclick="editarEmpleado(${row.id})" title="Editar">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-danger btn-sm" onclick="eliminarEmpleado(${row.id})" title="Eliminar">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                        <button class="btn btn-success btn-sm" onclick="imprimirQR(${row.id})" title="Visualizar QR">
-                            <i class="fas fa-qrcode"></i>
-                        </button>
-                        <button class="btn btn-success btn-sm" onclick="exportarRegistroHorario(${row.id})" title="Exportar Registro Horario">
-                            <i class="fas fa-file-contract"></i>
-                        </button>
-                    </div>`;
-                }
+                width: '15%'
             }
         ],
-        order: [[0, 'asc']], // ✅ Ordenar por ID ascendente
+        order: [[0, 'asc']],
         pageLength: 10,
-        responsive: true,
+        responsive: false, // ✅ DESACTIVAR RESPONSIVE NATIVO DE DATATABLES
+        autoWidth: false,
+        
+        initComplete: function(settings, json) {
+            console.log('✅ DataTable inicializado correctamente');
+            
+            // ✅ CONFIGURACIÓN INICIAL DE VISIBILIDAD
+            const width = window.innerWidth;
+            const columns = table.columns();
+            
+            if (width < 768) {
+                // MÓVIL: Solo ID y DNI
+                columns.visible(false);
+                table.column(0).visible(true); // ID
+                table.column(1).visible(true); // DNI
+            } else if (width >= 768 && width <= 1023) {
+                // TABLET: ID, DNI, Nombre, Apellidos
+                columns.visible(false);
+                table.column(0).visible(true); // ID
+                table.column(1).visible(true); // DNI  
+                table.column(2).visible(true); // Nombre
+                table.column(3).visible(true); // Apellidos
+            } else if (width >= 1024 && width <= 1199) {
+                // TABLET GRANDE: Todas menos Username
+                columns.visible(true);
+                table.column(8).visible(false); // Username
+                table.column(9).visible(false); // Acciones
+            } else {
+                // DESKTOP: Todas las columnas
+                columns.visible(true);
+            }
+            
+            // ✅ AGREGAR MANEJADOR DE CLICK UNA SOLA VEZ CON DELEGACIÓN
+            $('#empleadosTable tbody').off('click', '.expand-icon').on('click', '.expand-icon', function(e) {
+                e.stopPropagation();
+                var icon = $(this);
+                var tr = icon.closest('tr');
+                var row = table.row(tr);
+                
+                // Solo permitir expansión en dispositivos que la necesitan
+                const currentWidth = window.innerWidth;
+                if (currentWidth >= 1200) {
+                    return; // No expandir en desktop completo
+                }
+                
+                if (row.child.isShown()) {
+                    // Cerrar
+                    row.child.hide();
+                    tr.removeClass('shown');
+                    icon.text('+');
+                    icon.css('background', '#28a745');
+                } else {
+                    // Abrir
+                    var data = row.data();
+                    row.child(formatDetails(data)).show();
+                    tr.addClass('shown');
+                    icon.text('-');
+                    icon.css('background', '#dc3545');
+                }
+            });
+        },
+        
         drawCallback: function(settings) {
             console.log('📊 DataTable dibujado - Registros visibles:', settings.aoData.length);
             updateStats();
-        },
-        initComplete: function(settings, json) {
-            console.log('✅ DataTable inicializado correctamente');
-            console.log('📊 Total de registros cargados:', window.empleadosDataOriginal?.length || 0);
             
-            // ✅ Asegurar que los datos estén disponibles
-            if (!window.empleadosDataOriginal || window.empleadosDataOriginal.length === 0) {
-                console.warn('⚠️ No se cargaron datos en el DataTable');
+            // ✅ RESETEAR LOS ÍCONOS CADA VEZ QUE SE REDIBUJA
+            $('.expand-icon').each(function() {
+                var tr = $(this).closest('tr');
+                if (tr.hasClass('shown')) {
+                    $(this).text('-').css('background', '#dc3545');
+                } else {
+                    $(this).text('+').css('background', '#28a745');
+                }
+            });
+            
+            // ✅ ACTUALIZAR VISIBILIDAD DE COLUMNAS EN CADA DIBUJADO
+            // PERO NO CAMBIAR LA VISIBILIDAD SI LAS FILAS ESTÁN EXPANDIDAS
+            const width = window.innerWidth;
+            const hasShownRows = $('tr.shown').length > 0;
+            
+            // Si hay filas expandidas, mantener todas las columnas visibles
+            if (hasShownRows) {
+                table.columns().visible(true);
+            } else {
+                // Solo aplicar la visibilidad específica si no hay filas expandidas
+                const columns = table.columns();
+                
+                if (width < 768) {
+                    // MÓVIL: Solo ID, DNI y Acciones
+                    columns.visible(false);
+                    table.column(0).visible(true); // ID
+                    table.column(1).visible(true); // DNI
+                } else if (width >= 768 && width <= 1023) {
+                    // TABLET: ID, DNI, Nombre, Apellidos y Acciones
+                    columns.visible(false);
+                    table.column(0).visible(true); // ID
+                    table.column(1).visible(true); // DNI  
+                    table.column(2).visible(true); // Nombre
+                    table.column(3).visible(true); // Apellidos
+                } else if (width >= 1024 && width <= 1199) {
+                    // TABLET GRANDE: Todas menos Username
+                    columns.visible(true);
+                    table.column(8).visible(false); // Username
+                    table.column(9).visible(false); // Acciones
+                } else {
+                    // DESKTOP: Todas las columnas
+                    columns.visible(true);
+                }
             }
         }
     });
+
+    // ✅ ACTUALIZAR VISIBILIDAD AL REDIMENSIONAR
+    $(window).on('resize', function() {
+        if (!table) return;
+        
+        const width = window.innerWidth;
+        const columns = table.columns();
+        
+        if (width < 768) {
+            // MÓVIL: Solo ID y DNI
+            columns.visible(false);
+            table.column(0).visible(true); // ID
+            table.column(1).visible(true); // DNI
+        } else if (width >= 768 && width <= 1023) {
+            // TABLET: ID, DNI, Nombre, Apellidos
+            columns.visible(false);
+            table.column(0).visible(true); // ID
+            table.column(1).visible(true); // DNI  
+            table.column(2).visible(true); // Nombre
+            table.column(3).visible(true); // Apellidos
+        } else if (width >= 1024 && width <= 1199) {
+            // TABLET GRANDE: Todas menos Username
+            columns.visible(true);
+            table.column(8).visible(false); // Username
+            table.column(9).visible(false); // Acciones
+        } else {
+            // DESKTOP: Todas las columnas
+            columns.visible(true);
+        }
+        
+        table.columns.adjust().draw(false);
+    });
+}
+
+
+
+// ✅ CORRECCIÓN: Prevenir recarga y scroll al cerrar modales
+function initializeModalBehaviors() {
+    console.log('🔄 Inicializando comportamientos de modal...');
+    
+    // Lista de todos los modales
+    const modals = [
+        'employeeModal',
+        'editEmployeeModal', 
+        'deleteEmployeeModal',
+        'viewEmployeeModal',
+        'exportExcelModal',
+        'exportPdfModal',
+        'imprimirQRModal',
+        'detailsModal'
+    ];
+    
+    modals.forEach(modalId => {
+        const modalElement = document.getElementById(modalId);
+        if (modalElement) {
+            // Prevenir comportamiento por defecto al mostrar
+            $(modalElement).on('show.bs.modal', function(e) {
+                console.log(`📱 Abriendo modal: ${modalId}`);
+                e.preventDefault();
+                e.stopPropagation();
+            });
+            
+            // Manejar cierre correctamente
+            $(modalElement).on('hidden.bs.modal', function(e) {
+                console.log(`🔒 Cerrando modal: ${modalId}`);
+                
+                // Prevenir cualquier comportamiento por defecto
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                
+                // Limpiar backdrop si existe
+                $('.modal-backdrop').remove();
+                
+                // Restaurar scroll del body
+                $('body').removeClass('modal-open');
+                $('body').css({
+                    'padding-right': '',
+                    'overflow': ''
+                });
+                
+                // Forzar que el scroll se mantenga en la posición actual
+                setTimeout(() => {
+                    window.scrollTo(window.scrollX, window.scrollY);
+                }, 10);
+                
+                return false;
+            });
+            
+            // Manejar clicks en el backdrop
+            $(modalElement).on('click.dismiss.bs.modal', function(e) {
+                if (e.target === this) {
+                    console.log('🖱️ Click en backdrop - cerrando modal');
+                    $(this).modal('hide');
+                }
+            });
+        }
+    });
+    
+    // ✅ CORRECCIÓN ESPECIAL para el modal de detalles
+    $('#detailsModal').on('hidden.bs.modal', function(e) {
+        console.log('🔙 Modal de detalles cerrado - restaurando estado...');
+        
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        // Limpiar completamente
+        $('body').removeClass('modal-open');
+        $('.modal-backdrop').remove();
+        
+        // Restaurar scroll
+        $('body').css({
+            'padding-right': '',
+            'overflow': ''
+        });
+        
+        // Reabrir el modal de empleado después de un delay
+        setTimeout(() => {
+            if (tempEmployeeData) {
+                console.log('🔄 Reabriendo modal de empleado...');
+                $('#viewEmployeeModal').modal('show');
+            }
+        }, 300);
+        
+        return false;
+    });
+}
+
+
+// ✅ FUNCIÓN PARA FORMATEAR DETALLES
+function formatDetails(data) {
+    const isMobile = window.innerWidth < 768;
+    const isTablet = window.innerWidth >= 768 && window.innerWidth <= 1023;
+    const isLargeTablet = window.innerWidth >= 1024 && window.innerWidth <= 1199;
+    const isDesktop = window.innerWidth >= 1200;
+    
+    // En tablets grandes (1024px-1199px) mostrar Username y Acciones
+    if (isLargeTablet) {
+        return `
+            <div class="p-3 bg-light border rounded">
+                <table class="table table-sm table-borderless mb-0">
+                    <tr>
+                        <td class="font-weight-bold" style="width: 40%">Username:</td>
+                        <td>${data.username || 'N/A'}</td>
+                    </tr>
+                </table>
+                
+                <!-- Botones de acciones -->
+                <div class="mt-3 pt-3 border-top">
+                    <h6 class="text-center mb-2">Acciones:</h6>
+                    <div class="btn-group btn-group-sm w-100" role="group">
+                        <button class="btn btn-info btn-sm flex-fill" onclick="verEmpleado(${data.id})" title="Ver detalles">
+                            <i class="fas fa-eye"></i> 
+                        </button>
+                        <button class="btn btn-warning btn-sm flex-fill" onclick="editarEmpleado(${data.id})" title="Editar">
+                            <i class="fas fa-edit"></i> 
+                        </button>
+                        <button class="btn btn-danger btn-sm flex-fill" onclick="eliminarEmpleado(${data.id})" title="Eliminar">
+                            <i class="fas fa-trash"></i> 
+                        </button>
+                        <button class="btn btn-secondary btn-sm flex-fill" onclick="imprimirQR(${data.id})" title="Imprimir QR">
+                            <i class="fas fa-qrcode"></i> 
+                        </button>
+                        <button class="btn btn-success btn-sm flex-fill" onclick="exportarRegistroHorario(${data.id})" title="Exportar registro">
+                            <i class="fas fa-file-contract"></i> 
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // En tablets normales (768px-1023px) mostrar información completa oculta
+    if (isTablet) {
+        return `
+            <div class="p-3 bg-light border rounded">
+                <table class="table table-sm table-borderless mb-0">
+                    <tr>
+                        <td class="font-weight-bold" style="width: 40%">Fecha Nacimiento:</td>
+                        <td>${data.fecha_nacimiento || 'N/A'}</td>
+                    </tr>
+                    <tr>
+                        <td class="font-weight-bold">Edad:</td>
+                        <td>${data.edad || 'N/A'}</td>
+                    </tr>
+                    <tr>
+                        <td class="font-weight-bold">Domicilio:</td>
+                        <td>${data.domicilio || 'N/A'}</td>
+                    </tr>
+                    <tr>
+                        <td class="font-weight-bold">Teléfono:</td>
+                        <td>${data.telefono || 'N/A'}</td>
+                    </tr>
+                    <tr>
+                        <td class="font-weight-bold">Username:</td>
+                        <td>${data.username || 'N/A'}</td>
+                    </tr>
+                </table>
+                
+                <!-- Botones de acciones -->
+                <div class="mt-3 pt-3 border-top">
+                    <h6 class="text-center mb-2">Acciones:</h6>
+                    <div class="btn-group btn-group-sm w-100" role="group">
+                        <button class="btn btn-info btn-sm flex-fill" onclick="verEmpleado(${data.id})" title="Ver detalles">
+                            <i class="fas fa-eye"></i> 
+                        </button>
+                        <button class="btn btn-warning btn-sm flex-fill" onclick="editarEmpleado(${data.id})" title="Editar">
+                            <i class="fas fa-edit"></i> 
+                        </button>
+                        <button class="btn btn-danger btn-sm flex-fill" onclick="eliminarEmpleado(${data.id})" title="Eliminar">
+                            <i class="fas fa-trash"></i> 
+                        </button>
+                        <button class="btn btn-secondary btn-sm flex-fill" onclick="imprimirQR(${data.id})" title="Imprimir QR">
+                            <i class="fas fa-qrcode"></i> 
+                        </button>
+                        <button class="btn btn-success btn-sm flex-fill" onclick="exportarRegistroHorario(${data.id})" title="Exportar registro">
+                            <i class="fas fa-file-contract"></i> 
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // En móvil mostrar información completa
+    if (isMobile) {
+        return `
+            <div class="p-3 bg-light border rounded">
+                <div class="row">
+                    <div class="col-12">
+                        <table class="table table-sm table-borderless mb-0">
+                            <tr>
+                                <td class="font-weight-bold" style="width: 40%">Nombre:</td>
+                                <td>${data.nombre || 'N/A'}</td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Apellidos:</td>
+                                <td>${data.apellidos || 'N/A'}</td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Fecha Nacimiento:</td>
+                                <td>${data.fecha_nacimiento || 'N/A'}</td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Edad:</td>
+                                <td>${data.edad || 'N/A'}</td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Domicilio:</td>
+                                <td>${data.domicilio || 'N/A'}</td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Teléfono:</td>
+                                <td>${data.telefono || 'N/A'}</td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Username:</td>
+                                <td>${data.username || 'N/A'}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Botones de acciones - MEJOR ORGANIZADOS EN MÓVIL -->
+                <div class="row mt-3 pt-3 border-top">
+                    <div class="col-12">
+                        <h6 class="text-center mb-2">Acciones:</h6>
+                        <div class="d-flex flex-wrap justify-content-center gap-1" role="group">
+                            <button class="btn btn-info btn-sm" onclick="verEmpleado(${data.id})" title="Ver detalles">
+                                <i class="fas fa-eye"></i> 
+                            </button>
+                            <button class="btn btn-warning btn-sm" onclick="editarEmpleado(${data.id})" title="Editar">
+                                <i class="fas fa-edit"></i> 
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="eliminarEmpleado(${data.id})" title="Eliminar">
+                                <i class="fas fa-trash"></i> 
+                            </button>
+                            <button class="btn btn-secondary btn-sm" onclick="imprimirQR(${data.id})" title="Imprimir QR">
+                                <i class="fas fa-qrcode"></i> 
+                            </button>
+                            <button class="btn btn-success btn-sm" onclick="exportarRegistroHorario(${data.id})" title="Exportar registro">
+                                <i class="fas fa-file-contract"></i> 
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // En desktop no debería mostrarse (fallback)
+    return '';
+}
+
+
+// ✅ FUNCIÓN MEJORADA: Formatear detalles expandidos para REGISTROS del empleado por tamaño de pantalla
+function formatRegistroDetails(data) {
+    const isMobile = window.innerWidth < 768;
+    const isTablet = window.innerWidth >= 768 && window.innerWidth <= 1023;
+    const isLargeTablet = window.innerWidth >= 1024 &&  window.innerWidth <= 1199;
+    const isDesktop = window.innerWidth >= 1200;
+
+    // En tablets normales (768px-1023px) - SOLO información de las columnas ocultas
+    if (isTablet) {
+        return `
+            <div class="p-3 bg-light border rounded registro-details">
+                <h6 class="text-center mb-3 text-primary">
+                    <i class="fas fa-info-circle mr-2"></i>Información Adicional del Registro
+                </h6>
+                <div class="row">
+                    <div class="col-12">
+                        <table class="table table-sm table-borderless mb-0">
+                            <tr>
+                                <td class="font-weight-bold" style="width: 40%">Pausa Inicio:</td>
+                                <td>${formatTimeForDisplay(data.pausa_inicio) || 'No hubo pausas'}</td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Pausa Fin:</td>
+                                <td>${formatTimeForDisplay(data.pausa_fin) || 'No hubo pausas'}</td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Tiempo Pausa:</td>
+                                <td><span class="text-info font-weight-bold">${formatSecondsToTime(data.tiempo_pausa_total) || 'Sin pausas'}</span></td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Dirección:</td>
+                                <td><small>${data.direccion || 'Sin ubicación'}</small></td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Estado:</td>
+                                <td>
+                                    ${data.estado === 'activo' ? '<span class="badge badge-success">🔴 Activo</span>' : 
+                                      data.estado === 'pausado' ? '<span class="badge badge-warning">⏸️ Pausado</span>' : 
+                                      data.estado === 'completado' ? '<span class="badge badge-primary">✅ Completado</span>' : 
+                                      '<span class="badge badge-secondary">❓ Desconocido</span>'}
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Botones de acciones para tablet -->
+                <div class="mt-3 pt-3 border-top">
+                    <div class="btn-group btn-group-sm w-100" role="group">
+                        <button class="btn btn-info btn-sm flex-fill" onclick="viewDetailsFromAdmin(${data.id}, ${data.empleado_id || currentEmployeeId})" title="Ver detalles completos">
+                            <i class="fas fa-eye mr-1"></i> Detalles Completos
+                        </button>
+                        ${data.latitud && data.longitud ? `
+                        <button class="btn btn-primary btn-sm flex-fill" onclick="verEnMapa(${data.latitud}, ${data.longitud})" title="Ver en mapa">
+                            <i class="fas fa-map-marker-alt mr-1"></i> Ver Mapa
+                        </button>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // En tablets grandes (1024px-1199px) - Información extendida
+    if (isLargeTablet) {
+        return `
+            <div class="p-3 bg-light border rounded registro-details">
+                <h6 class="text-center mb-3 text-primary">
+                    <i class="fas fa-clock mr-2"></i>Información Extendida del Registro
+                </h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-sm table-borderless mb-0">
+                            <tr>
+                                <td class="font-weight-bold">Pausa Inicio:</td>
+                                <td>${formatTimeForDisplay(data.pausa_inicio) || 'No hubo'}</td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Pausa Fin:</td>
+                                <td>${formatTimeForDisplay(data.pausa_fin) || 'No hubo'}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-sm table-borderless mb-0">
+                            <tr>
+                                <td class="font-weight-bold">Tiempo Pausa:</td>
+                                <td><span class="text-info font-weight-bold">${formatSecondsToTime(data.tiempo_pausa_total)}</span></td>
+                            </tr>
+                            <tr>
+                                <td class="font-weight-bold">Estado:</td>
+                                <td>
+                                    ${data.estado === 'activo' ? '<span class="badge badge-success">Activo</span>' : 
+                                      data.estado === 'pausado' ? '<span class="badge badge-warning">Pausado</span>' : 
+                                      data.estado === 'completado' ? '<span class="badge badge-primary">Completado</span>' : 
+                                      '<span class="badge badge-secondary">Desconocido</span>'}
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Información adicional para tablets grandes -->
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <div class="alert alert-info py-2 mb-0">
+                            <small>
+                                <i class="fas fa-info-circle mr-1"></i>
+                                <strong>Duración total:</strong> ${formatDuration(data.tiempo_total)} | 
+                                <strong>Fecha:</strong> ${data.created_at ? new Date(data.created_at).toLocaleDateString('es-ES') : 'N/A'}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Botones de acciones para tablet grande -->
+                <div class="mt-3 pt-3 border-top">
+                    <div class="btn-group btn-group-sm w-100" role="group">
+                        <button class="btn btn-info btn-sm flex-fill" onclick="viewDetailsFromAdmin(${data.id}, ${data.empleado_id || currentEmployeeId})" title="Ver detalles completos">
+                            <i class="fas fa-eye mr-1"></i> Detalles Completos
+                        </button>
+                        <button class="btn btn-warning btn-sm flex-fill" onclick="abrirModalDetallesRegistro(${data.id}, ${data.empleado_id || currentEmployeeId})" title="Vista rápida">
+                            <i class="fas fa-external-link-alt mr-1"></i> Vista Rápida
+                        </button>
+                        ${data.latitud && data.longitud ? `
+                        <button class="btn btn-primary btn-sm flex-fill" onclick="verEnMapa(${data.latitud}, ${data.longitud})" title="Ver en mapa">
+                            <i class="fas fa-map-marker-alt mr-1"></i> Mapa
+                        </button>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // En móvil mostrar información compacta pero completa
+    if (isMobile) {
+        return `
+            <div class="p-3 bg-light border rounded registro-details">
+                <h6 class="text-center mb-3 text-primary">
+                    <i class="fas fa-info-circle mr-2"></i>Detalles Completos del Registro
+                </h6>
+                <table class="table table-sm table-borderless mb-2">
+                    <tr>
+                        <td class="font-weight-bold" style="width: 45%">Pausa Inicio:</td>
+                        <td>${formatTimeForDisplay(data.pausa_inicio) || 'No hubo'}</td>
+                    </tr>
+                    <tr>
+                        <td class="font-weight-bold">Pausa Fin:</td>
+                        <td>${formatTimeForDisplay(data.pausa_fin) || 'No hubo'}</td>
+                    </tr>
+                    <tr>
+                        <td class="font-weight-bold">Tiempo Pausa:</td>
+                        <td><span class="text-info">${formatSecondsToTime(data.tiempo_pausa_total) || 'Sin pausas'}</span></td>
+                    </tr>
+                    <tr>
+                        <td class="font-weight-bold">Dirección:</td>
+                        <td><small>${data.direccion || 'Sin ubicación'}</small></td>
+                    </tr>
+                    <tr>
+                        <td class="font-weight-bold">Estado:</td>
+                        <td>
+                            ${data.estado === 'activo' ? '<span class="badge badge-success">🔴 Activo</span>' : 
+                              data.estado === 'pausado' ? '<span class="badge badge-warning">⏸️ Pausado</span>' : 
+                              data.estado === 'completado' ? '<span class="badge badge-primary">✅ Completado</span>' : 
+                              '<span class="badge badge-secondary">❓ Desconocido</span>'}
+                        </td>
+                    </tr>
+                </table>
+                
+                <!-- Botones de acciones para móvil -->
+                <div class="mt-3 pt-3 border-top">
+                    <div class="d-flex flex-wrap gap-1 justify-content-center">
+                        <button class="btn btn-info btn-sm" onclick="viewDetailsFromAdmin(${data.id}, ${data.empleado_id || currentEmployeeId})" title="Ver detalles completos">
+                            <i class="fas fa-eye"></i> Completo
+                        </button>
+                        ${data.latitud && data.longitud ? `
+                        <button class="btn btn-primary btn-sm" onclick="verEnMapa(${data.latitud}, ${data.longitud})" title="Ver en mapa">
+                            <i class="fas fa-map-marker-alt"></i> Mapa
+                        </button>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // En desktop (1200px+) - No debería expandirse
+    return `
+        <div class="p-3 bg-light border rounded registro-details">
+            <div class="alert alert-warning text-center mb-0">
+                <i class="fas fa-desktop mr-2"></i>
+                En pantallas de escritorio, use el botón "Ver detalles" para información completa.
+            </div>
+        </div>
+    `;
 }
 
 
@@ -3817,7 +4490,7 @@ function getNombreMes(mes) {
 }
 
 // Funciones para las acciones de la tabla
-function verEmpleado(id) {
+/*function verEmpleado(id) {
     Swal.fire({
         icon: 'info',
         title: 'Ver Empleado',
@@ -3833,7 +4506,7 @@ function editarEmpleado(id) {
         text: 'Función de edición en desarrollo para ID: ' + id,
         confirmButtonText: 'Aceptar'
     });
-}
+}*/
 
 function eliminarEmpleado(id) {
     Swal.fire({
@@ -4972,7 +5645,7 @@ $('#viewEmployeeModal').on('shown.bs.modal', function() {
 
 
 // Inicializar Flatpickr para el modal de exportación
-function initializeExportDatepicker() {
+/*function initializeExportDatepicker() {
     flatpickr("#export_mes", {
         plugins: [
             new monthSelectPlugin({
@@ -4988,7 +5661,7 @@ function initializeExportDatepicker() {
             console.log('📅 Mes seleccionado para exportar:', dateStr);
         }
     });
-}
+}*/
 
 // Función para abrir el modal de exportación
 function abrirModalExportar() {
@@ -6359,43 +7032,8 @@ let currentEmployeeId = null;
 
 // Función para inicializar el datepicker del filtro de mes
 function initializeViewDatepicker() {
-    const element = document.getElementById('view_filter_mes');
-    if (!element) return;
-    
-    try {
-        // Verificar que Air Datepicker esté disponible
-        if (typeof Datepicker === 'undefined') {
-            console.warn('Air Datepicker no disponible para view_filter_mes');
-            element.type = 'month';
-            return;
-        }
-        
-        // Destruir instancia anterior si existe
-        if (element.datepicker) {
-            element.datepicker.destroy();
-        }
-        
-        element.type = 'text';
-        
-        new Datepicker('#view_filter_mes', {
-            language: 'es',
-            dateFormat: 'yyyy-mm',
-            minView: 'months',
-            view: 'months',
-            selectDates: true,
-            autoClose: true,
-            onSelect: function(formattedDate, date, inst) {
-                console.log('📅 Mes seleccionado en vista:', formattedDate);
-                setTimeout(() => {
-                    cargarRegistrosEmpleado();
-                }, 300);
-            }
-        });
-    } catch (error) {
-        console.error('❌ Error inicializando view datepicker:', error);
-        // Fallback
-        element.type = 'month';
-    }
+    const selector = '#view_filter_mes';
+    initializeSingleDatepicker(selector);
 }
 
 // Función para cargar los registros del empleado - VERSIÓN CORREGIDA
@@ -6690,6 +7328,8 @@ function cargarRegistrosEmpleado() {
             initComplete: function(settings, json) {
                 console.log('✅ DataTable de registros inicializado correctamente');
                 console.log('Datos recibidos:', json);
+                // ✅ INICIALIZAR ÍCONOS DE EXPANSIÓN
+                updateExpandIcons();
             }
         });
 
@@ -6711,42 +7351,89 @@ function cargarRegistrosEmpleado() {
 function viewDetailsFromAdmin(registroId, empleadoId) {
     console.log('🔍 Cargando detalles del registro desde admin:', registroId, empleadoId);
     
-    // Guardar el estado actual del mapa
+    // Guardar el estado actual del mapa ANTES de abrir el modal de detalles
     guardarEstadoMapa();
     
-    // 1. Ocultar temporalmente el modal de empleado
-    $('#viewEmployeeModal').modal('hide');
+    // ✅ CORRECCIÓN: NO cerrar el modal de empleado, solo mostrar el de detalles encima
+    // 1. Resetear el modal de detalles
+    $('#modal-loading').show();
+    $('#modal-content').hide();
+    $('#modal-error').hide();
     
-    // 2. Esperar a que el modal se oculte completamente
-    setTimeout(() => {
-        // 3. Resetear el modal de detalles
-        $('#modal-loading').show();
-        $('#modal-content').hide();
-        $('#modal-error').hide();
-        
-        // 4. Mostrar modal de detalles
-        $('#detailsModal').modal('show');
-        
-        // 5. Obtener datos del registro
-        $.ajax({
-            url: `/admin/empleados/${empleadoId}/registros/${registroId}/detalles`,
-            method: 'GET',
-            timeout: 10000,
-            success: function(response) {
-                console.log('✅ Respuesta detalles:', response);
-                
-                if (response.success && response.registro) {
-                    mostrarDetallesCompletos(response.registro, response.estadisticasDia);
-                } else {
-                    mostrarErrorModal(response.message || 'No se pudieron cargar los detalles del registro.');
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('❌ Error al cargar detalles:', error);
-                mostrarErrorModal('Error al cargar los detalles del registro.');
+    // 2. Mostrar modal de detalles encima del de empleado
+    $('#detailsModal').modal('show');
+    
+    // 3. Obtener datos del registro
+    $.ajax({
+        url: `/admin/empleados/${empleadoId}/registros/${registroId}/detalles`,
+        method: 'GET',
+        timeout: 10000,
+        success: function(response) {
+            console.log('✅ Respuesta detalles:', response);
+            
+            if (response.success && response.registro) {
+                mostrarDetallesCompletos(response.registro, response.estadisticasDia);
+            } else {
+                mostrarErrorModal(response.message || 'No se pudieron cargar los detalles del registro.');
             }
-        });
-    }, 500);
+        },
+        error: function(xhr, status, error) {
+            console.error('❌ Error al cargar detalles:', error);
+            mostrarErrorModal('Error al cargar los detalles del registro.');
+        }
+    });
+}
+
+// ✅ FUNCIÓN PARA ACTUALIZAR ÍCONOS DE EXPANSIÓN
+function updateExpandIcons() {
+    console.log('🔄 Actualizando íconos de expansión...');
+    
+    if (!viewRegistrosTable) {
+        console.warn('⚠️ DataTable de registros no disponible');
+        return;
+    }
+    
+    // Forzar redibujado de las filas
+    viewRegistrosTable.rows().every(function() {
+        const node = this.node();
+        const isShown = this.child.isShown();
+        const expandIcon = $(node).find('.dtr-control').find(':before');
+        
+        if (isShown) {
+            // Si está expandido, mostrar "-"
+            $(node).find('.dtr-control').attr('data-expanded', 'true');
+        } else {
+            // Si está colapsado, mostrar "+"
+            $(node).find('.dtr-control').attr('data-expanded', 'false');
+        }
+    });
+    
+    console.log('✅ Íconos de expansión actualizados');
+}
+
+// ✅ FUNCIÓN PARA REAPLICAR EVENT LISTENERS
+function reapplyRowEventListeners() {
+    console.log('🔄 Reaplicando event listeners...');
+    
+    if (!viewRegistrosTable) return;
+    
+    // Reaplicar el evento de clic para las filas expandibles
+    $('#view_empleado_registros_table tbody').off('click', 'td.dtr-control');
+    $('#view_empleado_registros_table tbody').on('click', 'td.dtr-control', function() {
+        var tr = $(this).closest('tr');
+        var row = viewRegistrosTable.row(tr);
+        
+        if (row.child.isShown()) {
+            row.child.hide();
+            tr.removeClass('shown');
+        } else {
+            var data = row.data();
+            row.child(formatRegistroDetails(data)).show();
+            tr.addClass('shown');
+        }
+    });
+    
+    console.log('✅ Event listeners reaplicados');
 }
 
 function guardarEstadoMapa() {
@@ -7485,6 +8172,7 @@ function initializeChartsDashboard() {
     // Cargar datos iniciales
     loadChartData();
 }
+
 // Cargar años disponibles para filtro
 function loadAvailableYears() {
     const currentYear = new Date().getFullYear();
@@ -8228,36 +8916,7 @@ function generateColors(count) {
 // ✅ FUNCIÓN MEJORADA: Inicializar Flatpickr para PDF
 function initializePdfDatepicker() {
     const selector = '#export_pdf_mes';
-    
-    try {
-        // Verificar que Air Datepicker esté disponible
-        if (typeof Datepicker === 'undefined') {
-            console.warn('Air Datepicker no disponible para PDF');
-            const element = document.querySelector(selector);
-            if (element) {
-                element.type = 'month';
-            }
-            return;
-        }
-        
-        const existingInput = document.querySelector(selector);
-        if (existingInput && existingInput.datepicker) {
-            existingInput.datepicker.destroy();
-        }
-        
-        new Datepicker(selector, {
-            language: 'es',
-            dateFormat: 'yyyy-mm',
-            minView: 'months',
-            view: 'months',
-            selectDates: true,
-            autoClose: true
-        });
-        console.log('✅ Air Datepicker PDF inicializado correctamente');
-    } catch (error) {
-        console.error('❌ Error inicializando datepicker PDF:', error);
-        setupNativeDateInput(selector);
-    }
+    initializeSingleDatepicker(selector);
 }
 
 // ✅ FUNCIÓN AUXILIAR para fallback individual
@@ -8907,7 +9566,6 @@ $(document).ready(function() {
     }
     
     .dtr-title {
-        font-weight: 600;
         color: #4e73df;
         min-width: 100px;
     }
@@ -9211,16 +9869,28 @@ table.dataTable thead .sorting_desc:after {
 }
 
 /* Estilos específicos para cada modal */
-.bg-gradient-warning {
+.modal-header.bg-gradient-success,
+.modal-header.bg-gradient-warning, 
+.modal-header.bg-gradient-danger,
+.modal-header.bg-gradient-info,
+.modal-header.bg-primary {
+    background: linear-gradient(45deg, #28a745, #20c997) !important;
+}
+
+.modal-header.bg-gradient-warning {
     background: linear-gradient(45deg, #ffc107, #e0a800) !important;
 }
 
-.bg-gradient-danger {
+.modal-header.bg-gradient-danger {
     background: linear-gradient(45deg, #dc3545, #c82333) !important;
 }
 
-.bg-gradient-success {
-    background: linear-gradient(45deg, #28a745, #20c997) !important;
+.modal-header.bg-gradient-info {
+    background: linear-gradient(45deg, #17a2b8, #138496) !important;
+}
+
+.modal-header.bg-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3) !important;
 }
 
 /* Asegurar que el texto sea visible en los headers */
@@ -9282,11 +9952,11 @@ table.dataTable thead .sorting_desc:after {
     font-size: 1.25em;
 }
 
-@media (min-width: 768px) {
+/*@media (min-width: 768px) {
     .fa-lg {
         font-size: 2em;
     }
-}
+}*/
 
 /* Tabla responsiva */
 @media (max-width: 767.98px) {
@@ -9475,7 +10145,7 @@ table.dataTable thead .sorting_desc:after {
     .container, .container-lg, .container-md, .container-sm, .container-xl, .container-xxl {
         max-width: 110rem; /* Aproximadamente 1760px */
     }
-}
+}*/
 
 
 /* Estilos para el modal de vista */
@@ -9891,16 +10561,22 @@ code {
 /* Asegurar que la tabla sea responsive */
 #view_empleado_registros_table {
     width: 100% !important;
-    min-width: 1000px;
+    /*min-width: 1000px;*/
 }
 
-@media (max-width: 768px) {
+@media (min-width: 768px) and (max-width: 1023px) {
     .table-responsive {
-        font-size: 0.8rem;
+        font-size: 1rem;
     }
     
     #view_empleado_registros_table {
-        min-width: 1200px;
+        width: 100% !important;
+    }
+    table.dataTable.dtr-inline.collapsed.table-sm > tbody > tr > td:first-child:before,
+    table.dataTable.dtr-inline.collapsed.table-sm > tbody > tr > th:first-child:before {
+        top: 50% !important; /* Centrar verticalmente */
+        transform: translateY(-50%) !important; /* Compensar para centrado perfecto */
+        margin-top: 0 !important; /* Eliminar cualquier margen superior */
     }
 }
 
@@ -9960,15 +10636,15 @@ code {
 @media (max-width: 1024px) {
     /* Asegurar que los modales ocupen toda la pantalla */
     .modal-dialog {
-        /*margin: 0 !important;*/
-        max-width: 100% !important;
+        /*margin: 0 !important;
+        max-width: 100% !important;*/
         height: 100% !important;
     }
     
     .modal-content {
         border-radius: 0 !important;
-        height: 100% !important;
-        min-height: 100vh !important;
+        /*height: 100% !important;
+        min-height: 100vh !important;*/
     }
     
     .modal-body {
@@ -10070,22 +10746,6 @@ code {
 }
 
 
-/* ✅ OCULTAR COMPLETAMENTE EL INPUT NATIVO DE FECHA EN MÓVIL */
-.flatpickr-mobile {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    position: absolute !important;
-    left: -9999px !important;
-}
-
-/* ✅ FORZAR que Flatpickr se muestre incluso en móviles */
-.flatpickr-input[type="text"] {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
-
 /* ✅ ESTILOS ESPECÍFICOS PARA LOS INPUTS DE MES */
 #filterMes,
 #view_filter_mes,
@@ -10106,61 +10766,16 @@ input[type="date"] {
 }
 
 /* ✅ ESTILOS ADICIONALES PARA MÓVILES */
-@media (max-width: 767px) {
-    /* Asegurar que los inputs de Flatpickr sean completamente visibles */
-    .flatpickr-input {
-        background-color: #fff !important;
-        border: 1px solid #ced4da !important;
-        border-radius: 0.375rem !important;
-        padding: 0.5rem 0.75rem !important;
-        width: 100% !important;
-        display: block !important;
-    }
+/*@media (max-width: 767px) {
     
-    /* Ocultar cualquier input nativo de fecha que pueda aparecer */
+    /* Ocultar cualquier input nativo de fecha que pueda aparecer 
     input[type="date"],
     input[type="month"],
     input[type="time"] {
         display: none !important;
     }
-    
-    /* Asegurar que el contenedor de Flatpickr ocupe el espacio completo */
-    .flatpickr-calendar {
-        position: fixed !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        width: 90vw !important;
-        max-width: 320px !important;
-        max-height: 80vh !important;
-        z-index: 99999 !important;
-        border-radius: 10px !important;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
-    }
-    
-    /* Asegurar que el calendario esté centrado */
-    .flatpickr-calendar.open {
-        position: fixed !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-    }
-    
-    /* Contenedor del calendario */
-    .flatpickr-calendar.animate.open {
-        animation: none !important;
-        position: fixed !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-    }
-    
-    /* Prevenir que se mueva con el scroll */
-    .flatpickr-calendar {
-        position: fixed !important;
-        transform: translate(-50%, -50%) !important;
-    }
-}
+
+}*/
 
 @media (min-width: 768px) and (max-width: 991px) {
     .form-control.form-control-sm.form-control-lg-md {
@@ -10331,99 +10946,13 @@ input[type="date"] {
 
 /* MÓVILES (hasta 767px) */
 @media (max-width: 767px) {
-    .flatpickr-calendar {
-        width: 280px !important;
-        max-width: 90vw !important;
-        transform: scale(0.85) !important;
-        transform-origin: center center !important;
-    }
     
-    .flatpickr-calendar.open {
-        transform: scale(0.85) translate(-50%, -50%) !important;
-    }
-    
-    .flatpickr-day {
-        width: 32px !important;
-        height: 32px !important;
-        line-height: 32px !important;
-        font-size: 12px !important;
-    }
-    
-    .flatpickr-month {
-        height: 40px !important;
-    }
-    
-    .flatpickr-current-month {
-        font-size: 14px !important;
-        padding-top: 8px !important;
-    }
-    
-    .flatpickr-prev-month,
-    .flatpickr-next-month {
-        padding: 8px !important;
-    }
-    
-    .flatpickr-weekdays {
-        height: 30px !important;
-    }
-    
-    .flatpickr-weekday {
-        font-size: 11px !important;
-    }
-    
-    .flatpickr-months .flatpickr-month {
-        height: 40px !important;
-    }
     .table.dataTable.dtr-inline.collapsed>tbody>tr>td.dtr-control:before, table.dataTable.dtr-inline.collapsed>tbody>tr>th.dtr-control:before {
     
         margin-top: 0 !important; 
 
     }
 }
-
-/* TABLETS (768px - 1024px) */
-@media (min-width: 768px) and (max-width: 1024px) {
-    .flatpickr-calendar {
-        width: 300px !important;
-        max-width: 80vw !important;
-        transform: scale(0.9) !important;
-        transform-origin: center center !important;
-    }
-    
-    .flatpickr-calendar.open {
-        transform: scale(0.9) translate(-50%, -50%) !important;
-    }
-    
-    .flatpickr-day {
-        width: 36px !important;
-        height: 36px !important;
-        line-height: 36px !important;
-        font-size: 13px !important;
-    }
-    
-    .flatpickr-month {
-        height: 45px !important;
-    }
-    
-    .flatpickr-current-month {
-        font-size: 15px !important;
-        padding-top: 10px !important;
-    }
-    
-    .flatpickr-prev-month,
-    .flatpickr-next-month {
-        padding: 10px !important;
-    }
-    
-    .flatpickr-weekdays {
-        height: 35px !important;
-    }
-    
-    .flatpickr-weekday {
-        font-size: 12px !important;
-    }
-}
-
 
  /* ===== ESTILOS PARA CHILD ROWS EN MÓVIL ===== */
 
@@ -10446,7 +10975,7 @@ table.dataTable.dtr-inline.collapsed>tbody>tr>th.dtr-control {
     padding-left: 30px !important;
 }
 
-table.dataTable.dtr-inline.collapsed>tbody>tr>td.dtr-control:before,
+/*table.dataTable.dtr-inline.collapsed>tbody>tr>td.dtr-control:before,
 table.dataTable.dtr-inline.collapsed>tbody>tr>th.dtr-control:before {
     content: '+';
     background-color: #4e73df !important;
@@ -10468,7 +10997,7 @@ table.dataTable.dtr-inline.collapsed>tbody>tr>th.dtr-control:before {
     height: 20px !important;
     margin-top: -10px !important;
     border-radius: 50% !important;
-}
+}*/
 
 table.dataTable.dtr-inline.collapsed>tbody>tr.parent>td.dtr-control:before,
 table.dataTable.dtr-inline.collapsed>tbody>tr.parent>th.dtr-control:before {
@@ -10539,9 +11068,9 @@ table.dataTable.dtr-inline.collapsed>tbody>tr.parent>th.dtr-control:before {
 
 /* Estilos específicos para diferentes tamaños de pantalla */
 @media (max-width: 575.98px) {
-    .dtr-details {
+    /*.dtr-details {
         padding: 10px !important;
-    }
+    }*/
     
     .dtr-details li {
         flex-direction: column !important;
@@ -10585,46 +11114,697 @@ table.dataTable.dtr-inline.collapsed>tbody>tr.parent>th.dtr-control:before {
 /* ✅ ESTILOS MEJORADOS PARA AIR DATEPICKER */
 .datepicker {
     z-index: 9999 !important;
+    border: 1px solid #e3e6f0 !important;
+    border-radius: 0.5rem !important;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
 }
 
 .datepicker--cell-month {
-    border-radius: 8px;
-    margin: 2px;
+    border-radius: 8px !important;
+    margin: 2px !important;
+    transition: all 0.3s ease !important;
 }
 
-.datepicker--cell-month.-selected- {
-    background: #4e73df !important;
-    color: white !important;
+.datepicker--nav {
+    border-bottom: 1px solid #e3e6f0 !important;
+    background: #f8f9fc !important;
 }
 
-.datepicker--cell-month:hover {
-    background: #4e73df !important;
-    color: white !important;
+.datepicker--nav-title {
+    color: #4e73df !important;
+    font-weight: 600 !important;
+}
+
+.datepicker--nav-action:hover {
+    background: #eaecf4 !important;
+}
+
+/* ✅ TABLETS (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .datepicker--cells.datepicker--cells-months {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        grid-template-rows: repeat(3, 1fr) !important;
+        gap: 10px !important;
+        padding: 20px !important;
+        min-height: 250px !important;
+        height: auto !important;
+    }
+    
+    .datepicker--cell.datepicker--cell-month {
+        height: 40px !important; /* Más alto en tablets */
+        font-size: 0.9rem !important;
+        border-radius: 12px !important;
+    }
+    
+    /* Aumentar tamaño del datepicker completo en tablets */
+    .datepicker {
+        width: 260px !important;
+        min-height: 150px !important;
+    }
+    
+    .datepicker--content {
+        min-height: 150px !important;
+    }
 }
 
 /* Prevenir problemas en móviles */
 @media (max-width: 767px) {
     .datepicker {
-        width: 280px !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
+        width: 12rem !important;
+        /*left: 50% !important;
+        transform: translateX(-50%) !important;*/
+    }
+     .datepicker--cells.datepicker--cells-months {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        grid-template-rows: repeat(3, 1fr) !important;
+        gap: 5px !important;
+        padding: 8px !important;
+        height: auto !important;
+        min-height: 240px !important;
     }
     
     .datepicker--cell {
         height: 40px !important;
         line-height: 40px !important;
     }
+    .datepicker--cells-months {
+        grid-template-columns: repeat(4, 1fr) !important;
+        grid-template-rows: repeat(3, 1fr) !important;
+        gap: 3px !important;
+        padding: 5px !important;
+    }
+}
+/* Responsive */
+@media (max-width: 480px) {
+    .datepicker--cells.datepicker--cells-months {
+        grid-template-columns: repeat(4, 1fr) !important;
+        grid-template-rows: repeat(3, 1fr) !important;
+        gap: 4px !important;
+        padding: 8px !important;
+        height: 220px !important;
+    }
+    
+    .datepicker--cell.datepicker--cell-month {
+        min-height: 50px !important;
+        font-size: 0.85rem !important;
+    }
 }
 
 /* Ocultar inputs nativos de fecha */
-/*input[type="month"] {
+input[type="month"] {
     display: none !important;
-}*/
+}
 
 /* Estilos para los inputs de Air Datepicker */
 .air-datepicker-input {
     background-color: white !important;
     cursor: pointer !important;
+    border: 1px solid #d1d3e2 !important;
+}
+
+/*.air-datepicker-input:focus {
+    border-color: #4e73df !important;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25) !important;
+}*/
+
+
+/* Mejoras para tabla responsive */
+table.dataTable.dtr-inline.collapsed > tbody > tr > td.dtr-control,
+table.dataTable.dtr-inline.collapsed > tbody > tr > th.dtr-control {
+    position: relative;
+    padding-left: 30px;
+    cursor: pointer;
+}
+
+table.dataTable.dtr-inline.collapsed > tbody > tr > td.dtr-control:before,
+table.dataTable.dtr-inline.collapsed > tbody > tr > th.dtr-control:before {
+    font-size: 14px;
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-block;
+   /* width: 20px;
+    height: 20px;*/
+    background: #28a745;
+    color: white;
+    border-radius: 1rem;
+    text-align: center;
+    /*line-height: 18px;*/
+    font-weight: bold;
+    cursor: pointer;
+    /*margin-right: -0.5rem;*/
+}
+
+table.dataTable.dtr-inline.collapsed > tbody > tr.parent > td.dtr-control:before,
+table.dataTable.dtr-inline.collapsed > tbody > tr.parent > th.dtr-control:before {
+    /*content: '▼';*/
+    color: white;
+}
+
+/* Mejorar apariencia de los detalles responsive */
+.dtr-details {
+    background-color: #f8f9fa;
+    border-left: 3px solid #007bff;
+    padding: 10px;
+    margin: 5px 0;
+}
+
+.dtr-details li {
+    border-bottom: 1px solid #dee2e6;
+    padding: 8px 0;
+}
+
+.dtr-details li:last-child {
+    border-bottom: none;
+}
+
+.starter-template {
+    padding: 0 !important;
+    text-align: left; /* También puedes cambiar la alineación si lo necesitas */
+}
+
+/* ESTILOS PARA EL BOTÓN DE EXPANDIR */
+.expand-icon {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background: #28a745;
+    color: white;
+    border-radius: 1rem;
+    text-align: center;
+    line-height: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-right: 5px;
+}
+
+tr.shown .expand-icon {
+    background: #dc3545;
+}
+
+/* ESTILOS PARA DETALLES EXPANDIDOS */
+table.dataTable tbody td.child {
+    padding: 0 !important;
+    border-top: none !important;
+}
+
+.child .p-3 {
+    padding: 1rem !important;
+}
+
+/* ✅ FORZAR QUE SOLO SE VEAN ID Y DNI EN MÓVIL */
+@media screen and (max-width: 768px) {
+    
+    #empleadosTable th:nth-child(1), /* ID */
+    #empleadosTable td:nth-child(1), /* ID */
+    #empleadosTable th:nth-child(2), /* DNI */
+    #empleadosTable td:nth-child(2) /* DNI */
+    { 
+        display: table-cell !important;
+    }
+    
+    /* Ocultar todas las demás columnas */
+    #empleadosTable th:nth-child(n+3),
+    #empleadosTable td:nth-child(n+3) {
+        display: none !important;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+    /* En tablets, mostrar solo ID, DNI, Nombre y Apellidos */
+    #empleadosTable th:nth-child(1), /* ID */
+    #empleadosTable td:nth-child(1), /* ID */
+    #empleadosTable th:nth-child(2), /* DNI */
+    #empleadosTable td:nth-child(2), /* DNI */
+    #empleadosTable th:nth-child(3), /* Nombre */
+    #empleadosTable td:nth-child(3), /* Nombre */
+    #empleadosTable th:nth-child(4), /* Apellidos */
+    #empleadosTable td:nth-child(4) { /* Apellidos */
+        display: table-cell !important;
+    }
+
+    #empleadosTable th:nth-child(5),
+    #empleadosTable td:nth-child(5),
+    #empleadosTable th:nth-child(6),
+    #empleadosTable td:nth-child(6),
+    #empleadosTable th:nth-child(7),
+    #empleadosTable td:nth-child(7),
+    #empleadosTable th:nth-child(8),
+    #empleadosTable td:nth-child(8),
+    #empleadosTable th:nth-child(9),
+    #empleadosTable td:nth-child(9),
+    #empleadosTable th:nth-child(10), /* Acciones */
+    #empleadosTable td:nth-child(10) {
+        display: none !important;
+    }
+    
+
+    /* Cuando la fila está expandida, mantener las mismas columnas visibles */
+    #empleadosTable tr.shown th:nth-child(5),
+    #empleadosTable tr.shown td:nth-child(5),
+    #empleadosTable tr.shown th:nth-child(6),
+    #empleadosTable tr.shown td:nth-child(6),
+    #empleadosTable tr.shown th:nth-child(7),
+    #empleadosTable tr.shown td:nth-child(7),
+    #empleadosTable tr.shown th:nth-child(8),
+    #empleadosTable tr.shown td:nth-child(8),
+    #empleadosTable tr.shown th:nth-child(9),
+    #empleadosTable tr.shown td:nth-child(9),
+    #empleadosTable tr.shown th:nth-child(10),
+    #empleadosTable tr.shown td:nth-child(10) {
+        display: none !important;
+    }
+
+    /* Asegurar que las columnas básicas se mantengan visibles cuando está expandida */
+    #empleadosTable tr.shown th:nth-child(1),
+    #empleadosTable tr.shown td:nth-child(1),
+    #empleadosTable tr.shown th:nth-child(2),
+    #empleadosTable tr.shown td:nth-child(2),
+    #empleadosTable tr.shown th:nth-child(3),
+    #empleadosTable tr.shown td:nth-child(3),
+    #empleadosTable tr.shown th:nth-child(4),
+    #empleadosTable tr.shown td:nth-child(4) {
+        display: table-cell !important;
+    }
+
+    /* Ocultar el resto de columnas en vista normal */
+    #empleadosTable th:nth-child(n+5),
+    #empleadosTable td:nth-child(n+5) {
+        display: none !important;
+    }
+    
+    /* Cuando la fila está expandida, mostrar TODAS las columnas */
+    #empleadosTable tr.shown th,
+    #empleadosTable tr.shown td {
+        display: table-cell !important;
+    }
+
+    /* En tablets, mostrar 'all' y 'min-tablet', ocultar 'min-desktop' */
+    table.dataTable th.min-desktop,
+    table.dataTable td.min-desktop {
+        display: none !important;
+    }
+    
+    table.dataTable th.min-tablet,
+    table.dataTable td.min-tablet,
+    table.dataTable th.all,
+    table.dataTable td.all {
+        display: table-cell !important;
+    }
+
+    /*#empleadosTable tr.shown td:last-child,
+    #empleadosTable tr.shown th:last-child {
+        display: none !important;
+    }*/
+}
+
+
+/* TABLETS GRANDES (1024px - 1199px) - Todas menos Username y Acciones */
+@media (min-width: 1024px) and (max-width: 1199px) {
+    #empleadosTable th:nth-child(1), /* ID */
+    #empleadosTable td:nth-child(1), /* ID */
+    #empleadosTable th:nth-child(2), /* DNI */
+    #empleadosTable td:nth-child(2), /* DNI */
+    #empleadosTable th:nth-child(3), /* Nombre */
+    #empleadosTable td:nth-child(3), /* Nombre */
+    #empleadosTable th:nth-child(4), /* Apellidos */
+    #empleadosTable td:nth-child(4), /* Apellidos */
+    #empleadosTable th:nth-child(5), /* Fecha Nac */
+    #empleadosTable td:nth-child(5), /* Fecha Nac */
+    #empleadosTable th:nth-child(6), /* Edad */
+    #empleadosTable td:nth-child(6), /* Edad */
+    #empleadosTable th:nth-child(7), /* Domicilio */
+    #empleadosTable td:nth-child(7), /* Domicilio */
+    #empleadosTable th:nth-child(8), /* Teléfono */
+    #empleadosTable td:nth-child(8) { /* Teléfono */
+        display: table-cell !important;
+    }
+    
+    /* Ocultar Username y Acciones */
+    #empleadosTable th:nth-child(9),
+    #empleadosTable td:nth-child(9),
+    #empleadosTable th:nth-child(10),
+    #empleadosTable td:nth-child(10) {
+        display: none !important;
+    }
+
+}
+
+/* DESKTOP COMPLETO (1200px+) - Todas las columnas, sin expansión */
+@media (min-width: 1200px) {
+    #empleadosTable th,
+    #empleadosTable td {
+        display: table-cell !important;
+    }
+    
+    /* En desktop completo, OCULTAR el ícono de expansión */
+    .expand-icon {
+        display: none !important;
+    }
+}
+
+/* ===== COMPORTAMIENTO DE EXPANSIÓN POR DISPOSITIVO ===== */
+
+/* En móviles y tablets (hasta 1199px) mantener la expansión */
+@media (max-width: 1199px) {
+    .expand-icon {
+        display: inline-block !important;
+    }
+    
+    /* Cuando la fila está expandida, mantener las mismas columnas visibles */
+    #empleadosTable tr.shown th,
+    #empleadosTable tr.shown td {
+        display: table-cell !important;
+    }
+}
+
+/* MÓVILES (hasta 767px) - Solo columnas esenciales */
+@media screen and (max-width: 767px) {
+    #view_empleado_registros_table th:nth-child(1), /* Fecha */
+    #view_empleado_registros_table td:nth-child(1), /* Fecha */
+    #view_empleado_registros_table th:nth-child(2), /* Hora inicio */
+    #view_empleado_registros_table td:nth-child(2),
+    { 
+        display: table-cell !important;
+    }
+    
+    /* Ocultar todas las demás columnas */
+    #view_empleado_registros_table th:nth-child(n+3),
+    #view_empleado_registros_table td:nth-child(n+3) {
+        display: none !important;
+    }
+}
+
+/* TABLETS (768px - 1023px) - Columnas principales */
+@media (min-width: 768px) and (max-width: 1023px) {
+    #view_empleado_registros_table th:nth-child(1), /* Fecha */
+    #view_empleado_registros_table td:nth-child(1), /* Fecha */
+    #view_empleado_registros_table th:nth-child(2), /* Hora Inicio */
+    #view_empleado_registros_table td:nth-child(2), /* Hora Inicio */
+    #view_empleado_registros_table th:nth-child(3), /* Hora Fin */
+    #view_empleado_registros_table td:nth-child(3), /* Hora Fin */
+    #view_empleado_registros_table th:nth-child(7), /* Duración */
+    #view_empleado_registros_table td:nth-child(7), /* Duración */
+    { 
+        display: table-cell !important;
+    }
+    
+    /* Ocultar columnas menos importantes */
+    #view_empleado_registros_table th:nth-child(4), /* Pausa Inicio */
+    #view_empleado_registros_table td:nth-child(4), /* Pausa Inicio */
+    #view_empleado_registros_table th:nth-child(5), /* Pausa Fin */
+    #view_empleado_registros_table td:nth-child(5), /* Pausa Fin */
+    #view_empleado_registros_table th:nth-child(6), /* Tiempo Pausa */
+    #view_empleado_registros_table td:nth-child(6), /* Tiempo Pausa */
+    #view_empleado_registros_table th:nth-child(8), /* Dirección */
+    #view_empleado_registros_table td:nth-child(8), /* Dirección */
+    #view_empleado_registros_table th:nth-child(9), /* Estado */
+    #view_empleado_registros_table td:nth-child(9), /* Estado */
+    #view_empleado_registros_table th:nth-child(10), /* Acciones */
+    #view_empleado_registros_table td:nth-child(10) /* Acciones */
+    { 
+        display: none !important;
+    }
+}
+
+/* TABLETS GRANDES (1024px - 1199px) - Más columnas */
+@media (min-width: 1024px) and (max-width: 1199px) {
+    #view_empleado_registros_table th:nth-child(1), /* Fecha */
+    #view_empleado_registros_table td:nth-child(1), /* Fecha */
+    #view_empleado_registros_table th:nth-child(2), /* Hora Inicio */
+    #view_empleado_registros_table td:nth-child(2), /* Hora Inicio */
+    #view_empleado_registros_table th:nth-child(3), /* Hora Fin */
+    #view_empleado_registros_table td:nth-child(3), /* Hora Fin */
+    #view_empleado_registros_table th:nth-child(6), /* Tiempo Pausa */
+    #view_empleado_registros_table td:nth-child(6), /* Tiempo Pausa */
+    #view_empleado_registros_table th:nth-child(7), /* Duración */
+    #view_empleado_registros_table td:nth-child(7), /* Duración */
+    #view_empleado_registros_table th:nth-child(9), /* Estado - CORREGIDO */
+    #view_empleado_registros_table td:nth-child(9)  /* Estado - CORREGIDO */ 
+    { 
+        display: table-cell !important;
+    }
+    
+    /* Ocultar columnas menos críticas */
+    #view_empleado_registros_table th:nth-child(4), /* Pausa Inicio */
+    #view_empleado_registros_table td:nth-child(4), /* Pausa Inicio */
+    #view_empleado_registros_table th:nth-child(5), /* Pausa Fin */
+    #view_empleado_registros_table td:nth-child(5), /* Pausa Fin */
+    #view_empleado_registros_table th:nth-child(8), /* Dirección  */
+    #view_empleado_registros_table td:nth-child(8), /* Dirección  */
+    #view_empleado_registros_table th:nth-child(10), /* Acciones */
+    #view_empleado_registros_table td:nth-child(10) /* Acciones */
+    { 
+        display: none !important;
+    }
+}
+
+/* DESKTOP COMPLETO (1200px+) - Todas las columnas */
+@media (min-width: 1200px) {
+    #view_empleado_registros_table th,
+    #view_empleado_registros_table td {
+        display: table-cell !important;
+    }
+}
+
+/* ===== ESTILOS PARA EXPANSIÓN EN TABLETS Y MÓVILES ===== */
+
+/* Icono de expansión para registros */
+.expand-icon-registros { 
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background: #28a745;
+    color: white;
+    border-radius: 1rem;
+    text-align: center;
+    line-height: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-right: 5px;
+}
+
+/* Contenedor de detalles expandidos */
+.registro-details {
+    background: #f8f9fa;
+    border-left: 3px solid #17a2b8;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 0 8px 8px 0;
+}
+
+.registro-details .detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.registro-details .detail-row:last-child {
+    border-bottom: none;
+}
+
+.registro-details .detail-label {
+    font-weight: 600;
+    color: #495057;
+    min-width: 120px;
+    font-size: 0.9rem;
+}
+
+.registro-details .detail-value {
+    /*text-align: right;*/
+    flex: 1;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+/* ===== MEJORAS PARA SCROLL HORIZONTAL EN TABLETS ===== */
+
+@media (max-width: 1199px) {
+    #view_empleado_registros_table_wrapper .table-responsive {
+        border: 1px solid #e3e6f0;
+        border-radius: 8px;
+        overflow-x: auto;
+    }
+}
+
+/* ===== BOTONES DE ACCIÓN COMPACTOS ===== */
+
+.btn-action-compact {
+    padding: 0.2rem 0.4rem !important;
+    font-size: 0.75rem !important;
+    margin: 1px !important;
+}
+
+@media (max-width: 767px) {
+    .btn-action-compact {
+        width: 100%;
+        margin-bottom: 2px !important;
+    }
+}
+
+/* ===== CLASES DE VISIBILIDAD PARA DATATABLES ===== */
+
+/* .all - Siempre visible en todos los dispositivos */
+table.dataTable th.all,
+table.dataTable td.all {
+    display: table-cell !important;
+}
+
+/* .min-tablet - Visible en tablets (768px+) y desktop */
+table.dataTable th.min-tablet,
+table.dataTable td.min-tablet {
+    /* Visible por defecto */
+}
+
+@media (max-width: 767px) {
+    table.dataTable th.min-tablet,
+    table.dataTable td.min-tablet {
+        display: none !important;
+    }
+}
+
+/* .min-tablet-lg - Visible en tablets grandes (1024px+) y desktop */
+table.dataTable th.min-tablet-lg,
+table.dataTable td.min-tablet-lg {
+    /* Oculto por defecto en tablets normales */
+}
+
+@media (max-width: 1023px) {
+    table.dataTable th.min-tablet-lg,
+    table.dataTable td.min-tablet-lg {
+        display: none !important;
+    }
+}
+
+@media (min-width: 1024px) {
+    table.dataTable th.min-tablet-lg,
+    table.dataTable td.min-tablet-lg {
+        display: table-cell !important;
+    }
+}
+
+/* .min-desktop - Solo visible en desktop (1200px+) */
+table.dataTable th.min-desktop,
+table.dataTable td.min-desktop {
+    display: none !important;
+}
+
+@media (min-width: 1200px) {
+    table.dataTable th.min-desktop,
+    table.dataTable td.min-desktop {
+        display: table-cell !important;
+    }
+}
+
+/* ===== ELIMINAR WIDTH FIJOS DE DATATABLES EN MÓVIL ===== */
+@media (max-width: 767px) {
+    /* Sobrescribir los estilos inline de DataTables */
+    #view_empleado_registros_table_wrapper .dataTables_scrollHeadInner,
+    #view_empleado_registros_table_wrapper .dataTables_scrollHeadInner table,
+    #view_empleado_registros_table_wrapper table.dataTable {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    /* Eliminar width fijo del contenedor interno */
+    .dataTables_scrollHeadInner {
+        width: 100% !important;
+        min-width: 100% !important;
+    }
+    
+    /* Forzar que la tabla ocupe el 100% */
+    #view_empleado_registros_table {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    /* Eliminar width fijo de las celdas */
+    #view_empleado_registros_table th,
+    #view_empleado_registros_table td {
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+}
+
+/* ===== PREVENIR WIDTH FIJOS EN TODOS LOS DISPOSITIVOS ===== */
+#view_empleado_registros_table_wrapper .dataTables_scrollHeadInner,
+#view_empleado_registros_table_wrapper .dataTables_scrollHeadInner table,
+#view_empleado_registros_table_wrapper table.dataTable {
+    width: 100% !important;
+}
+
+/* ===== ESTILOS MÁS AGRESIVOS PARA SOBRESCRIBIR DATATABLES ===== */
+@media (max-width: 767px) {
+    /* Usar !important para forzar la sobrescritura */
+    div.dataTables_wrapper div.dataTables_scrollHeadInner table.dataTable {
+        width: 100% !important;
+        min-width: 100% !important;
+    }
+    
+    table.table-hover.table-sm.dataTable.no-footer {
+        width: 100% !important;
+        min-width: 100% !important;
+    }
+    
+    /* Contenedor principal */
+    .dataTables_scroll {
+        width: 100% !important;
+    }
+    
+    .dataTables_scrollHead {
+        width: 100% !important;
+    }
+}
+
+/* ===== RESET COMPLETO PARA MÓVILES ===== */
+@media (max-width: 767px) {
+    /* Reset completo de todos los elementos de DataTables */
+    #view_empleado_registros_table_wrapper * {
+        box-sizing: border-box;
+    }
+    
+    #view_empleado_registros_table_wrapper .dataTables_scroll,
+    #view_empleado_registros_table_wrapper .dataTables_scrollHead,
+    #view_empleado_registros_table_wrapper .dataTables_scrollHeadInner,
+    #view_empleado_registros_table_wrapper .dataTables_scrollHeadInner table,
+    #view_empleado_registros_table_wrapper table.dataTable,
+    #view_empleado_registros_table_wrapper table.table-hover.table-sm.dataTable.no-footer {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    /* Asegurar que las celdas sean flexibles */
+    #view_empleado_registros_table th,
+    #view_empleado_registros_table td {
+        width: auto !important;
+        min-width: 0 !important;
+    }
+
+    /* Sobrescribir el top: 5px por defecto de DataTables */
+    table.dataTable.dtr-inline.collapsed.table-sm > tbody > tr > td:first-child:before,
+    table.dataTable.dtr-inline.collapsed.table-sm > tbody > tr > th:first-child:before {
+        top: 50% !important; /* Centrar verticalmente */
+        transform: translateY(-50%) !important; /* Compensar para centrado perfecto */
+        margin-top: 0 !important; /* Eliminar cualquier margen superior */
+    }
+}
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+    table.dataTable.dtr-inline.collapsed.table-sm > tbody > tr > td:first-child:before,
+    table.dataTable.dtr-inline.collapsed.table-sm > tbody > tr > th:first-child:before {
+        top: 50% !important; /* Centrar verticalmente */
+        transform: translateY(-50%) !important; /* Compensar para centrado perfecto */
+        margin-top: 0 !important; /* Eliminar cualquier margen superior */
+    }
 }
 
 </style>

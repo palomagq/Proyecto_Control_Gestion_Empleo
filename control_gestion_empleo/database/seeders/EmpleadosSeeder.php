@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use App\Models\Empleado; // ← Asegúrate de que esta línea esté presente
+use App\Models\Credencial; // ← Y esta también si usas Credencial
 
 class EmpleadosSeeder extends Seeder
 {

@@ -54,12 +54,25 @@ class EmpleadoController extends Controller
         $estadisticasMes = $this->obtenerEstadisticasMes($empleado->id);
 
         // OBTENER TAREAS DEL EMPLEADO - NUEVO
-        $tareasEmpleado = $this->obtenerTareasEmpleado($empleado->id);
-        Log::info("📊 PERFIL - Resultado tareas:", [
-            'total_tareas' => $tareasEmpleado['estadisticas']['total'],
-            'creadas' => $tareasEmpleado['estadisticas']['creadas_count'],
-            'asignadas' => $tareasEmpleado['estadisticas']['asignadas_count']
-        ]);
+        $tareasData = $this->obtenerTareasEmpleado($empleado->id);
+    
+            // Preparar datos para DataTable
+            $tareasParaDataTable = $tareasData['todas']->map(function($tarea) {
+                return [
+                    'id' => $tarea['id'],
+                    'titulo' => $tarea['titulo'],
+                    'tipo_tarea' => $tarea['tipo_tarea'],
+                    'color' => $tarea['color'],
+                    'prioridad' => $tarea['prioridad'],
+                    'estado' => $tarea['estado'],
+                    'fecha_tarea' => $tarea['fecha_tarea'],
+                    'horas_tarea' => $tarea['horas_tarea'],
+                    'creador_tipo' => $tarea['creador_tipo'],
+                    'empleado_creador_id' => $tarea['empleado_creador_id'],
+                    'created_at' => $tarea['created_at'],
+                    'acciones' => $tarea['id'] // Para la columna de acciones
+                ];
+            });
 
         // OBTENER NUEVOS DATOS PARA LAS TARJETAS
         $progresoSemanal = $this->obtenerProgresoSemanal($empleado->id);
@@ -77,7 +90,8 @@ class EmpleadoController extends Controller
             'googleMapsApiKey',
             'progresoSemanal',
             'logros',
-            'tareasEmpleado' // NUEVO: Pasar las tareas a la vista
+            'tareasData',
+            'tareasParaDataTable' // ← Nuevo dato para DataTable
         ));
     }
     
@@ -87,6 +101,9 @@ class EmpleadoController extends Controller
 public function startTiempo(Request $request, $id)
     {
         try {
+            // Aumentar el tiempo máximo de ejecución
+            set_time_limit(30); // 30 segundos
+            
             // Verificación básica
             if (!Auth::check()) {
                 return response()->json([
@@ -502,9 +519,46 @@ public function getEstado(Request $request, $id)
     }
 }
 
-    /**
-     * Obtener estadísticas del mes
+
+ /**
+     * Formatear horas decimales a formato con días para horas > 24
      */
+    private function formatDecimalHoursToHM($decimalHours)
+    {
+        if (!$decimalHours || $decimalHours == 0) {
+            return '0h 00m';
+        }
+
+        $decimalHours = floatval($decimalHours);
+        
+        // Si supera las 24 horas, convertir a días
+        if ($decimalHours >= 24) {
+            $dias = floor($decimalHours / 24);
+            $horasRestantes = $decimalHours % 24;
+            $horas = floor($horasRestantes);
+            $minutos = round(($horasRestantes - $horas) * 60);
+            
+            // Si los minutos son 60, sumar una hora
+            if ($minutos == 60) {
+                return $dias . 'd ' . ($horas + 1) . 'h 00m';
+            }
+            
+            return $dias . 'd ' . $horas . 'h ' . str_pad($minutos, 2, '0', STR_PAD_LEFT) . 'm';
+        } else {
+            // Formato normal para menos de 24 horas
+            $horas = floor($decimalHours);
+            $minutos = round(($decimalHours - $horas) * 60);
+            
+            // Si los minutos son 60, sumar una hora
+            if ($minutos == 60) {
+                return ($horas + 1) . 'h 00m';
+            }
+            
+            return $horas . 'h ' . str_pad($minutos, 2, '0', STR_PAD_LEFT) . 'm';
+        }
+    }
+
+
     /**
  * Obtener estadísticas del mes
  */
@@ -1221,33 +1275,6 @@ public function repararFechasFuturas($empleadoId)
     }
 
     /**
-     * Formatear horas decimales a formato "Xh Xm"
-     */
-    private function formatDecimalHoursToHM($decimalHours)
-    {
-        if (!$decimalHours || $decimalHours == 0) {
-            return '0h 00m';
-        }
-
-        // Si es string, convertir a float
-        if (is_string($decimalHours)) {
-            $decimalHours = floatval($decimalHours);
-        }
-
-        $horas = floor($decimalHours);
-        $minutosDecimal = ($decimalHours - $horas) * 60;
-        $minutos = round($minutosDecimal);
-
-        // Si los minutos son 60, sumar una hora
-        if ($minutos == 60) {
-            return ($horas + 1) . 'h 00m';
-        }
-
-        return $horas . 'h ' . str_pad($minutos, 2, '0', STR_PAD_LEFT) . 'm';
-    }
-
-
-    /**
  * Obtener progreso semanal del empleado
  */
 private function obtenerProgresoSemanal($empleadoId)
@@ -1570,11 +1597,11 @@ public function actualizarEstadoConexion(Request $request, $id)
             'dispositivo_conectado' => $request->userAgent()
         ]);
 
-        Log::info('Estado de conexión actualizado:', [
+        /*Log::info('Estado de conexión actualizado:', [
             'empleado_id' => $id,
             'en_linea' => true,
             'ultima_conexion' => now()
-        ]);
+        ]);*/
 
         return response()->json([
             'success' => true,
@@ -1699,13 +1726,24 @@ private function obtenerTareasEmpleado($empleadoId)
     try {
         Log::info("🔍 Buscando tareas para empleado ID: {$empleadoId}");
 
-        // 1. Tareas creadas por el empleado
+        // 1. Tareas CREADAS por el empleado
         $tareasCreadas = DB::table('tabla_tareas')
             ->where('empleado_creador_id', $empleadoId)
-            ->where('creador_tipo', 'empleado')
+            ->where('creador_tipo', 'empleado') // ← CLAVE: Solo tareas creadas por empleado
             ->join('tabla_tipos_tarea', 'tabla_tareas.tipo_tarea_id', '=', 'tabla_tipos_tarea.id')
             ->select(
-                'tabla_tareas.*',
+                'tabla_tareas.id',
+                'tabla_tareas.titulo',
+                'tabla_tareas.descripcion',
+                'tabla_tareas.tipo_tarea_id',
+                'tabla_tareas.prioridad',
+                'tabla_tareas.estado',
+                'tabla_tareas.fecha_tarea',
+                'tabla_tareas.horas_tarea',
+                'tabla_tareas.area',
+                'tabla_tareas.creador_tipo',
+                'tabla_tareas.empleado_creador_id',
+                'tabla_tareas.created_at',
                 'tabla_tipos_tarea.nombre as tipo_tarea_nombre',
                 'tabla_tipos_tarea.color as tipo_tarea_color'
             )
@@ -1723,20 +1761,34 @@ private function obtenerTareasEmpleado($empleadoId)
                     'fecha_tarea' => $tarea->fecha_tarea,
                     'horas_tarea' => $tarea->horas_tarea,
                     'area' => $tarea->area,
-                    'creador_tipo' => 'empleado',
-                    'created_at' => $tarea->created_at
+                    'creador_tipo' => 'empleado', // ← Forzar este valor
+                    'empleado_creador_id' => $tarea->empleado_creador_id,
+                    'created_at' => $tarea->created_at,
+                    'origen' => 'creada_por_mi' // ← Nuevo campo para identificar
                 ];
             });
 
-        Log::info("📝 Tareas creadas por empleado: " . $tareasCreadas->count());
+        Log::info("📝 Tareas CREADAS por empleado: " . $tareasCreadas->count());
 
-        // 2. Tareas asignadas por admin - CONSULTA SIMPLIFICADA Y CORREGIDA
+        // 2. Tareas ASIGNADAS por admin (diferente de las creadas por el empleado)
         $tareasAsignadas = DB::table('tabla_asignaciones_tareas')
             ->where('tabla_asignaciones_tareas.empleado_id', $empleadoId)
             ->join('tabla_tareas', 'tabla_asignaciones_tareas.tarea_id', '=', 'tabla_tareas.id')
+            ->where('tabla_tareas.creador_tipo', 'admin') // ← CLAVE: Solo tareas de admin
             ->join('tabla_tipos_tarea', 'tabla_tareas.tipo_tarea_id', '=', 'tabla_tipos_tarea.id')
             ->select(
-                'tabla_tareas.*',
+                'tabla_tareas.id',
+                'tabla_tareas.titulo',
+                'tabla_tareas.descripcion',
+                'tabla_tareas.tipo_tarea_id',
+                'tabla_tareas.prioridad',
+                'tabla_tareas.estado',
+                'tabla_tareas.fecha_tarea',
+                'tabla_tareas.horas_tarea',
+                'tabla_tareas.area',
+                'tabla_tareas.creador_tipo',
+                'tabla_tareas.empleado_creador_id',
+                'tabla_tareas.created_at',
                 'tabla_tipos_tarea.nombre as tipo_tarea_nombre',
                 'tabla_tipos_tarea.color as tipo_tarea_color',
                 'tabla_asignaciones_tareas.estado_asignacion'
@@ -1756,12 +1808,14 @@ private function obtenerTareasEmpleado($empleadoId)
                     'horas_tarea' => $tarea->horas_tarea,
                     'area' => $tarea->area,
                     'creador_tipo' => 'admin',
+                    'empleado_creador_id' => $tarea->empleado_creador_id,
                     'estado_asignacion' => $tarea->estado_asignacion,
-                    'created_at' => $tarea->created_at
+                    'created_at' => $tarea->created_at,
+                    'origen' => 'asignada_por_admin' // ← Nuevo campo para identificar
                 ];
             });
 
-        Log::info("📋 Tareas asignadas por admin: " . $tareasAsignadas->count());
+        Log::info("📋 Tareas ASIGNADAS por admin: " . $tareasAsignadas->count());
 
         // 3. Combinar ambas listas
         $todasLasTareas = $tareasCreadas->merge($tareasAsignadas)
@@ -1791,7 +1845,6 @@ private function obtenerTareasEmpleado($empleadoId)
 
     } catch (\Exception $e) {
         Log::error('❌ Error obteniendo tareas del empleado: ' . $e->getMessage());
-        Log::error('Stack trace: ' . $e->getTraceAsString());
         
         return [
             'todas' => collect([]),
@@ -1900,7 +1953,7 @@ public function crearTareaEmpleado(Request $request, $id)
             'area' => 'nullable|string|max:255'
         ]);
 
-        // Crear tarea como empleado
+        // CORREGIDO: Crear tarea con el empleado como CREADOR
         $tareaId = DB::table('tabla_tareas')->insertGetId([
             'titulo' => $validated['titulo'],
             'descripcion' => $validated['descripcion'],
@@ -1909,15 +1962,15 @@ public function crearTareaEmpleado(Request $request, $id)
             'fecha_tarea' => $validated['fecha_tarea'],
             'horas_tarea' => $validated['horas_tarea'],
             'area' => $validated['area'],
-            'creador_tipo' => 'empleado',
-            'empleado_creador_id' => $empleado->id,
+            'creador_tipo' => 'empleado', // ← CLAVE: Indicar que fue creada por empleado
+            'empleado_creador_id' => $empleado->id, // ← CLAVE: ID del empleado creador
             'estado' => 'pendiente',
             'created_at' => now(),
             'updated_at' => now()
         ]);
 
         // Auto-asignar la tarea al empleado que la creó
-        DB::table('tabla_asignaciones_tarea')->insert([
+        DB::table('tabla_asignaciones_tareas')->insert([
             'tarea_id' => $tareaId,
             'empleado_id' => $empleado->id,
             'estado_asignacion' => 'asignada',
@@ -1926,10 +1979,12 @@ public function crearTareaEmpleado(Request $request, $id)
             'updated_at' => now()
         ]);
 
-        Log::info('Tarea creada por empleado:', [
+        Log::info('✅ Tarea creada por empleado CORRECTAMENTE:', [
             'empleado_id' => $empleado->id,
+            'empleado_nombre' => $empleado->nombre,
             'tarea_id' => $tareaId,
-            'titulo' => $validated['titulo']
+            'titulo' => $validated['titulo'],
+            'creador_tipo' => 'empleado' // Confirmar en logs
         ]);
 
         return response()->json([
@@ -1939,7 +1994,7 @@ public function crearTareaEmpleado(Request $request, $id)
         ]);
 
     } catch (\Exception $e) {
-        Log::error('Error creando tarea desde empleado: ' . $e->getMessage());
+        Log::error('❌ Error creando tarea desde empleado: ' . $e->getMessage());
         return response()->json([
             'success' => false,
             'message' => 'Error al crear tarea: ' . $e->getMessage()
@@ -2003,9 +2058,9 @@ public function actualizarEstadoTareaEmpleado(Request $request, $empleadoId, $ta
                 $query->where('empleado_creador_id', $empleado->id)
                       ->orWhereExists(function($subQuery) use ($empleado) {
                           $subQuery->select(DB::raw(1))
-                                  ->from('tabla_asignaciones_tarea')
-                                  ->whereRaw('tabla_asignaciones_tarea.tarea_id = tabla_tareas.id')
-                                  ->where('tabla_asignaciones_tarea.empleado_id', $empleado->id);
+                                  ->from('tabla_asignaciones_tareas')
+                                  ->whereRaw('tabla_asignaciones_tareas.tarea_id = tabla_tareas.id')
+                                  ->where('tabla_asignaciones_tareas.empleado_id', $empleado->id);
                       });
             })
             ->first();

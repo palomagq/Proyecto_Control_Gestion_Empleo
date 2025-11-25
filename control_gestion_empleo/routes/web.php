@@ -143,7 +143,7 @@ Route::prefix('empleado')->group(function () {
 
     Route::get('/registro/{id}/datatable', [EmpleadoController::class, 'getDataTable'])->name('empleado.registro.datatable');
     Route::get('/registro/{id}/resumen-periodo', [EmpleadoController::class, 'getResumenPeriodo'])->name('empleado.registro.resumen-periodo');
-
+    Route::get('/registro/{id}/progreso-semanal', [EmpleadoController::class, 'getProgresoSemanal'])->name('empleado.progreso-semanal');
     Route::get('/registro/{id}/estadisticas-mes', [EmpleadoController::class, 'getEstadisticasMes']);
 
     Route::get('/registro/{empleado}/detalles/{registro}', [EmpleadoController::class, 'getDetallesRegistro'])
@@ -159,7 +159,9 @@ Route::prefix('empleado')->group(function () {
     Route::get('/{empleadoId}/tareas/{tareaId}/detalles', [EmpleadoController::class, 'getDetallesTareaEmpleado'])->name('empleado.tareas.detalles');
     Route::get('/{id}/tareas/estadisticas', [EmpleadoController::class, 'getEstadisticasTareas'])->name('empleado.tareas.estadisticas');
     Route::put('/{empleado}/tareas/{tarea}/actualizar', [EmpleadoController::class, 'actualizarTareaEmpleado'])->name('empleado.tareas.actualizar');
-     // Eliminar tarea
+     Route::get('/{empleadoId}/tareas/{tareaId}/editar', [EmpleadoController::class, 'getDetallesTareaParaEditar']);
+
+    // Eliminar tarea
     Route::delete('/tareas/{tarea}', [EmpleadoController::class, 'eliminarTareaEmpleado'])->name('empleado.tareas.eliminar');
     Route::get('/{id}/tareas/datatable', [EmpleadoController::class, 'getTareasDataTable'])->name('empleado.tareas.datatable');
 

@@ -911,7 +911,7 @@ function cargarTiposTarea() {
         url: '{{ route("admin.tareas.tipos") }}',
         type: 'GET',
         success: function(response) {
-            console.log('Tipos de tarea cargados:', response);
+            //console.log('Tipos de tarea cargados:', response);
             
             if (response.success && response.data) {
                 // Limpiar selects
@@ -947,7 +947,7 @@ function cargarTiposTarea() {
 }
 
 function cargarEmpleados() {
-    console.log('Cargando empleados...');
+    //console.log('Cargando empleados...');
     
     $.ajax({
         url: '{{ route("admin.tareas.empleados") }}',
@@ -969,7 +969,7 @@ function cargarEmpleados() {
                     $('#empleados_asignacion').append(`<option value="${empleado.id}">${optionText}</option>`);
                 });
 
-                console.log('Empleados cargados en selects:', response.data.length);
+                //console.log('Empleados cargados en selects:', response.data.length);
                 
                 // Inicializar Select2 para empleados (múltiple con buscador)
                 if (typeof $.fn.select2 !== 'undefined') {
@@ -997,7 +997,7 @@ function cargarEmpleados() {
                         multiple: true
                     });
                     
-                    console.log('Select2 para empleados inicializado');
+                    //console.log('Select2 para empleados inicializado');
                 }
             } else {
                 console.error('No hay empleados disponibles:', response);
@@ -1013,13 +1013,13 @@ function cargarEmpleados() {
 
 
 function cargarEmpleadosParaFiltros() {
-    console.log('Cargando empleados para filtros...');
+    //console.log('Cargando empleados para filtros...');
     
     $.ajax({
         url: '{{ route("admin.tareas.empleados") }}',
         type: 'GET',
         success: function(response) {
-            console.log('Empleados para filtros cargados:', response);
+            //console.log('Empleados para filtros cargados:', response);
             
             if (response.success && response.data && response.data.length > 0) {
                 // Limpiar select de filtros
@@ -1031,7 +1031,7 @@ function cargarEmpleadosParaFiltros() {
                     $('#filterEmpleados').append(`<option value="${empleado.id}">${optionText}</option>`);
                 });
 
-                console.log('Empleados cargados en filtro:', response.data.length);
+                //console.log('Empleados cargados en filtro:', response.data.length);
                 
                 // ✅ INICIALIZAR SELECT2 DESPUÉS DE CARGAR DATOS
                 inicializarSelect2Filtros();
@@ -1088,7 +1088,7 @@ function inicializarSelect2() {
         multiple: true // MÚLTIPLE CHOICE
     });
     
-    console.log('Select2 inicializado correctamente');
+    //console.log('Select2 inicializado correctamente');
 }
 
 
@@ -1117,7 +1117,7 @@ function inicializarSelect2Filtros() {
         closeOnSelect: false
     });
     
-    console.log('Select2 para filtros inicializado correctamente');
+    //console.log('Select2 para filtros inicializado correctamente');
 }
 
 // =============================================
@@ -1854,7 +1854,7 @@ function getBadgePrioridad(prioridad) {
 }
 
 function getBadgeEstado(estado) {
-    console.log('🔍 getBadgeEstado recibió:', estado, 'tipo:', typeof estado);
+    //console.log('🔍 getBadgeEstado recibió:', estado, 'tipo:', typeof estado);
     
     if (!estado) {
         console.warn('❌ Estado vacío o undefined');
@@ -1862,7 +1862,7 @@ function getBadgeEstado(estado) {
     }
     
     const estadoStr = estado.toString().toLowerCase().trim();
-    console.log('🔍 Estado procesado:', estadoStr);
+    //console.log('🔍 Estado procesado:', estadoStr);
     
     const badges = {
         'pendiente': '<span class="badge badge-secondary">Pendiente</span>',
@@ -1875,13 +1875,13 @@ function getBadgeEstado(estado) {
     };
     
     const resultado = badges[estadoStr] || '<span class="badge badge-secondary">N/A</span>';
-    console.log('✅ Badge generado para', estadoStr, ':', resultado);
+    //console.log('✅ Badge generado para', estadoStr, ':', resultado);
     
     return resultado;
 }
 
 function aplicarFiltrosTareas() {
-    console.log('🔄 Aplicando filtros...');
+    //console.log('🔄 Aplicando filtros...');
     
     // Obtener valores de los filtros
     const filtros = {
@@ -1891,7 +1891,7 @@ function aplicarFiltrosTareas() {
         empleados: $('#filterEmpleados').val() || []
     };
     
-    console.log('Filtros aplicados:', filtros);
+    //console.log('Filtros aplicados:', filtros);
     
     // Validar rango de fechas
     if (filtros.fecha_inicio && filtros.fecha_fin) {
@@ -1909,7 +1909,7 @@ function aplicarFiltrosTareas() {
 }
 
 function limpiarFiltrosTareas() {
-    console.log('🧹 Limpiando filtros...');
+    //console.log('🧹 Limpiando filtros...');
     
     // Limpiar todos los filtros
     $('#filterEstado').val('');
@@ -2005,14 +2005,14 @@ function actualizarEstadisticas() {
 function calcularEstadisticasDesdeDataTable() {
     try {
         if (!window.tareasTable) {
-            console.log('❌ DataTable no disponible para estadísticas');
+            //console.log('❌ DataTable no disponible para estadísticas');
             mostrarEstadisticasPorDefecto();
             return;
         }
 
         // Obtener datos VISIBLES (con filtros aplicados)
         const datos = window.tareasTable.rows({ filter: 'applied' }).data();
-        console.log('🔍 Calculando estadísticas con', datos.length, 'tareas visibles');
+        //console.log('🔍 Calculando estadísticas con', datos.length, 'tareas visibles');
         
         let total = 0;
         let pendientes = 0;
@@ -2047,7 +2047,7 @@ function calcularEstadisticasDesdeDataTable() {
                 }
             }
 
-            console.log(`Tarea ${tarea.id}: Estado detectado = "${estado}"`);
+            //console.log(`Tarea ${tarea.id}: Estado detectado = "${estado}"`);
 
             // ✅ CONTAR POR ESTADO - CORREGIDO
             if (estado.includes('pendiente')) {
@@ -2095,7 +2095,7 @@ function calcularEstadisticasDesdeDataTable() {
             const diferencia = total - sumaEstados;
             if (diferencia > 0) {
                 pendientes += diferencia; // Asignar la diferencia a pendientes
-                console.log(`🔧 Ajustado: +${diferencia} a pendientes`);
+                //console.log(`🔧 Ajustado: +${diferencia} a pendientes`);
             }
         }
 
@@ -2343,13 +2343,13 @@ function cargarEmpleadosConectados() {
             } else {
                 console.warn('No hay empleados conectados disponibles');
                 mostrarNotificacionConexion(0, false);
-                cargarTodosLosEmpleadosComoFallback();
+                //cargarTodosLosEmpleadosComoFallback();
             }
         },
         error: function(xhr, status, error) {
             console.error('Error cargando empleados conectados:', error);
             mostrarNotificacionConexion(0, true, true);
-            cargarTodosLosEmpleadosComoFallback();
+            //cargarTodosLosEmpleadosComoFallback();
         }
     });
 }
@@ -2493,7 +2493,7 @@ function cargarEmpleadosConectadosParaFiltros() {
         url: '{{ route("admin.empleados.conectados") }}',
         type: 'GET',
         success: function(response) {
-            console.log('Empleados para filtros cargados:', response);
+            //console.log('Empleados para filtros cargados:', response);
             
             if (response.success && response.data && response.data.length > 0) {
                 // Limpiar select de filtros
@@ -2505,7 +2505,7 @@ function cargarEmpleadosConectadosParaFiltros() {
                     $('#filterEmpleados').append(`<option value="${empleado.id}">${optionText}</option>`);
                 });
 
-                console.log('Empleados cargados en filtro:', response.data.length);
+                //console.log('Empleados cargados en filtro:', response.data.length);
                 
                 inicializarSelect2Filtros();
                 
@@ -2759,7 +2759,7 @@ $(document).ready(function() {
         },
         order: [[0, 'asc']],
         responsive: true,
-        pageLength: 25,
+        pageLength: 10,
         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Todos"]],
         dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
         searchDelay: 500, // Delay de 500ms para búsqueda

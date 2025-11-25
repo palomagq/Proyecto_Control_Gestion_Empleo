@@ -1,6 +1,137 @@
 @extends('empleado.dashboard_empleado')
 
 @section('content')
+<style>
+    table.dataTable.dtr-column>tbody>tr>td.dtr-control:before, 
+    table.dataTable.dtr-column>tbody>tr>th.dtr-control:before, 
+    table.dataTable.dtr-column>tbody>tr>td.control:before, 
+    table.dataTable.dtr-column>tbody>tr>th.control:before {
+        top: 50%;
+        left: unset !important;
+        height: .8em;
+        width: .8em;
+        margin-top: -0.5em;
+        margin-left: -0.5em;
+        display: block;
+        position: absolute;
+        color: white;
+        border: .15em solid white;
+        border-radius: 1em;
+        box-shadow: 0 0 .2em #444;
+        box-sizing: content-box;
+        text-align: center;
+        text-indent: 0 !important;
+        font-family: "Courier New", Courier, monospace;
+        line-height: 1em;
+        content: "+";
+        background-color: #0275d8;
+    }
+    @media (max-width:767px) {
+        .fecha-con-control{
+            padding-left: 1rem;
+        } 
+
+        /* Líneas divisorias para detalles responsive */
+        .dtr-details-grid .dtr-detail-item {
+            border-bottom: 1px solid #dee2e6 !important;
+            padding: 0.5em 0;
+            width: 100%;
+        }
+        
+        /* Eliminar borde del último elemento (Acciones) */
+        .dtr-details-grid .dtr-detail-item:last-child {
+            border-bottom: none !important;
+        }
+    }
+
+    @media (min-width:768px) and (max-width:1023px) {
+        .fecha-con-control{
+            padding-left: 1rem;
+        } 
+        table.dataTable>tbody>tr.child ul.dtr-details {
+            display: grid;
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        table.dataTable>tbody>tr.child ul.dtr-details>li {
+            border-bottom: 1px solid #efefef;
+            padding: .5em 0;
+            text-align: center;
+        }
+
+        /* Líneas divisorias para detalles responsive */
+        .dtr-details-grid {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 20px !important;
+            box-sizing: border-box !important;
+            justify-self: center;
+        }
+        
+        .dtr-detail-item {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            width: 100% !important;
+            border-bottom: 1px solid #dee2e6 !important;
+            padding: 12px 0 !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+        }
+        
+        /* Eliminar borde del último elemento (Acciones) */
+        .dtr-details-grid .dtr-detail-item:last-child {
+            border-bottom: none !important;
+        }
+    }
+
+    @media (min-width:1024px) and (max-width:1199px) {
+        .fecha-con-control{
+            padding-left: 1rem;
+        } 
+
+        table.dataTable>tbody>tr.child ul.dtr-details {
+            display: grid;
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        table.dataTable>tbody>tr.child ul.dtr-details>li {
+            border-bottom: 1px solid #efefef;
+            padding: .5em 0;
+            text-align: center;
+        }
+
+       .dtr-details-grid {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 20px !important;
+            box-sizing: border-box !important;
+            justify-self: center;
+        }
+        
+        .dtr-detail-item {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            width: 100% !important;
+            border-bottom: 1px solid #dee2e6 !important;
+            padding: 12px 0 !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+        }
+        
+        /* Eliminar borde del último elemento (Acciones) */
+        .dtr-details-grid .dtr-detail-item:last-child {
+            border-bottom: none !important;
+        }
+    }
+
+</style>
+
 <div class="container-fluid p-4">
     <div class="row">
         <!-- Columna izquierda - Perfil y Estadísticas -->
@@ -16,13 +147,13 @@
                     <p class="text-muted mb-3">{{ substr(auth()->user()->email, 0, 1) }}</p>
                     
                     <div class="row text-center">
-                        <div class="col-6">
+                        <div class="col-12">
                             <div class="stats-card">
                                 <div class="stats-number">{{ $estadisticasMes['total_registros'] }}</div>
                                 <div class="stats-label">Registros</div>
                             </div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-12">
                             <div class="stats-card">
                                 <div class="stats-number">{{ $estadisticasMes['total_horas'] }}h</div>
                                 <div class="stats-label">Horas Totales</div>
@@ -175,8 +306,8 @@
                                 <label for="filterMes" class="font-weight-bold text-dark small">
                                     <i class="fas fa-calendar-alt mr-1"></i>Seleccione un mes
                                 </label>
-                                <input type="text" class="form-control" id="filterMes" 
-                                    placeholder="Seleccione un mes" readonly>
+                                <input type="text" class="form-control air-datepicker-input" id="filterMes" 
+                                    placeholder="Seleccione mes/año" readonly style="background-color: white; cursor: pointer;">
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -225,18 +356,18 @@
                 <div class="card-body">
                     <div class="table-responsive">
                         <table id="historial-table" class="table table-hover table-custom">
-                            <thead>
+                            <thead class="thead-dark">
                                 <tr>
-                                    <th>Fecha</th>
-                                    <th>Hora Inicio</th>
-                                    <th>Hora Fin</th>
-                                    <th>Pausa Inicio</th>
-                                    <th>Pausa Fin</th>
-                                    <th>Tiempo Pausa</th>
-                                    <th>Duración</th>
-                                    <th>Dirección</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
+                                    <th class="all">Fecha</th>
+                                    <th class="all">Hora Inicio</th>
+                                    <th class="min-tablet">Hora Fin</th>
+                                    <th class="min-desktop">Pausa Inicio</th>
+                                    <th class="min-desktop">Pausa Fin</th>
+                                    <th class="min-tablet-lg">Tiempo Pausa</th>
+                                    <th class="min-tablet">Duración</th>
+                                    <th class="min-desktop">Dirección</th>
+                                    <th class="min-desktop">Estado</th>
+                                    <th class="min-desktop">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -332,7 +463,7 @@
                                             <!-- DataTable de Tareas -->
                                             <div class="table-responsive">
                                                 <table class="table table-hover" id="tareasDataTable">
-                                                    <thead class="thead-light">
+                                                    <thead class="thead-dark">
                                                         <tr>
                                                             <th width="5%">ID</th>
                                                             <th width="25%">Título</th>
@@ -660,35 +791,110 @@
 @endsection
 
 <!-- ***********************************************************************  JS ****************************************************************************************************-->
+<!-- jQuery completo (NO slim) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
+<!-- Air Datepicker (después de jQuery) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/air-datepicker/2.2.3/js/datepicker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/air-datepicker/2.2.3/js/i18n/datepicker.es.min.js"></script>
 
 @section('scripts')
 <script>
 $(document).ready(function() {
     const empleadoId = {{ $empleado->id }};
     let dataTable;
+    let datepickerInstance;
 
-   // Inicializar Flatpickr para selector de mes
-    const flatpickrInstance = flatpickr("#filterMes", {
-        plugins: [
-            new monthSelectPlugin({
-                shorthand: true,
-                dateFormat: "Y-m",
-                altFormat: "F Y",
-                theme: "material_blue"
-            })
-        ],
-        locale: "es",
-        onChange: function(selectedDates, dateStr, instance) {
-            if (dateStr) {
-                $('#btn-apply-filters').prop('disabled', false);
-                mostrarInfoFiltro(dateStr);
-            } else {
-                $('#btn-apply-filters').prop('disabled', true);
-                $('#filtroInfo').hide();
-            }
+    // Función para formatear fecha de mm/yyyy a Y-m (para el servidor)
+    function formatDateForServer(dateStr) {
+        if (!dateStr) return '';
+        const parts = dateStr.split('/');
+        if (parts.length === 2) {
+            const month = parts[0].padStart(2, '0');
+            const year = parts[1];
+            return `${year}-${month}`;
         }
-    });
+        return dateStr;
+    }
+
+    // Función para formatear fecha de Y-m a mm/yyyy (para mostrar)
+    function formatDateForDisplay(dateStr) {
+        if (!dateStr) return '';
+        const parts = dateStr.split('-');
+        if (parts.length === 2) {
+            const year = parts[0];
+            const month = parts[1];
+            return `${month}/${year}`;
+        }
+        return dateStr;
+    }
+
+
+    // Inicializar Air Datepicker para selector de mes y año
+    function initializeDatepicker() {
+        const $filterMes = $('#filterMes');
+        
+        datepickerInstance = $filterMes.datepicker({
+            language: 'es',
+            dateFormat: 'yyyy-mm',
+            minDate: new Date(2020, 0, 1),
+            maxDate: new Date(),
+            view: 'months',
+            minView: 'months',
+            selectOtherMonths: false,
+            moveToOtherMonthsOnSelect: false,
+            
+            // CONFIGURACIÓN CLAVE
+            autoClose: false, // ❌ NO cerrar automáticamente
+            toggleSelected: true,
+            
+            onShow: function(dp, animationCompleted) {
+                if (!animationCompleted) {
+                    $('.datepicker--cells.days').hide();
+                    $('.datepicker--content').addClass('months-only');
+                }
+            },
+            
+            onSelect: function(formattedDate, date, inst) {
+                if (date) {
+                    $('#btn-apply-filters').prop('disabled', false);
+                    mostrarInfoFiltro(formattedDate);
+                    
+                    // ✅ CERRAR MANUALMENTE solo cuando se selecciona mes/año
+                    setTimeout(() => {
+                        inst.hide();
+                    }, 100);
+                }
+            },
+            
+            // ✅ PREVENIR que se cierre al hacer clic en navegación
+            onHide: function(dp, animationCompleted) {
+                // Solo permitir cerrar si fue por selección (manejado en onSelect)
+                if (!animationCompleted) {
+                    return false; // Prevenir cierre
+                }
+            }
+        }).data('datepicker');
+        
+        // Manejo normal del input
+        $filterMes.on('click', function() {
+            if (!datepickerInstance.visible) {
+                datepickerInstance.show();
+            }
+        });
+
+        // Cerrar al hacer clic fuera
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('.datepicker, #filterMes').length) {
+                if (datepickerInstance && datepickerInstance.visible) {
+                    datepickerInstance.hide();
+                }
+            }
+        });
+    }
+
+    // Inicializar el datepicker
+    initializeDatepicker();
 
     // Actualizar conexión inmediatamente
     actualizarEstadoConexion();
@@ -708,7 +914,7 @@ $(document).ready(function() {
             type: 'GET',
             success: function(response) {
                 if (response.success) {
-                    console.log('Estado conexión:', response.data);
+                    //console.log('Estado conexión:', response.data);
                 }
             }
         });
@@ -718,20 +924,21 @@ $(document).ready(function() {
 
 
     // Inicializar DataTable con manejo de estado vacío
-    function initializeDataTable() {
-        console.log('🔄 Inicializando DataTable...');
-    
-        // Destruir si ya existe
-        if ($.fn.DataTable.isDataTable('#historial-table')) {
-            dataTable.clear().destroy();
-            //$('#historial-table').empty();
-        }
-        
+  function initializeDataTable() {
+    console.log('🔄 Inicializando DataTable responsive...');
+
+    // Destruir si ya existe
+    if ($.fn.DataTable.isDataTable('#historial-table')) {
+        dataTable.destroy();
+        $('#historial-table').empty();
+    }
+
+    try {
         dataTable = $('#historial-table').DataTable({
             serverSide: true,
             processing: true,
             pageLength: 5,
-            lengthMenu: [5, 10, 25, 50], // ✅ SIN ARRAYS ANIDADOS
+            lengthMenu: [5, 10, 25, 50],
             ajax: {
                 url: `/empleado/registro/${empleadoId}/datatable`,
                 type: 'GET',
@@ -746,24 +953,10 @@ $(document).ready(function() {
                         d.month = now.getMonth() + 1;
                         d.year = now.getFullYear();
                     }
-            // DEBUG: Verificar parámetros de paginación
-                    console.log('🔍 Parámetros DataTable:', {
-                        start: d.start,
-                        length: d.length,
-                        pageLength: d.length,
-                        draw: d.draw,
-                        month: d.month,
-                        year: d.year
-                    });
-                    
-                    return d;                
+                    return d;
                 },
                 dataSrc: function (json) {
                     console.log('📥 Datos recibidos DataTable:', json);
-                    // Verificar que el servidor esté respetando la paginación
-                    if (json && json.data) {
-                        console.log(`📊 Mostrando ${json.data.length} registros de ${json.recordsTotal} totales`);
-                    }
                     return json.data;
                 }
             },
@@ -771,20 +964,24 @@ $(document).ready(function() {
                 { 
                     data: 'created_at',
                     name: 'created_at',
-                    width: '12%',
+                    className: 'all control', // Añadir clase control aquí
+                    responsivePriority: 1,
                     render: function(data) {
-                        return data ? new Date(data).toLocaleDateString('es-ES', {
+                        const fechaFormateada = data ? new Date(data).toLocaleDateString('es-ES', {
                             weekday: 'short',
                             year: 'numeric',
                             month: 'short',
                             day: 'numeric'
                         }) : '-';
+                        
+                        return `<div class="fecha-con-control">${fechaFormateada}</div>`;
                     }
                 },
                 { 
                     data: 'inicio',
                     name: 'inicio',
-                    width: '10%',
+                    className: 'all',
+                    responsivePriority: 2,
                     render: function(data) {
                         return data ? new Date(data).toLocaleTimeString('es-ES') : '-';
                     }
@@ -792,7 +989,8 @@ $(document).ready(function() {
                 { 
                     data: 'fin',
                     name: 'fin',
-                    width: '10%',
+                    className: 'min-tablet',
+                    responsivePriority: 6,
                     render: function(data) {
                         return data ? new Date(data).toLocaleTimeString('es-ES') : 'En progreso';
                     }
@@ -800,7 +998,8 @@ $(document).ready(function() {
                 { 
                     data: 'pausa_inicio',
                     name: 'pausa_inicio',
-                    width: '10%',
+                    className: 'min-desktop',
+                    responsivePriority: 8,
                     render: function(data) {
                         return data ? new Date(data).toLocaleTimeString('es-ES') : '-';
                     }
@@ -808,7 +1007,8 @@ $(document).ready(function() {
                 { 
                     data: 'pausa_fin',
                     name: 'pausa_fin',
-                    width: '10%',
+                    className: 'min-desktop',
+                    responsivePriority: 9,
                     render: function(data) {
                         return data ? new Date(data).toLocaleTimeString('es-ES') : '-';
                     }
@@ -816,10 +1016,9 @@ $(document).ready(function() {
                 { 
                     data: 'tiempo_pausa_total',
                     name: 'tiempo_pausa_total',
-                    width: '10%',
+                    className: 'min-tablet-lg',
+                    responsivePriority: 7,
                     render: function(data, type, row) {
-                        console.log('Render tiempo pausa:', { data, row });
-                        
                         let tiempoPausa = Math.max(0, parseInt(data || 0));
                         
                         if (tiempoPausa === 0 && row.pausa_inicio && row.pausa_fin) {
@@ -831,7 +1030,7 @@ $(document).ready(function() {
                         
                         if (tiempoPausa === 0) {
                             if (row.pausa_inicio || row.pausa_fin) {
-                                return '<span class="text-warning" title="Hubo pausas pero tiempo calculado es 0">00:00</span>';
+                                return '<span class="text-warning">00:00</span>';
                             }
                             return '<span class="text-muted">Sin pausas</span>';
                         }
@@ -842,25 +1041,26 @@ $(document).ready(function() {
                 { 
                     data: 'tiempo_total',
                     name: 'tiempo_total',
-                    width: '10%',
+                    className: 'min-tablet',
+                    responsivePriority: 4,
                     render: function(data, type, row) {
                         if (!data || data === 0) {
                             return row.fin ? '00:00:00' : '-';
                         }
                         
                         const tiempoPositivo = Math.max(0, parseInt(data));
-                         return formatTimeWithLabels(tiempoPositivo);
+                        return formatTimeWithLabels(tiempoPositivo);
                     }
                 },
                 { 
                     data: 'direccion',
                     name: 'direccion',
-                    width: '15%',
+                    className: 'min-desktop',
+                    responsivePriority: 10,
                     render: function(data, type, row) {
                         const ciudad = row.ciudad || '';
                         const pais = row.pais || '';
                         
-                        // Mostrar ciudad y país si son válidos
                         if (ciudad && pais && 
                             !ciudad.includes('GPS') && 
                             !ciudad.includes('Coordenadas') &&
@@ -874,33 +1074,14 @@ $(document).ready(function() {
                             `;
                         }
                         
-                        // Si tenemos coordenadas pero no ciudad específica
-                        if (data && data.includes('Ubicación GPS')) {
-                            // Intentar mostrar algo más específico
-                            if (ciudad && ciudad !== 'Ubicación GPS') {
-                                return `
-                                    <div class="ubicacion-info" title="${data}">
-                                        <i class="fas fa-map-marker-alt text-info mr-1"></i>
-                                        <small>${ciudad}</small>
-                                    </div>
-                                `;
-                            }
-                            
-                            return `
-                                <div class="ubicacion-info" title="${data}">
-                                    <i class="fas fa-map-marker-alt text-warning mr-1"></i>
-                                    <small>Ubicación por GPS</small>
-                                </div>
-                            `;
-                        }
-                        
                         return '<span class="text-muted">Sin ubicación</span>';
                     }
                 },
                 { 
                     data: 'estado',
                     name: 'estado',
-                    width: '10%',
+                    className: 'min-desktop',
+                    responsivePriority: 5,
                     render: function(data) {
                         const statusMap = {
                             'activo': 'badge-active',
@@ -914,16 +1095,17 @@ $(document).ready(function() {
                 {
                     data: 'id',
                     name: 'actions',
-                    width: '8%',
+                    className: 'min-desktop',
+                    responsivePriority: 11,
+                    orderable: false,
+                    searchable: false,
                     render: function(data) {
                         return data ? `
                             <button class="btn btn-sm btn-outline-primary" onclick="viewDetails(${data})" title="Ver detalles">
                                 <i class="fas fa-eye"></i>
                             </button>
                         ` : '';
-                    },
-                    orderable: false,
-                    searchable: false
+                    }
                 }
             ],
             language: {
@@ -931,10 +1113,31 @@ $(document).ready(function() {
                 emptyTable: 'No hay registros para el mes seleccionado',
                 zeroRecords: 'No se encontraron registros que coincidan'
             },
-            order: [[0, 'desc']],
-            scrollX: true,
+            order: [[0, 'desc']], // Ordenar por la primera columna (fecha)
+            responsive: {
+                details: {
+                    type: 'column',
+                    target: 0, // Usar la columna de control (ícono +/-) como objetivo
+                    renderer: function (api, rowIdx, columns) {
+                        const data = $.map(columns, function (col, i) {
+                            // Excluir la columna de control y acciones de los detalles
+                            if (col.columnIndex === 0 || col.columnIndex === 10) return '';
+                            
+                            return col.hidden ? 
+                                `<div class="dtr-detail-item">
+                                    <span class="dtr-title">${col.title}</span>
+                                    <span class="dtr-data">${col.data}</span>
+                                </div>` : 
+                                '';
+                        }).join('');
+
+                        return data ? 
+                            $(`<div class="dtr-details-grid">${data}</div>`) : 
+                            false;
+                    }
+                }
+            },
             autoWidth: false,
-            responsive: true,
             drawCallback: function(settings) {
                 updatePeriodSummary();
                 
@@ -952,9 +1155,20 @@ $(document).ready(function() {
                         '</div>'
                     );
                 }
+            },
+            initComplete: function(settings, json) {
+                console.log('✅ DataTable responsive inicializado correctamente');
+                console.log('🔍 Configuración responsive activa en columna de fecha');
             }
         });
+    } catch (error) {
+        console.error('❌ Error inicializando DataTable responsive:', error);
+        
+        // Fallback básico sin responsive
+        //initializeBasicDataTable();
     }
+}
+
     // Aplicar filtros
     $('#btn-apply-filters').click(function() {
         const selectedDate = $('#filterMes').val();
@@ -980,9 +1194,42 @@ $(document).ready(function() {
     });
 
 
+    // ✅ FUNCIÓN PARA ACTUALIZAR ÍCONOS DE EXPANSIÓN
+    function updateExpandIcons() {
+        console.log('🔄 Actualizando íconos de expansión...');
+        
+        if (!dataTable) {
+            console.warn('⚠️ DataTable de registros no disponible');
+            return;
+        }
+        
+        // Forzar redibujado de las filas
+        dataTable.rows().every(function() {
+            const node = this.node();
+            const isShown = this.child.isShown();
+            const expandIcon = $(node).find('.dtr-control').find(':before');
+            
+            if (isShown) {
+                // Si está expandido, mostrar "-"
+                $(node).find('.dtr-control').attr('data-expanded', 'true');
+            } else {
+                // Si está colapsado, mostrar "+"
+                $(node).find('.dtr-control').attr('data-expanded', 'false');
+            }
+        });
+        
+        console.log('✅ Íconos de expansión actualizados');
+    }
+
+
     // Resetear filtros
     $('#btn-reset-filters').click(function() {
-        flatpickrInstance.setDate('today');
+        if (datepickerInstance) {
+            datepickerInstance.clear();
+        } else {
+            $('#filterMes').val(''); // Fallback
+        }
+        
         dataTable.ajax.reload();
         $('#filtroInfo').hide();
         
@@ -994,6 +1241,7 @@ $(document).ready(function() {
             resetBtn.html(originalText);
         }, 2000);
     });
+
 
     // Mostrar información del filtro aplicado
     function mostrarInfoFiltro(fecha) {
@@ -1025,7 +1273,12 @@ $(document).ready(function() {
 
     // Limpiar filtro de mes
     function limpiarFiltroMes() {
-        flatpickrInstance.clear();
+        if (datepickerInstance) {
+            datepickerInstance.clear();
+        } else {
+            $('#filterMes').val(''); // Fallback
+        }
+        
         $('#filtroInfo').hide();
         dataTable.ajax.reload();
     }
@@ -1056,9 +1309,9 @@ $(document).ready(function() {
                 _token: '{{ csrf_token() }}'
             },
             success: function(response) {
-                if (response.success) {
+               /* if (response.success) {
                     console.log('✅ Estado de conexión actualizado - Empleado CONECTADO');
-                }
+                }*/
             },
             error: function(xhr, status, error) {
                 console.error('❌ Error actualizando conexión:', error);
@@ -1068,7 +1321,7 @@ $(document).ready(function() {
 
     // Actualizar resumen del período
     function updatePeriodSummary() {
-        const selectedDate = $('#filterMes').val(); // CAMBIADO: filterMes en lugar de filter-month-year
+        const selectedDate = $('#filterMes').val();
         let month = null;
         let year = null;
 
@@ -1082,44 +1335,41 @@ $(document).ready(function() {
             year = now.getFullYear();
         }
 
-         $.ajax({
-        url: `empleado/registro/${empleadoId}/resumen-periodo`,
-        method: 'GET',
-        data: {
-            month: month,
-            year: year
-        },
-        success: function(response) {
-            console.log('Respuesta resumen:', response);
-            
-            // Formatear horas totales de "1.18h" a "1h 11m"
-            const totalHorasFormateadas = formatTotalHoursWithDays(response.total_horas);
-            
-            // Formatear promedio diario
-            const promedioFormateado = formatDecimalHoursToHM(response.promedio_diario);
-            
-           // Usar las versiones formateadas del backend
-            $('#total-horas-periodo').html(response.total_horas_formateado);
-            $('#total-registros-periodo').text(response.total_registros);
-            $('#promedio-diario-periodo').html(response.promedio_diario_formateado);
-            $('#dias-trabajados-periodo').text(response.dias_trabajados);
-            
-            const periodTitle = selectedDate ? 
-                `Resumen de ${formatMonthYear(selectedDate)}` : 
-                'Resumen del Mes Actual';
+        $.ajax({
+            url: `/empleado/registro/${empleadoId}/resumen-periodo`,
+            method: 'GET',
+            data: {
+                month: month,
+                year: year
+            },
+            success: function(response) {
+                //console.log('Respuesta resumen:', response);
                 
-            $('.card-header h5').last().html(`<i class="fas fa-chart-bar mr-2"></i>${periodTitle}`);
-        },
-        error: function(xhr) {
-            console.error('Error al cargar resumen:', xhr);
-        }
+                // Usar la función mejorada que incluye días
+                const totalHorasFormateadas = formatTotalHoursWithDays(response.total_horas);
+                const promedioFormateado = formatTotalHoursWithDays(response.promedio_diario);
+                
+                $('#total-horas-periodo').html(totalHorasFormateadas);
+                $('#total-registros-periodo').text(response.total_registros);
+                $('#promedio-diario-periodo').html(promedioFormateado);
+                $('#dias-trabajados-periodo').text(response.dias_trabajados);
+                
+                const periodTitle = selectedDate ? 
+                    `Resumen de ${formatMonthYear(selectedDate)}` : 
+                    'Resumen del Mes Actual';
+                    
+                $('.card-header h5').last().html(`<i class="fas fa-chart-bar mr-2"></i>${periodTitle}`);
+            },
+            error: function(xhr) {
+                console.error('Error al cargar resumen:', xhr);
+            }
         });
     }
 
 
     // Función mejorada para ver detalles del registro
     window.viewDetails = function(registroId) {
-        console.log('🔍 Cargando detalles del registro:', registroId);
+        //console.log('🔍 Cargando detalles del registro:', registroId);
         
         // Resetear modal
         $('#modal-loading').show();
@@ -1186,7 +1436,7 @@ $(document).ready(function() {
     // Función optimizada para obtener ubicación
     function obtenerUbicacionGoogleMaps() {
         return new Promise((resolve, reject) => {
-            console.log('🔍 Iniciando geolocalización...');
+            //console.log('🔍 Iniciando geolocalización...');
             
             if (!navigator.geolocation) {
                 reject(new Error('Geolocalización no soportada'));
@@ -2157,9 +2407,9 @@ function encontrarMejorUbicacion(resultados) {
         tiempoTranscurridoElement.text(`Tiempo: ${tiempoFormateado}`);
         
         // Debug cada 30 segundos
-        if (segundos % 30 === 0) {
+       /* if (segundos % 30 === 0) {
             console.log(`⏱️ Contador activo: ${tiempoFormateado} (${segundos} segundos)`);
-        }
+        }*/
     }
 
     function detenerActualizacionTiempoReal() {
@@ -2264,29 +2514,29 @@ function formatTime(seconds) {
 }
 
     // Función para actualizar estadísticas del perfil
-    function actualizarEstadisticasPerfil() {
-        $.ajax({
-            url: `/empleado/registro/${empleadoId}/estadisticas-mes`,
-            method: 'GET',
-            success: function(response) {
-                console.log('Estadísticas perfil:', response);
-                
-                // Actualizar total de registros
-                $('.stats-number').first().text(response.total_registros || '0');
-                
-                // Formatear horas totales de "1.18h" a "1h 11m"
-                const horasFormateadas = formatDecimalHoursToHM(response.total_horas);
-                $('.stats-number').last().html(horasFormateadas);
-                
-                // Formatear promedio diario
-                const promedioFormateado = formatDecimalHoursToHM(response.promedio_horas);
-                $('.text-muted small').html('Promedio diario: ' + promedioFormateado);
-            },
-            error: function(xhr) {
-                console.error('Error al actualizar estadísticas:', xhr);
-            }
-        });
-    }
+  function actualizarEstadisticasPerfil() {
+    $.ajax({
+        url: `/empleado/registro/${empleadoId}/estadisticas-mes`,
+        method: 'GET',
+        success: function(response) {
+            console.log('Estadísticas perfil:', response);
+            
+            // Actualizar total de registros
+            $('.stats-number').first().text(response.total_registros || '0');
+            
+            // Usar la función mejorada que incluye días
+            const horasFormateadas = formatTotalHoursWithDays(response.total_horas);
+            $('.stats-number').last().html(horasFormateadas);
+            
+            // Formatear promedio diario
+            const promedioFormateado = formatTotalHoursWithDays(response.promedio_horas);
+            $('.text-muted small').html('Promedio diario: ' + promedioFormateado);
+        },
+        error: function(xhr) {
+            console.error('Error al actualizar estadísticas:', xhr);
+        }
+    });
+}
 
 
     // Función para mostrar error en el modal
@@ -2369,24 +2619,41 @@ function formatTotalHours(decimalHours) {
     }
 }
 
-// Función específica para convertir formato decimal "1.18h" a "1h 11m"
-function formatDecimalHoursToHM(decimalHoursStr) {
-    // Extraer el número decimal del string (quitando la 'h')
-    const decimalHours = safeParseFloat(decimalHoursStr);
-    
-    if (decimalHours === 0) return '0h 00m';
-    
-    const horas = Math.floor(decimalHours);
-    const minutosDecimal = (decimalHours - horas) * 60;
-    const minutos = Math.round(minutosDecimal);
-    
-    // Si los minutos son 60, sumar una hora
-    if (minutos === 60) {
-        return `${horas + 1}h 00m`;
+    // Función específica para convertir formato decimal "1.18h" a "1h 11m" o "1d 2h 30m"
+    function formatDecimalHoursToHM(decimalHoursStr) {
+        // Extraer el número decimal del string (quitando la 'h')
+        const decimalHours = safeParseFloat(decimalHoursStr);
+        
+        if (decimalHours === 0) return '0h 00m';
+        
+        // Si supera las 24 horas, convertir a días
+        if (decimalHours >= 24) {
+            const dias = Math.floor(decimalHours / 24);
+            const horasRestantes = decimalHours % 24;
+            const horas = Math.floor(horasRestantes);
+            const minutosDecimal = (horasRestantes - horas) * 60;
+            const minutos = Math.round(minutosDecimal);
+            
+            // Si los minutos son 60, sumar una hora
+            if (minutos === 60) {
+                return `${dias}d ${horas + 1}h 00m`;
+            }
+            
+            return `${dias}d ${horas}h ${minutos.toString().padStart(2, '0')}m`;
+        } else {
+            // Formato normal para menos de 24 horas
+            const horas = Math.floor(decimalHours);
+            const minutosDecimal = (decimalHours - horas) * 60;
+            const minutos = Math.round(minutosDecimal);
+            
+            // Si los minutos son 60, sumar una hora
+            if (minutos === 60) {
+                return `${horas + 1}h 00m`;
+            }
+            
+            return `${horas}h ${minutos.toString().padStart(2, '0')}m`;
+        }
     }
-    
-    return `${horas}h ${minutos.toString().padStart(2, '0')}m`;
-}
 
 // Función para formatear horas totales con días si es necesario - MEJORADA
 function formatTotalHoursWithDays(decimalHoursStr) {
@@ -2663,10 +2930,12 @@ function initializeTareasDataTable() {
                 name: 'creador_tipo',
                 width: '10%',
                 orderable: true,
-                render: function(data) {
-                    return data === 'empleado' ? 
-                        '<span class="badge badge-info">Creada por mí</span>' : 
-                        '<span class="badge badge-warning">Asignada</span>';
+                render: function(data, type, row) {
+                    if (row.creador_tipo === 'empleado') {
+                        return '<span class="badge badge-info">Creada por mí</span>';
+                    } else {
+                        return '<span class="badge badge-warning">Asignada por admin</span>';
+                    }
                 }
             },
             {
@@ -2677,10 +2946,21 @@ function initializeTareasDataTable() {
                 searchable: false,
                 className: 'text-center',
                 render: function(data, type, row) {
-                    console.log('Renderizando acciones para tarea:', row);
+                    //console.log('Renderizando acciones para tarea:', row);
+        
+                    // VERIFICACIÓN CORREGIDA: El empleado puede editar/eliminar si:
+                    // 1. La tarea fue creada por un empleado (creador_tipo === 'empleado')
+                    // 2. Y el empleado creador coincide con el empleado actual
+                    const puedeEditarEliminar = row.creador_tipo === 'empleado' && 
+                                            row.empleado_creador_id === {{ $empleado->id }};
                     
-                    // Verificar si el empleado puede editar/eliminar esta tarea
-                    const puedeEditarEliminar = row.creador_tipo === 'empleado';
+                    /*console.log('Permisos de edición/eliminación:', {
+                        tareaId: row.id,
+                        creador_tipo: row.creador_tipo,
+                        empleado_creador_id: row.empleado_creador_id,
+                        empleado_actual_id: {{ $empleado->id }},
+                        puedeEditarEliminar: puedeEditarEliminar
+                    });*/
                     
                     return `
                         <div class="btn-group btn-group-sm" role="group">
@@ -2692,6 +2972,11 @@ function initializeTareasDataTable() {
                                     <i class="fas fa-edit"></i>
                                 </button>` : ''
                             }
+                                ${puedeEditarEliminar ? `
+                                <button class="btn btn-danger" onclick="eliminarTareaEmpleado(${data})" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            ` : ''}
                             <div class="btn-group btn-group-sm" role="group">
                                 <button type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" title="Más acciones">
                                     <i class="fas fa-ellipsis-v"></i>
@@ -2710,14 +2995,8 @@ function initializeTareasDataTable() {
                                     <a class="dropdown-item" href="javascript:void(0)" onclick="cambiarEstadoTarea(${data}, 'cancelada')">
                                         <i class="fas fa-times mr-2 text-danger"></i>Cancelada
                                     </a>
-                                    ${puedeEditarEliminar ? `
-                                        <div class="dropdown-divider"></div>
-                                        <a class="dropdown-item text-danger" href="javascript:void(0)" onclick="eliminarTareaEmpleado(${data})">
-                                            <i class="fas fa-trash mr-2"></i>Eliminar
-                                        </a>
-                                    ` : ''}
                                 </div>
-                            </div>
+                            </div> 
                         </div>
                     `;
                 }
@@ -2729,10 +3008,11 @@ function initializeTareasDataTable() {
             zeroRecords: 'No se encontraron tareas que coincidan'
         },
         order: [[0, 'asc']], // ORDEN POR DEFECTO: Columna 0 (ID) ASCENDENTE
-        pageLength: 10,
+        pageLength: 5,
         lengthMenu: [[5, 10, 25, 50], [5, 10, 25, 50]],
         responsive: true,
         autoWidth: false,
+        scrollX: true,
         drawCallback: function(settings) {
             // Actualizar estadísticas cuando se carga/recarga la tabla
             updateTareasStats();
@@ -2801,23 +3081,24 @@ window.verTareaEmpleado = function(tareaId) {
     // Guardar el ID para uso posterior
     window.tareaActualId = tareaId;
     
-    // Mostrar loading
-    Swal.fire({
-        title: 'Cargando tarea...',
-        text: 'Por favor espere',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-
+    // Mostrar loading en el modal mismo, no con SweetAlert
+    $('#contenidoTareaModal').html(`
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="sr-only">Cargando...</span>
+            </div>
+            <p>Cargando detalles de la tarea...</p>
+        </div>
+    `);
     
-    //$('#verTareaModal').modal('show');
+    // Mostrar modal inmediatamente
+    $('#verTareaModal').modal('show');
     
     // Obtener datos de la tarea
     $.ajax({
         url: '/empleado/' + {{ $empleado->id }} + '/tareas/' + tareaId + '/detalles',
         type: 'GET',
+        timeout: 15000, // 15 segundos máximo
         success: function(response) {
             console.log('✅ Datos de tarea recibidos:', response);
             
@@ -3368,70 +3649,81 @@ function formatFecha(fecha) {
 }
 
 // Función para cambiar estado de tarea
-function cambiarEstadoTarea(tareaId, nuevoEstado) {
-    const estados = {
-        'pendiente': { texto: 'Pendiente', color: 'secondary', icono: 'clock' },
-        'en_progreso': { texto: 'En Progreso', color: 'primary', icono: 'spinner' },
-        'completada': { texto: 'Completada', color: 'success', icono: 'check' },
-        'cancelada': { texto: 'Cancelada', color: 'danger', icono: 'times' }
-    };
+window.cambiarEstadoTarea = function(tareaId, nuevoEstado) {
+    console.log('🔄 Cambiando estado de tarea:', { tareaId, nuevoEstado });
     
-    const estadoInfo = estados[nuevoEstado];
+    const empleadoId = {{ $empleado->id }};
     
-    if (!estadoInfo) {
-        console.error('❌ Estado no válido:', nuevoEstado);
-        Swal.fire('Error', 'Estado no válido', 'error');
-        return;
-    }
-
+    // Mostrar confirmación
     Swal.fire({
-        title: `¿Cambiar estado a "${estadoInfo.texto}"?`,
-        text: "El estado de la tarea será actualizado inmediatamente",
+        title: '¿Cambiar estado?',
+        text: `¿Estás seguro de que quieres cambiar el estado a ${nuevoEstado.replace('_', ' ')}?`,
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: `#${nuevoEstado === 'pendiente' ? '6c757d' : nuevoEstado === 'en_progreso' ? '007bff' : nuevoEstado === 'completada' ? '28a745' : 'dc3545'}`,
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: `Sí, cambiar a ${estadoInfo.texto}`,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, cambiar',
         cancelButtonText: 'Cancelar',
-        showLoaderOnConfirm: true,
-        preConfirm: () => {
-            return new Promise((resolve, reject) => {
-                $.ajax({
-                    url: `/empleado/{{ $empleado->id }}/tareas/${tareaId}/estado`,
-                    type: 'POST',
-                    data: {
-                        _token: '{{ csrf_token() }}',
-                        estado: nuevoEstado
-                    },
-                    success: function(response) {
-                        resolve(response);
-                    },
-                    error: function(xhr) {
-                        reject('Error al cambiar el estado');
-                    }
-                });
-            });
-        },
-        allowOutsideClick: () => !Swal.isLoading()
+        reverseButtons: true
     }).then((result) => {
         if (result.isConfirmed) {
-            if (result.value && result.value.success) {
-                Swal.fire({
-                    icon: 'success',
-                    title: '¡Estado actualizado!',
-                    text: `La tarea ahora está en estado: ${estadoInfo.texto}`,
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-                
-                // Después de cambiar estado exitosamente, agregar:
-                setTimeout(() => {
-                    recargarTareasDataTable();
-                }, 500);
-                            
-            } else {
-                Swal.fire('Error', result.value?.message || 'Error al cambiar el estado', 'error');
-            }
+            // Mostrar loading
+            Swal.fire({
+                title: 'Cambiando estado...',
+                text: 'Por favor espere',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Hacer la petición AJAX
+            $.ajax({
+                url: `/empleado/${empleadoId}/tareas/${tareaId}/estado`,
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    estado: nuevoEstado
+                },
+                success: function(response) {
+                    Swal.close();
+                    
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Estado actualizado!',
+                            text: response.message,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        
+                        // Recargar la DataTable de tareas
+                        recargarTareasDataTable();
+                        
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message || 'Error al cambiar el estado'
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    Swal.close();
+                    console.error('Error cambiando estado:', error);
+                    
+                    let errorMessage = 'Error al cambiar el estado';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: errorMessage
+                    });
+                }
+            });
         }
     });
 }
@@ -4597,6 +4889,52 @@ function imprimirDetalles() {
     background: linear-gradient(45deg, #ff8f00, #ff6f00);
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
+}
+
+/* Estilos para Air Datepicker personalizado */
+.datepicker--cell.-month-:hover,
+.datepicker--cell.-year-:hover {
+    background: #4361ee;
+    color: white;
+}
+
+.datepicker--cell.-current- {
+    color: #4361ee;
+    font-weight: bold;
+}
+
+.datepicker--cell.-selected-,
+.datepicker--cell.-selected-.-current- {
+    background: #4361ee;
+    color: white;
+}
+
+.datepicker--nav {
+    border-bottom: 1px solid #4361ee;
+}
+
+.datepicker--nav-title {
+    color: #4361ee;
+    font-weight: 600;
+}
+
+.datepicker--nav-action:hover {
+    background: rgba(67, 97, 238, 0.1);
+}
+
+/* Input personalizado para el datepicker */
+.air-datepicker-input {
+    background-color: white;
+    cursor: pointer;
+    font-weight: 500;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.air-datepicker-input:focus {
+    border-color: #4361ee;
+    box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.25);
 }
 
 </style>
