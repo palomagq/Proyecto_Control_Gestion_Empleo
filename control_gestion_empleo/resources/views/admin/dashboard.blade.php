@@ -8,7 +8,7 @@
     
     <!-- CSRF Token para protección -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
-
+    
     <title>Admin Dashboard</title>
 
     <!-- Bootstrap CSS -->

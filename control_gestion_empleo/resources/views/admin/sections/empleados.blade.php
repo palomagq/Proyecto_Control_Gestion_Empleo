@@ -3109,28 +3109,12 @@ function validarCoordenadas() {
 
 // ✅ FUNCIÓN MEJORADA: submitEmployeeForm con validaciones completas
 function submitEmployeeForm() {
+    console.log('=== INICIANDO VALIDACIÓN CORREGIDA ===');
+    
     // ✅ PREVENIR COMPORTAMIENTO POR DEFECTO
     event.preventDefault();
-    console.log('=== INICIANDO VALIDACIÓN ===');
     
-
- 
-    // Obtener el token CSRF del meta tag
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    
-    if (!csrfToken) {
-        console.error('❌ No se encontró el token CSRF');
-        Swal.fire({
-            icon: 'error',
-            title: 'Error de seguridad',
-            text: 'No se pudo verificar la seguridad de la solicitud. Recargue la página.'
-        });
-        return;
-    }
-
-    console.log('✅ Token CSRF encontrado:', csrfToken.substring(0, 20) + '...');
-
-    // 1. Validar DNI COMPLETO (8 números + 1 letra)
+    // 1. Validar DNI
     if (!validarDNI()) {
         Swal.fire({
             icon: 'error',
@@ -3140,18 +3124,7 @@ function submitEmployeeForm() {
         return;
     }
 
-    // 2. Validar que el DNI tenga formato correcto
-    const dni = document.getElementById('dni').value.trim().toUpperCase();
-    if (dni.length !== 9) {
-        Swal.fire({
-            icon: 'error',
-            title: 'DNI incorrecto',
-            text: 'El DNI debe tener exactamente 9 caracteres: 8 números + 1 letra'
-        });
-        return;
-    }
-
-    // 3. Validar edad
+    // 2. Validar edad
     const validacionEdad = validarEdadMinima();
     if (!validacionEdad.valido) {
         Swal.fire({
@@ -3162,7 +3135,7 @@ function submitEmployeeForm() {
         return;
     }
 
-    // Validar teléfono
+    // 3. Validar teléfono
     if (!validarTelefono()) {
         Swal.fire({
             icon: 'error',
@@ -3185,7 +3158,7 @@ function submitEmployeeForm() {
         return;
     }
 
-    // 5. Validar dirección completa
+    // 5. Validar dirección
     const domicilio = document.getElementById('domicilio').value.trim();
     if (!domicilio || domicilio.split(',').length < 3) {
         Swal.fire({
@@ -3197,7 +3170,7 @@ function submitEmployeeForm() {
     }
 
     // 6. Validar campos requeridos
-    const camposRequeridos = ['nombre', 'apellidos', 'dni', 'fecha_nacimiento', 'domicilio','telefono'];
+    const camposRequeridos = ['nombre', 'apellidos', 'dni', 'fecha_nacimiento', 'domicilio', 'telefono'];
     const camposFaltantes = [];
     
     camposRequeridos.forEach(campo => {
@@ -3219,7 +3192,8 @@ function submitEmployeeForm() {
         return;
     }
 
-    // 7. Obtener credenciales generadas
+    // 7. Preparar datos
+    const dni = document.getElementById('dni').value.trim().toUpperCase();
     const usernameGenerado = document.getElementById('username').value;
     const passwordGenerado = document.getElementById('password-display').value;
     
@@ -3232,19 +3206,19 @@ function submitEmployeeForm() {
         return;
     }
 
-    // 8. Obtener datos para el QR
-    const nombreCompleto = `${document.getElementById('nombre').value.trim()} ${document.getElementById('apellidos').value.trim()}`;
-    const qrData = {
-        empleado_dni: dni,
-        empleado_nombre: nombreCompleto,
-        tipo: 'empleado',
-        fecha_generacion: new Date().toISOString()
-    };
+    // 8. ✅ CORRECCIÓN: Obtener el token CSRF de manera segura
+    const csrfToken = getCsrfToken();
+    if (!csrfToken) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de seguridad',
+            text: 'No se pudo verificar la seguridad de la solicitud. Recargue la página e intente nuevamente.'
+        });
+        return;
+    }
 
-    // 8. Preparar datos para enviar
-    
+    // 9. Preparar datos para enviar
     const empleadoData = {
-        _token: csrfToken,
         nombre: document.getElementById('nombre').value.trim(),
         apellidos: document.getElementById('apellidos').value.trim(),
         dni: dni,
@@ -3255,42 +3229,73 @@ function submitEmployeeForm() {
         longitud: parseFloat(longitud).toFixed(6),
         username: usernameGenerado,
         password: passwordGenerado,
-        password_confirmation: passwordGenerado,
-        qr_data: qrData // ✅ NUEVO: Enviar datos para el QR
-
+        password_confirmation: passwordGenerado
     };
-    
-    console.log('📤 Datos validados para enviar:', empleadoData);
-    
-    // 9. Enviar datos al servidor
-    enviarDatosAlServidor(empleadoData, Math.floor(validacionEdad.edad)); // ✅ Añadir Math.floor()
+
+    console.log('📦 Datos preparados:', empleadoData);
+    console.log('🔐 Token CSRF:', csrfToken);
+
+    // 10. Enviar datos
+    enviarDatosAlServidor(empleadoData, Math.floor(validacionEdad.edad), csrfToken);
 }
 
-// ✅ FUNCIÓN MEJORADA: Envío de datos con debug completo
-function enviarDatosAlServidor(empleadoData, edadEmpleado) {
-    console.log('🚀 Enviando datos al servidor...', empleadoData);
+// ✅ FUNCIÓN AUXILIAR: Obtener token CSRF de manera segura
+function getCsrfToken() {
+    // Intentar obtener de diferentes fuentes
+    const sources = [
+        () => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+        () => document.querySelector('input[name="_token"]')?.value,
+        () => window.Laravel?.csrfToken,
+        () => document.querySelector('[data-csrf-token]')?.dataset.csrfToken
+    ];
     
-// ✅ PREVENIR COMPORTAMIENTO POR DEFECTO SI SE LLAMA DESDE UN EVENTO
-    if (event) {
-        event.preventDefault();
+    for (const source of sources) {
+        const token = source();
+        if (token && token.length > 0) {
+            console.log('✅ Token CSRF obtenido de:', source.toString());
+            return token;
+        }
     }
+    
+    console.error('❌ No se pudo obtener el token CSRF de ninguna fuente');
+    return null;
+}
 
+
+
+// ✅ FUNCIÓN MEJORADA: Envío de datos con debug completo
+function enviarDatosAlServidor(empleadoData, edadEmpleado, csrfToken) {
+    console.log('🚀 Enviando datos al servidor con token:', csrfToken ? '✅ Presente' : '❌ Faltante');
+    
     const submitBtn = document.querySelector('#employeeModal .btn-success');
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Creando...';
     submitBtn.disabled = true;
+    
+    // ✅ CORRECCIÓN: Agregar token CSRF al cuerpo de la solicitud
+    empleadoData._token = csrfToken;
     
     fetch('{{ route("admin.empleados.store") }}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRF-TOKEN': empleadoData._token,
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': csrfToken // ✅ También en cabeceras por si acaso
         },
         body: JSON.stringify(empleadoData)
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('📋 Estado de respuesta:', response.status);
+        
+        // Primero verificar si la respuesta es JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('La respuesta del servidor no es JSON válido');
+        }
+        
+        return response.json();
+    })
     .then(data => {
         console.log('✅ Respuesta exitosa:', data);
         
@@ -3311,9 +3316,6 @@ function enviarDatosAlServidor(empleadoData, edadEmpleado) {
                             <strong>Edad:</strong> ${data.data.edad} años<br>
                             <strong>ID Empleado:</strong> ${data.data.empleado_id}
                         </div>
-                        <p class="text-info small">
-                            <i class="fas fa-qrcode"></i> El código QR se ha generado y guardado correctamente.
-                        </p>
                     </div>
                 `,
                 showConfirmButton: true,
@@ -3328,29 +3330,32 @@ function enviarDatosAlServidor(empleadoData, edadEmpleado) {
                     }, false);
                 }
             });
-        }else {
-            throw new Error(data.message || 'Error desconocido del servidor');
+        } else {
+            // Manejar errores de validación específicos
+            if (data.errors) {
+                let errorMessages = '';
+                for (const field in data.errors) {
+                    errorMessages += `• ${data.errors[field][0]}\n`;
+                }
+                throw new Error(`Errores de validación:\n${errorMessages}`);
+            } else {
+                throw new Error(data.message || 'Error desconocido del servidor');
+            }
         }
     })
     .catch(error => {
         console.error('❌ Error completo:', error);
         
+        // Mensaje de error más específico
         let errorMessage = 'Error desconocido';
         
-        try {
-            // Intentar parsear el mensaje de error como JSON
-            const errorData = JSON.parse(error.message);
-            if (errorData.errors) {
-                errorMessage = 'Errores de validación:\n\n';
-                for (const field in errorData.errors) {
-                    const fieldName = getFieldName(field);
-                    errorMessage += `• ${fieldName}: ${errorData.errors[field][0]}\n`;
-                }
-            } else if (errorData.message) {
-                errorMessage = errorData.message;
-            }
-        } catch (e) {
-            // Si no es JSON, usar el mensaje original
+        if (error.name === 'TypeError' && error.message.includes('JSON')) {
+            errorMessage = 'El servidor no respondió con datos válidos. Verifique su conexión.';
+        } else if (error.message.includes('CSRF token mismatch')) {
+            errorMessage = 'Error de seguridad (CSRF). Recargue la página e intente nuevamente.';
+        } else if (error.message.includes('419')) {
+            errorMessage = 'La sesión ha expirado. Por favor, recargue la página.';
+        } else {
             errorMessage = error.message;
         }
         
@@ -3363,6 +3368,11 @@ function enviarDatosAlServidor(empleadoData, edadEmpleado) {
                         <h6>Detalles del error:</h6>
                         <pre style="white-space: pre-wrap; font-size: 12px; background: #f8f9fa; padding: 10px; border-radius: 5px;">${errorMessage}</pre>
                     </div>
+                    ${errorMessage.includes('CSRF') || errorMessage.includes('419') ? 
+                    '<div class="alert alert-warning mt-2">' +
+                    '<i class="fas fa-redo-alt mr-2"></i>' +
+                    '<strong>Solución:</strong> Recargue la página (F5) y vuelva a intentarlo.' +
+                    '</div>' : ''}
                 </div>
             `,
             showConfirmButton: true,

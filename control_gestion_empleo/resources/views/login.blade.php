@@ -215,9 +215,9 @@
             font-size: 0.8rem;
         }
 
-        /* NUEVO: Ocultar sección QR en dispositivos móviles */
-        .qr-section-mobile {
-            display: block;
+        /* NUEVA CLASE PARA OCULTAR QR EN MÓVILES */
+        .hide-on-mobile {
+            display: none;
         }
 
         /* MEJORAS PARA DISPOSITIVOS MÓVILES Y TABLETS */
@@ -249,14 +249,30 @@
                 padding: 0.75rem 1.5rem;
             }
             
-            /* NUEVO: Ocultar la sección QR en móviles */
-            .qr-section-mobile {
-                display: none !important;
+            /* NUEVO: Ocultar la sección QR en móviles (menos de 768px) */
+            @media (max-width: 767px) {
+                .hide-on-mobile {
+                    display: none !important;
+                }
+                
+                .login-options {
+                    display: none !important;
+                }
+                
+                .instructions {
+                    margin-top: 0 !important;
+                }
             }
             
-            /* NUEVO: Ajustar el margen superior cuando se oculta el QR */
-            .instructions {
-                margin-top: 0 !important;
+            /* MOSTRAR QR EN TABLETS (768px a 991px) */
+            @media (min-width: 768px) and (max-width: 991px) {
+                .hide-on-mobile {
+                    display: block !important;
+                }
+                
+                .login-options {
+                    display: block !important;
+                }
             }
         }
 
@@ -283,6 +299,13 @@
             .col-md-8.col-lg-6.col-xl-4.offset-xl-1 {
                 padding: 15px 10px;
                 padding-top: 1rem !important;
+            }
+        }
+        
+        /* MOSTRAR SIEMPRE EN ESCRITORIO (más de 991px) */
+        @media (min-width: 992px) {
+            .hide-on-mobile {
+                display: block !important;
             }
         }
     </style>
@@ -343,8 +366,8 @@
                         </div>
                     </form>
 
-                    <!-- Separador - Solo se muestra en móviles si hay elementos después -->
-                    <div class="login-options qr-section-mobile">
+                    <!-- Separador - Solo se muestra en tablet y desktop -->
+                    <div class="login-options hide-on-mobile">
                         <div class="d-flex align-items-center">
                             <div class="flex-grow-1" style="height: 1px; background-color: #dee2e6;"></div>
                             <span class="divider-text mx-3">O</span>
@@ -353,8 +376,8 @@
                     </div>
 
                     <!-- Sección QR - VERSIÓN SIMPLIFICADA CON REDIRECCIÓN -->
-                    <!-- Añadida la clase qr-section-mobile para ocultar en móviles -->
-                    <div class="row qr-section-mobile">
+                    <!-- Añadida la clase hide-on-mobile para ocultar en móviles -->
+                    <div class="row hide-on-mobile">
                         <div class="col-12">
                             <div class="card border-info qr-card">
                                 <div class="card-header bg-info text-white text-center">
@@ -495,6 +518,15 @@
                 qrCard.addEventListener('mouseleave', function() {
                     this.style.transform = 'translateY(0)';
                 });
+            }
+
+            // Verificar si la sección QR está visible
+            const qrSection = document.querySelector('.hide-on-mobile');
+            if (qrSection) {
+                console.log('📱 Sección QR:', 
+                    window.innerWidth < 768 ? 'Oculta (móvil)' : 
+                    window.innerWidth < 992 ? 'Visible (tablet)' : 'Visible (desktop)'
+                );
             }
 
             console.log('✅ Sistema de login inicializado correctamente');
