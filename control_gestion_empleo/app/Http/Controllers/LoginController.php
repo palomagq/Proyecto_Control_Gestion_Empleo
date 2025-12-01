@@ -15,48 +15,36 @@ class LoginController extends Controller
     }
 
     public function login(Request $request)
-    {
-        $request->validate([
-            'username' => 'required|string',
-            'password' => 'required|string',
-        ]);
+{
+    $request->validate([
+        'username' => 'required|string',
+        'password' => 'required|string',
+    ]);
 
-        if (Auth::attempt($request->only('username', 'password'))) {
-            $request->session()->regenerate();
+    if (Auth::attempt($request->only('username', 'password'))) {
+        $request->session()->regenerate();
+        
+        $user = Auth::user();
+        
+        if ($user->rol_id == 1) {
+            return redirect()->route('admin.empleados')->with('success', '¡Bienvenido Administrador!');
+        } else {
+            // Buscar el empleado relacionado
+            $empleado = \App\Models\Empleado::where('credencial_id', $user->id)->first();
             
-            $user = Auth::user();
-            
-            // DEBUG
-            Log::info("LOGIN EXITOSO - Usuario: {$user->username}, Rol ID: {$user->rol_id}");
-
-            // REDIRECCIÓN SIMPLE Y DIRECTA
-            if ($user->rol_id == 1) { // Administrador
-                return redirect()->route('admin.empleados')
-                    ->with('success', '¡Bienvenido Administrador!');
-            } 
-            else { // Cualquier otro número = Empleado
-                $empleado = DB::table('tabla_empleados')
-                    ->where('credencial_id', $user->id)
-                    ->first();
-
-                if ($empleado) {
-                    Log::info("Redirigiendo a empleado: {$empleado->id} - {$empleado->nombre}");
-                    return redirect()->route('empleado.perfil', $empleado->id)
-                        ->with('success', "¡Bienvenido {$empleado->nombre}!");
-                } else {
-                    Auth::logout();
-                    return back()->withErrors([
-                        'username' => 'Error: No se encontró información del empleado.',
-                    ]);
-                }
+            if ($empleado) {
+                // Redirigir al perfil del empleado con SU ID
+                return redirect()->route('empleado.perfil', $empleado->id)
+                    ->with('success', "¡Bienvenido {$empleado->nombre}!");
+            } else {
+                Auth::logout();
+                return back()->withErrors(['username' => 'Error: No se encontró información del empleado.']);
             }
         }
-
-        return back()->withErrors([
-            'username' => 'Usuario o contraseña incorrectos.',
-        ]);
     }
 
+    return back()->withErrors(['username' => 'Usuario o contraseña incorrectos.']);
+}
     public function logout(Request $request)
     {
         Auth::logout();

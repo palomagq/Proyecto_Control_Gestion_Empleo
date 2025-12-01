@@ -132,6 +132,11 @@
             color: white;
         }
 
+        .btn-qr {
+            background: linear-gradient(135deg, #8A2BE2, #4B0082);
+            color: white;
+        }
+
         .btn-control:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
@@ -248,7 +253,35 @@
 
     <div class="container">
         <div class="dashboard-container">
-            @yield('content')
+            <!-- CONTENIDO PRINCIPAL -->
+            <div class="container-fluid py-4">
+                <!-- Sección de Login Rápido QR -->
+                <div class="row mb-4 d-lg-none">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h5 class="card-title text-primary">
+                                    <i class="fas fa-qrcode mr-2"></i>Login Rápido
+                                </h5>
+                                <p class="card-text text-muted mb-3">
+                                    Escanea el código QR del PC para iniciar sesión rápidamente en otros dispositivos
+                                </p>
+                                <a href="{{ route('qr.scanner') }}" class="btn btn-qr btn-control">
+                                    <i class="fas fa-camera mr-2"></i>
+                                    Escanear QR
+                                </a>
+                                <small class="form-text text-muted mt-2">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Usa esta función para login rápido desde otros dispositivos
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- El resto de tu contenido existente -->
+                @yield('content')
+            </div>
         </div>
     </div>
 

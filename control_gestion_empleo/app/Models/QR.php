@@ -14,18 +14,21 @@ class Qr extends Model
     protected $fillable = [
         'imagen_qr',
         'codigo_unico',
-        'contenido_qr'
+        'contenido_qr',
+        'empleado_id',
+        'activo',
+        'expiracion'
     ];
 
-    // Relación con empleados
-    public function empleados()
-    {
-        return $this->hasMany(Empleado::class, 'qr_id');
-    }
+    protected $casts = [
+        'activo' => 'boolean',
+        'expiracion' => 'datetime'
+    ];
 
+    // Relación con empleado
     public function empleado()
     {
-        return $this->hasOne(Empleado::class, 'qr_id');
+        return $this->belongsTo(Empleado::class, 'empleado_id');
     }
 
     /**
@@ -63,5 +66,13 @@ class Qr extends Model
             return 'data:image/png;base64,' . $this->imagen_qr_base64;
         }
         return null;
+    }
+
+    /**
+     * Verificar si el QR está activo y no ha expirado
+     */
+    public function getEstaActivoAttribute()
+    {
+        return $this->activo && (!$this->expiracion || $this->expiracion->isFuture());
     }
 }

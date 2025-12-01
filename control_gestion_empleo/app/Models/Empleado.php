@@ -33,7 +33,7 @@ class Empleado extends Model
     // Relación con Credencial
     public function credencial()
     {
-        return $this->belongsTo(Credencial::class, 'credencial_id');
+        return $this->belongsTo(Credencial::class, 'credencial_id', 'id');
     }
 
     // Relación con Rol

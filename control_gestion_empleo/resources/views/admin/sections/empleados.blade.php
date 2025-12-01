@@ -408,7 +408,7 @@
                     </div>
 
                     <!-- NUEVA SECCIÓN: Vista previa del QR dinámico -->
-                    <div class="row mt-4">
+                    <!--<div class="row mt-4">
                         <div class="col-12">
                             <div class="card border-primary">
                                 <div class="card-header bg-primary text-white py-2">
@@ -417,16 +417,13 @@
                                     </h6>
                                 </div>
                                 <div class="card-body text-center p-3">
-                                    <!-- Contenedor del QR que se actualizará dinámicamente -->
                                     <div id="qr-preview">
-                                        <!-- Estado inicial - se generará automáticamente -->
                                         <div class="alert alert-info">
                                             <i class="fas fa-qrcode mr-2"></i>
                                             El código QR se generará automáticamente al completar el DNI
                                         </div>
                                     </div>
                                     
-                                    <!-- Información de estado -->
                                     <div id="qr-status" class="mt-2">
                                         <small class="text-muted">
                                             <i class="fas fa-sync-alt mr-1"></i>
@@ -436,7 +433,7 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div>-->
 
                     <div class="alert alert-info">
                         <small>
@@ -2865,7 +2862,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('dni').addEventListener('input', function() {
         validarDNI();
         generarUsername();
-        generarQRPreview(); // ✅ NUEVO: Generar preview del QR
+        //generarQRPreview(); // ✅ NUEVO: Generar preview del QR
     });
     
     // Validar coordenadas cuando cambien
@@ -2916,7 +2913,7 @@ function generarUsername() {
     validarDNI();
     
     // ✅ NUEVO: Generar QR automáticamente
-    generarQRPreview();
+    //generarQRPreview();
 }
 
 // ✅ FUNCIÓN MEJORADA: Validación de edad exacta de 16 años
@@ -5887,7 +5884,7 @@ function verificarDatosAntesDeExportar(mes, año) {
 // ✅ FUNCIÓN MEJORADA: Generar QR automáticamente por DNI en tiempo real
 // ✅ FUNCIÓN MEJORADA: Generar QR automáticamente por DNI
 function generarQRPreview() {
-    const dni = document.getElementById('dni').value.trim().toUpperCase();
+    /*const dni = document.getElementById('dni').value.trim().toUpperCase();
     const nombre = document.getElementById('nombre').value.trim();
     const apellidos = document.getElementById('apellidos').value.trim();
     const qrPreview = document.getElementById('qr-preview');
@@ -5970,7 +5967,20 @@ function generarQRPreview() {
 
         // Llamar al servidor para generar QR
         generarQRDesdeServidor(dni, nombre, apellidos);
-    }
+    }*/
+   const qrPreview = document.getElementById('qr-preview');
+    
+    qrPreview.innerHTML = `
+        <div class="alert alert-info text-center">
+            <i class="fas fa-qrcode fa-2x mb-3 text-muted"></i>
+            <h6 class="mb-1">Sistema de Login por QR</h6>
+            <p class="small mb-0">El código QR se generará automáticamente al crear el empleado</p>
+            <p class="small text-muted mt-2">
+                <i class="fas fa-info-circle mr-1"></i>
+                El empleado podrá usar QR para login en dispositivos móviles
+            </p>
+        </div>
+    `;
 }
 
 // ✅ NUEVA FUNCIÓN: Generar QR desde el servidor
@@ -6092,9 +6102,12 @@ function generarQRConGoogleChartsFallback(dni, nombre, apellidos) {
 document.addEventListener('DOMContentLoaded', function() {
     const dniInput = document.getElementById('dni');
     if (dniInput) {
-         dniInput.addEventListener('input', function() {
+         /*dniInput.addEventListener('input', function() {
             clearTimeout(window.qrTimeout);
             window.qrTimeout = setTimeout(generarQRPreview, 500);
+        });*/
+        dniInput.addEventListener('input', function() {
+            generarUsername();
         });
     }
 });
@@ -6703,7 +6716,7 @@ function imprimirQRDirecto() {
 }
 
 // ✅ FUNCIÓN: Mostrar modal de impresión de QR
-function mostrarModalImpresionQR(qrData) {
+/*function mostrarModalImpresionQR(qrData) {
     const modalHtml = `
         <div class="modal fade" id="imprimirQRModal" tabindex="-1" role="dialog" aria-labelledby="imprimirQRModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-lg" role="document">
@@ -6826,7 +6839,7 @@ function mostrarModalImpresionQR(qrData) {
     // Mostrar modal
     $('#imprimirQRModal').modal('show');
 }
-
+*/
 // ✅ FUNCIÓN: Imprimir QR directamente
 function imprimirQRDirecto() {
     // Ocultar elementos no necesarios para impresión

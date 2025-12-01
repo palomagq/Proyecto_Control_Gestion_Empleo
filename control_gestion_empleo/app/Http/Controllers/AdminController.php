@@ -309,6 +309,34 @@ public function storeEmployee(Request $request)
     }
 }
 
+private function generarQRLoginParaEmpleado($empleado)
+{
+    try {
+        $token = Str::random(32);
+        $qrToken = QrLoginToken::create([
+            'token' => $token,
+            'user_id' => $empleado->credencial->id,
+            'is_active' => true,
+            'is_confirmed' => false,
+            'expires_at' => Carbon::now()->addYears(1) // 1 año de validez
+        ]);
+        
+        // Guardar información del QR en la base de datos
+        $qrCode = \SimpleSoftwareIO\QrCode\Facades\QrCode::size(300)
+            ->generate(route('login.qr') . '?token=' . $token);
+            
+        // Aquí puedes guardar el QR en la tabla tabla_qr si es necesario
+        // ...
+        
+        return $qrCode;
+        
+    } catch (\Exception $e) {
+        Log::error('Error generando QR para empleado: ' . $e->getMessage());
+        return null;
+    }
+}
+
+
 // En el método getEmpleadosDataTable, agrega logs:
 public function getEmpleadosDataTable(Request $request)
 {
@@ -345,9 +373,6 @@ public function getEmpleadosDataTable(Request $request)
                 </button>
                 <button class="btn btn-danger" onclick="eliminarEmpleado(' . $empleado->id . ')" title="Eliminar">
                     <i class="fas fa-trash"></i>
-                </button>
-                <button class="btn btn-success" onclick="imprimirQR(' . $empleado->id . ')" title="Visualizar QR">
-                    <i class="fas fa-qrcode"></i>
                 </button>
                 <button class="btn btn-secondary" onclick="exportarRegistroHorario(' . $empleado->id . ')" title="Exportar Registro Horario">
                     <i class="fas fa-file-contract"></i>

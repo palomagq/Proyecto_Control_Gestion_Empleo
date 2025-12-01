@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- MDB CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/6.4.0/mdb.min.css" rel="stylesheet">
@@ -50,8 +51,6 @@
         }
         
         .img-fluid {
-            /*width: 100%;
-            height: 100%;*/
             object-fit: cover;
         }
         
@@ -72,6 +71,16 @@
         
         .btn-outline-primary:hover {
             background-color: #3b71ca;
+            color: white;
+        }
+
+        .btn-outline-info {
+            border-color: #17a2b8;
+            color: #17a2b8;
+        }
+        
+        .btn-outline-info:hover {
+            background-color: #17a2b8;
             color: white;
         }
         
@@ -165,16 +174,92 @@
             font-size: 0.9rem;
         }
 
+        .qr-card {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .qr-card:hover {
+            border-color: #17a2b8;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .qr-instructions {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .qr-step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .qr-step-number {
+            background: #17a2b8;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        /* NUEVO: Ocultar sección QR en dispositivos móviles */
+        .qr-section-mobile {
+            display: block;
+        }
+
+        /* MEJORAS PARA DISPOSITIVOS MÓVILES Y TABLETS */
         @media (max-width: 991px) {
-            .col-md-8.col-lg-6.col-xl-4.offset-xl-1 {
-                padding: 30px 20px;
+            .col-md-9.col-lg-6.col-xl-5 {
+                display: none;
             }
             
-            .col-md-9.col-lg-6.col-xl-5 {
-                height: 300px;
+            .col-md-8.col-lg-6.col-xl-4.offset-xl-1 {
+                padding: 25px 20px;
+                padding-top: 2rem !important;
+                width: 100%;
+                max-width: 500px;
+                margin: 0 auto;
+            }
+            
+            .h-custom {
+                padding-top: 1rem;
+                padding-bottom: 1rem;
+            }
+            
+            .form-control-lg {
+                font-size: 1rem;
+                padding: 0.75rem 1rem;
+            }
+            
+            .btn-lg {
+                font-size: 1rem;
+                padding: 0.75rem 1.5rem;
+            }
+            
+            /* NUEVO: Ocultar la sección QR en móviles */
+            .qr-section-mobile {
+                display: none !important;
+            }
+            
+            /* NUEVO: Ajustar el margen superior cuando se oculta el QR */
+            .instructions {
+                margin-top: 0 !important;
             }
         }
-        
+
         @media (max-width: 768px) {
             .h-custom {
                 height: auto !important;
@@ -184,183 +269,22 @@
                 flex-direction: column;
             }
             
-            .col-md-9.col-lg-6.col-xl-5 {
-                height: 250px;
-            }
-            
             .col-md-8.col-lg-6.col-xl-4.offset-xl-1 {
-                padding: 25px 15px;
+                padding: 20px 15px;
+                padding-top: 1.5rem !important;
             }
         }
-        
+
         @media (max-width: 450px) {
             .h-custom {
                 height: 100% !important;
             }
             
             .col-md-8.col-lg-6.col-xl-4.offset-xl-1 {
-                padding: 20px 10px;
+                padding: 15px 10px;
+                padding-top: 1rem !important;
             }
         }
-
-/* MEJORAS PARA DISPOSITIVOS MÓVILES Y TABLETS */
-
-/* Ajustes generales para pantallas pequeñas */
-@media (max-width: 991px) {
-    .col-md-9.col-lg-6.col-xl-5 {
-        display: none; /* Ocultar la imagen */
-    }
-    
-    .col-md-8.col-lg-6.col-xl-4.offset-xl-1 {
-        padding: 25px 20px;
-        padding-top: 2rem !important;
-        width: 100%; /* Ocupar todo el ancho disponible */
-        max-width: 500px; /* Limitar el ancho máximo */
-        margin: 0 auto; /* Centrar el formulario */
-    }
-    
-    .h-custom {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-    }
-    
-    /* Mejorar el tamaño de fuente para mejor legibilidad */
-    .form-control-lg {
-        font-size: 1rem;
-        padding: 0.75rem 1rem;
-    }
-    
-    .btn-lg {
-        font-size: 1rem;
-        padding: 0.75rem 1.5rem;
-    }
-    
-    /* Ajustar el espaciado entre elementos */
-    .form-outline.mb-4 {
-        margin-bottom: 1rem !important;
-    }
-    
-    .form-outline.mb-3 {
-        margin-bottom: 0.75rem !important;
-    }
-    
-    .text-center.text-lg-start.mt-4.pt-2 {
-        margin-top: 1rem !important;
-        padding-top: 0.5rem !important;
-    }
-    
-    /* Optimizar la sección de instrucciones */
-    .instructions {
-        margin-top: 1.5rem;
-    }
-    
-    .instructions h6 {
-        font-size: 1rem;
-    }
-    
-    .instructions ul {
-        padding-left: 1.25rem;
-        font-size: 0.9rem;
-    }
-    
-    .instructions li {
-        margin-bottom: 0.5rem;
-    }
-    
-    /* Mejorar la sección QR */
-    .qr-section {
-        padding-top: 1.5rem;
-        margin-top: 1.5rem;
-    }
-    
-    .qr-icon {
-        font-size: 1.75rem;
-    }
-    
-    .qr-btn {
-        padding: 0.75rem;
-        font-size: 1rem;
-    }
-}
-
-/* Ajustes específicos para tablets medianas */
-@media (max-width: 768px) {
-    .h-custom {
-        height: auto !important;
-    }
-    
-    .row.d-flex {
-        flex-direction: column;
-    }
-    
-    .col-md-8.col-lg-6.col-xl-4.offset-xl-1 {
-        padding: 20px 15px;
-        padding-top: 1.5rem !important;
-    }
-    
-    /* Botón de login más ancho en móviles */
-    .btn-primary.btn-lg {
-        width: 100%;
-        padding-left: 1rem;
-        padding-right: 1rem;
-    }
-    
-    /* Optimizar textos para móviles */
-    .instructions ul {
-        font-size: 0.85rem;
-    }
-    
-    .qr-section h5 {
-        font-size: 1.1rem;
-    }
-    
-    .qr-section p {
-        font-size: 0.9rem;
-    }
-}
-
-/* Ajustes para móviles pequeños */
-@media (max-width: 450px) {
-    .h-custom {
-        height: 100% !important;
-    }
-    
-    .col-md-8.col-lg-6.col-xl-4.offset-xl-1 {
-        padding: 15px 10px;
-        padding-top: 1rem !important;
-    }
-    
-    /* Reducir aún más los tamaños de fuente */
-    .form-control-lg {
-        font-size: 0.9rem;
-        padding: 0.6rem 0.8rem;
-    }
-    
-    .btn-lg {
-        font-size: 0.9rem;
-        padding: 0.6rem 1rem;
-    }
-    
-    /* Ajustar márgenes para ahorrar espacio */
-    .form-outline.mb-4 {
-        margin-bottom: 0.75rem !important;
-    }
-    
-    .login-options {
-        margin: 15px 0;
-    }
-    
-    .qr-section {
-        padding-top: 1rem;
-        margin-top: 1rem;
-    }
-    
-    /* Simplificar instrucciones en móviles muy pequeños */
-    .instructions ul li {
-        font-size: 0.8rem;
-        margin-bottom: 0.4rem;
-    }
-}
     </style>
 </head>
 <body>
@@ -373,7 +297,7 @@
                     <img src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-login-form/draw2.webp"
                     class="img-fluid" alt="Sample image">
                 </div>
-                <div class="col-md-8 col-lg-6 col-xl-4 offset-xl-1" style="padding-top: 18rem;">
+                <div class="col-md-8 col-lg-6 col-xl-4 offset-xl-1" style="padding-top: 4rem;">
                     <!-- Mostrar errores si existen -->
                     @if($errors->any())
                         <div class="alert alert-danger">
@@ -419,8 +343,8 @@
                         </div>
                     </form>
 
-                    <!-- Separador -->
-                    <div class="login-options">
+                    <!-- Separador - Solo se muestra en móviles si hay elementos después -->
+                    <div class="login-options qr-section-mobile">
                         <div class="d-flex align-items-center">
                             <div class="flex-grow-1" style="height: 1px; background-color: #dee2e6;"></div>
                             <span class="divider-text mx-3">O</span>
@@ -428,10 +352,11 @@
                         </div>
                     </div>
 
-                    <!-- Sección QR -->
-                    <div class="row">
+                    <!-- Sección QR - VERSIÓN SIMPLIFICADA CON REDIRECCIÓN -->
+                    <!-- Añadida la clase qr-section-mobile para ocultar en móviles -->
+                    <div class="row qr-section-mobile">
                         <div class="col-12">
-                            <div class="card border-info">
+                            <div class="card border-info qr-card">
                                 <div class="card-header bg-info text-white text-center">
                                     <h6 class="mb-0">
                                         <i class="fas fa-qrcode mr-2"></i>
@@ -439,42 +364,50 @@
                                     </h6>
                                 </div>
                                 <div class="card-body text-center">
-                                    <!-- Botón para mostrar QR - VERSIÓN CORREGIDA -->
-                                    <button id="btn-mostrar-qr" class="btn btn-outline-info btn-lg mb-3">
+                                    <!-- Botón para ir directamente al login QR -->
+                                    <a href="{{ route('login.qr') }}" class="btn btn-outline-info btn-lg mb-3 w-100">
                                         <i class="fas fa-qrcode mr-2"></i>
-                                        Mostrar Código QR
-                                    </button>
+                                        Acceder con Código QR
+                                    </a>
 
-                                    <!-- Contenedor del QR (oculto inicialmente) -->
-                                    <div id="qr-container" class="mb-3" style="display: none;">
-                                        <div id="qr-loading" class="text-center py-4" style="display: none;">
-                                            <div class="spinner-border text-primary mb-3" role="status">
-                                                <span class="sr-only">Generando QR...</span>
+                                    <!-- Información sobre el proceso QR -->
+                                    <div class="qr-instructions">
+                                        <h6 class="fw-bold mb-3">¿Cómo funciona?</h6>
+                                        
+                                        <div class="qr-step">
+                                            <div class="qr-step-number">1</div>
+                                            <div class="qr-step-text">
+                                                <small>Haz clic en "Acceder con Código QR"</small>
                                             </div>
-                                            <p class="text-muted">Generando código QR...</p>
                                         </div>
                                         
-                                        <div id="qr-image-container" class="mb-3">
-                                            <!-- El QR se cargará aquí -->
+                                        <div class="qr-step">
+                                            <div class="qr-step-number">2</div>
+                                            <div class="qr-step-text">
+                                                <small>Se generará tu código QR personal</small>
+                                            </div>
                                         </div>
                                         
-                                        <div class="qr-instructions">
-                                            <p class="small text-muted mb-2">
-                                                <i class="fas fa-mobile-alt mr-1"></i>
-                                                Escanea este código con tu móvil
-                                            </p>
-                                            <div class="alert alert-info small">
-                                                <i class="fas fa-info-circle mr-1"></i>
-                                                <strong>¿No tienes el QR?</strong> Solicítalo al administrador
+                                        <div class="qr-step">
+                                            <div class="qr-step-number">3</div>
+                                            <div class="qr-step-text">
+                                                <small>Escanea el código con tu móvil</small>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="qr-step">
+                                            <div class="qr-step-number">4</div>
+                                            <div class="qr-step-text">
+                                                <small>Confirma el login en tu dispositivo</small>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- Información del QR -->
-                                    <div id="qr-info" class="mt-3 p-2 bg-light rounded" style="display: none;">
+                                    <!-- Información adicional -->
+                                    <div class="mt-3 p-2 bg-light rounded">
                                         <small class="text-muted">
                                             <i class="fas fa-shield-alt mr-1"></i>
-                                            Acceso seguro • Válido por 24 horas
+                                            Acceso seguro • Válido por 10 minutos
                                         </small>
                                     </div>
                                 </div>
@@ -482,15 +415,14 @@
                         </div>
                     </div>
 
-
-                    <div class="instructions mt-4">
+                    <!--<div class="instructions mt-4">
                         <h6 class="fw-bold">Instrucciones de acceso:</h6>
                         <ul class="mb-0">
                             <li><strong>Administradores:</strong> username: "admin", password: "admin123"</li>
                             <li><strong>Empleados:</strong> username: DNI sin letra (8 dígitos), password: numérico de 4 dígitos</li>
-                            <li><strong>Acceso QR:</strong> Escanea tu código QR personal para acceso rápido</li>
+                            <li class="qr-section-mobile"><strong>Acceso QR:</strong> Haz clic en "Acceder con Código QR" para login rápido</li>
                         </ul>
-                    </div>
+                    </div>-->
                 </div>
             </div>
         </div>
@@ -507,144 +439,9 @@
     <!-- MDB JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/6.4.0/mdb.min.js"></script>
     
-    <!-- QR Scanner Library -->
-    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
-    
     <script>
-        // Esperar a que jQuery esté completamente cargado
-// Sistema QR con JavaScript puro (sin jQuery)
-         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔧 Inicializando sistema QR Login...');
-            
-            const btnMostrarQr = document.getElementById('btn-mostrar-qr');
-            const qrContainer = document.getElementById('qr-container');
-            const qrInfo = document.getElementById('qr-info');
-            const qrLoading = document.getElementById('qr-loading');
-            const qrImageContainer = document.getElementById('qr-image-container');
-
-            let isQrVisible = false;
-
-            // Verificar que todos los elementos existan
-            if (!btnMostrarQr) {
-                console.error('❌ No se encontró el botón de QR');
-                return;
-            }
-
-            if (!qrContainer) {
-                console.error('❌ No se encontró el contenedor QR');
-                return;
-            }
-
-            console.log('✅ Todos los elementos encontrados correctamente');
-
-            // Configurar el botón QR
-            btnMostrarQr.addEventListener('click', toggleQR);
-
-            function toggleQR() {
-                console.log('🔄 Cambiando estado QR. Actual:', isQrVisible);
-                if (isQrVisible) {
-                    hideQR();
-                } else {
-                    showQR();
-                }
-            }
-
-            function showQR() {
-                console.log('👁️ Mostrando QR...');
-                
-                // Mostrar contenedores
-                qrContainer.style.display = 'block';
-                qrInfo.style.display = 'block';
-                
-                // Cambiar texto del botón directamente
-                btnMostrarQr.innerHTML = '<i class="fas fa-times mr-2"></i>Ocultar QR';
-                
-                isQrVisible = true;
-                loadQRCode();
-            }
-
-            function hideQR() {
-                console.log('👁️ Ocultando QR...');
-                
-                // Ocultar contenedores
-                qrContainer.style.display = 'none';
-                qrInfo.style.display = 'none';
-                
-                // Cambiar texto del botón directamente
-                btnMostrarQr.innerHTML = '<i class="fas fa-qrcode mr-2"></i>Mostrar Código QR';
-                
-                isQrVisible = false;
-            }
-
-            function loadQRCode() {
-                console.log('🔄 Cargando código QR...');
-                showLoading();
-                qrImageContainer.innerHTML = '';
-
-                // Simular generación de QR
-                setTimeout(() => {
-                    hideLoading();
-                    generateExampleQR();
-                }, 800);
-            }
-
-            function showLoading() {
-                console.log('⏳ Mostrando carga...');
-                if (qrLoading) {
-                    qrLoading.style.display = 'block';
-                }
-            }
-
-            function hideLoading() {
-                console.log('✅ Ocultando carga...');
-                if (qrLoading) {
-                    qrLoading.style.display = 'none';
-                }
-            }
-
-            function generateExampleQR() {
-                console.log('🎨 Generando QR de ejemplo...');
-                
-                // URL de ejemplo para el QR
-                const baseUrl = window.location.origin;
-                const qrData = `${baseUrl}/login?method=qr&time=${Date.now()}`;
-                
-                // Usar API gratuita de QR
-                const qrSize = 250;
-                const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodeURIComponent(qrData)}&format=png&margin=10`;
-                
-                const qrHTML = `
-                    <div class="qr-image-wrapper">
-                        <img src="${qrImageUrl}" 
-                             alt="Código QR para acceso al sistema"
-                             class="img-fluid rounded shadow qr-image">
-                        <div class="mt-3">
-                            <div class="alert alert-success small">
-                                <i class="fas fa-check-circle mr-2"></i>
-                                <strong>QR generado correctamente</strong>
-                            </div>
-                            <small class="text-muted d-block">
-                                <i class="fas fa-clock mr-1"></i>
-                                Generado: ${new Date().toLocaleTimeString()}
-                            </small>
-                        </div>
-                    </div>
-                `;
-                
-                qrImageContainer.innerHTML = qrHTML;
-                
-                // Agregar efecto de animación
-                const qrImage = qrImageContainer.querySelector('img');
-                if (qrImage) {
-                    qrImage.style.opacity = '0';
-                    qrImage.style.transition = 'opacity 0.5s ease';
-                    setTimeout(() => {
-                        qrImage.style.opacity = '1';
-                    }, 100);
-                }
-
-                console.log('✅ QR generado exitosamente');
-            }
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔧 Inicializando sistema de login...');
 
             // Validación básica del formulario
             const loginForm = document.getElementById('loginForm');
@@ -688,16 +485,25 @@
                 });
             }
 
-            console.log('✅ Sistema QR Login inicializado correctamente');
+            // Efecto hover para la tarjeta QR (solo en escritorio)
+            const qrCard = document.querySelector('.qr-card');
+            if (qrCard && window.innerWidth > 991) {
+                qrCard.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-5px)';
+                });
+                
+                qrCard.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            }
+
+            console.log('✅ Sistema de login inicializado correctamente');
         });
 
-        // Función global para regenerar QR (si se necesita)
-        window.regenerateQR = function() {
-            const btn = document.getElementById('btn-mostrar-qr');
-            if (btn) {
-                btn.click();
-            }
-        };
+        // Función para redirigir al login QR (backup)
+        function goToQRLogin() {
+            window.location.href = "{{ route('login.qr') }}";
+        }
     </script>
 </body>
 </html>

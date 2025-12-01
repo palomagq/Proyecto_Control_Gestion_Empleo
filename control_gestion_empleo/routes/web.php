@@ -1,5 +1,5 @@
 <?php
-
+use Illuminate\Support\Facades\Auth; // ✅ AGREGAR ESTA LÍNEA
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\AdminController;
@@ -20,7 +20,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 
 // Rutas para login por QR
-Route::get('/empleado/qr-login/{token}', [App\Http\Controllers\AdminController::class, 'qrLogin'])->name('empleado.qr.login');
+/*Route::get('/empleado/qr-login/{token}', [App\Http\Controllers\AdminController::class, 'qrLogin'])->name('empleado.qr.login');
 
 // Rutas para gestión de QR
 Route::get('/admin/empleado/{id}/qr-login-url', [App\Http\Controllers\AdminController::class, 'getQrLoginUrl'])->name('admin.empleado.qr-login-url');
@@ -38,9 +38,20 @@ Route::prefix('auth')->group(function () {
     
     // Procesar escaneo
     Route::post('/qr/scan/{token}', [LoginQrController::class, 'processScan'])->name('login.qr.process');
-});
+});*/
 
-
+Route::get('/login_qr', [LoginQrController::class, 'showQrLogin'])->name('login.qr');
+Route::post('/generate-qr-token', [LoginQrController::class, 'generateQrTokenApi'])->name('qr.generate');
+Route::get('/check-qr-login/{token}', [LoginQrController::class, 'checkQrLogin'])->name('qr.check');
+Route::post('/confirm-qr-login/{token}', [LoginQrController::class, 'confirmQrLogin'])->name('qr.confirm');
+Route::get('/qr-scanner', [LoginQrController::class, 'showQrScanner'])->name('qr.scanner');
+Route::post('/process-qr-scan', [LoginQrController::class, 'processQrScan'])->name('qr.process');
+Route::get('/qr-info/{id}', [LoginQrController::class, 'getQrInfo'])->name('qr.info');
+Route::post('/cleanup-expired-tokens', [LoginQrController::class, 'cleanupExpiredTokens'])
+    ->name('qr.cleanup')
+    ->middleware('auth'); // Solo para administradores
+// Ruta especial para procesar login QR después de confirmación
+Route::get('/qr-login-process', [LoginQrController::class, 'processQrLoginRedirect'])->name('qr.login.process');
 
 Route::prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
@@ -117,7 +128,16 @@ Route::prefix('admin')->group(function () {
 
 
 
-Route::prefix('empleado')->group(function () {
+Route::prefix('empleado')->middleware('auth')->group(function () {
+
+    // ✅ RUTA DEL DASHBOARD - DEBE ESTAR PRIMERO
+    Route::get('/', function () {
+        $empleadoId = Auth::user()->empleado->id ?? null;
+        if ($empleadoId) {
+            return redirect()->route('empleado.perfil', ['id' => $empleadoId]);
+        }
+        return redirect()->route('login');
+    })->name('empleado.dashboard_empleado');
 
     // Dashboard individual del empleado con ID en la URL
     Route::get('/perfil/{id}', [EmpleadoController::class, 'perfil'])->name('empleado.perfil');
@@ -166,10 +186,15 @@ Route::prefix('empleado')->group(function () {
     Route::get('/{id}/tareas/datatable', [EmpleadoController::class, 'getTareasDataTable'])->name('empleado.tareas.datatable');
 
     // Redirección por defecto para empleados
-    Route::get('/', function () {
-        $empleadoId = Auth::user()->empleado->id;
-        return redirect()->route('empleado.individual', ['id' => $empleadoId]);
-    })->name('empleado.dashboard');
+    /*Route::get('/', function () {
+        if (auth()->check()) {
+            $empleadoId = auth()->user()->empleado->id ?? null;
+            if ($empleadoId) {
+                return redirect()->route('empleado.perfil', ['id' => $empleadoId]);
+            }
+        }
+        return redirect()->route('login');
+    })->name('empleado.dashboard');*/
 
 
 });
