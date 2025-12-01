@@ -2397,9 +2397,6 @@ function formatDetails(data) {
                         <button class="btn btn-danger btn-sm flex-fill" onclick="eliminarEmpleado(${data.id})" title="Eliminar">
                             <i class="fas fa-trash"></i> 
                         </button>
-                        <button class="btn btn-secondary btn-sm flex-fill" onclick="imprimirQR(${data.id})" title="Imprimir QR">
-                            <i class="fas fa-qrcode"></i> 
-                        </button>
                         <button class="btn btn-success btn-sm flex-fill" onclick="exportarRegistroHorario(${data.id})" title="Exportar registro">
                             <i class="fas fa-file-contract"></i> 
                         </button>
@@ -2448,9 +2445,6 @@ function formatDetails(data) {
                         </button>
                         <button class="btn btn-danger btn-sm flex-fill" onclick="eliminarEmpleado(${data.id})" title="Eliminar">
                             <i class="fas fa-trash"></i> 
-                        </button>
-                        <button class="btn btn-secondary btn-sm flex-fill" onclick="imprimirQR(${data.id})" title="Imprimir QR">
-                            <i class="fas fa-qrcode"></i> 
                         </button>
                         <button class="btn btn-success btn-sm flex-fill" onclick="exportarRegistroHorario(${data.id})" title="Exportar registro">
                             <i class="fas fa-file-contract"></i> 
@@ -2513,9 +2507,6 @@ function formatDetails(data) {
                             </button>
                             <button class="btn btn-danger btn-sm" onclick="eliminarEmpleado(${data.id})" title="Eliminar">
                                 <i class="fas fa-trash"></i> 
-                            </button>
-                            <button class="btn btn-secondary btn-sm" onclick="imprimirQR(${data.id})" title="Imprimir QR">
-                                <i class="fas fa-qrcode"></i> 
                             </button>
                             <button class="btn btn-success btn-sm" onclick="exportarRegistroHorario(${data.id})" title="Exportar registro">
                                 <i class="fas fa-file-contract"></i> 
@@ -9307,6 +9298,7 @@ $(document).ready(function() {
     border-bottom: 1px solid #e3e6f0;
     padding-bottom: 1rem;
     margin-bottom: 2rem;
+    justify-items: center;
 }
 
 .card {
