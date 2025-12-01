@@ -42,6 +42,15 @@
         .dtr-details-grid .dtr-detail-item:last-child {
             border-bottom: none !important;
         }
+
+        .dropdown-menu {
+            position: absolute !important;
+            right: 0 !important;
+            left: auto !important;
+            top: 100% !important;
+            margin-top: 0.125rem !important;
+            z-index: 1000 !important;
+        }
     }
 
     @media (min-width:768px) and (max-width:1023px) {
@@ -84,6 +93,19 @@
         /* Eliminar borde del último elemento (Acciones) */
         .dtr-details-grid .dtr-detail-item:last-child {
             border-bottom: none !important;
+        }
+
+        /* Agregar estilos para dropdown en tablet */
+        .btn-group-sm {
+            position: relative !important;
+        }
+        
+        .dropdown-menu {
+            position: absolute !important;
+            z-index: 1000 !important;
+            min-width: 160px !important;
+            /*transform: translateX(-50%) !important;
+            left: 50% !important;*/
         }
     }
 
