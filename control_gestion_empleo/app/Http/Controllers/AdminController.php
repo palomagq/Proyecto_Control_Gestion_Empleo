@@ -1921,6 +1921,25 @@ public function getTareasDataTable(Request $request)
 {
     try {
         Log::info('📊 DataTable tareas solicitado con filtros:', $request->all());
+        
+        // ✅ VERIFICAR AUTENTICACIÓN PRIMERO
+        if (!auth()->check()) {
+            Log::error('❌ Usuario no autenticado en getTareasDataTable');
+            return response()->json([
+                'draw' => $request->get('draw', 1),
+                'recordsTotal' => 0,
+                'recordsFiltered' => 0,
+                'data' => [],
+                'error' => 'Usuario no autenticado. Por favor, inicie sesión nuevamente.'
+            ], 401);
+        }
+
+        // ✅ OBTENER USUARIO AUTENTICADO
+        $user = auth()->user();
+        Log::info('👤 Usuario autenticado para tareas:', [
+            'user_id' => $user->id,
+            'rol_id' => $user->rol_id ?? 'N/A'
+        ]);
 
         $query = Tarea::with(['tipoTarea', 'asignaciones.empleado', 'empleadoCreador'])
                     ->select('tabla_tareas.*');
@@ -1989,7 +2008,6 @@ public function getTareasDataTable(Request $request)
                 return $badges[$tarea->prioridad] ?? '<span class="badge badge-secondary">N/A</span>';
             })
             ->addColumn('estado', function($tarea) {
-                // ✅ SOLUCIÓN DEFINITIVA: Enviar SOLO el valor crudo
                 return $tarea->estado; // 'pendiente', 'en_progreso', 'completada', etc.
             })
             ->addColumn('fecha_tarea', function($tarea) {
@@ -2017,14 +2035,15 @@ public function getTareasDataTable(Request $request)
                 
                 return $formato ?: '<span class="text-muted">0h</span>';
             })
-            ->addColumn('acciones', function($tarea) {
+            ->addColumn('acciones', function($tarea) use ($user) {
                 $botonesBase = '
                 <div class="btn-group btn-group-sm" role="group">
                     <button class="btn btn-info btn-sm" onclick="verTarea('.$tarea->id.')" title="Ver Detalles">
                         <i class="fas fa-eye"></i>
                     </button>';
 
-                if ($tarea->creador_tipo === 'admin' || auth()->user()->rol_id === 1) {
+                // ✅ USAR $user EN LUGAR DE auth()->user()
+                if ($tarea->creador_tipo === 'admin' || ($user && $user->rol_id === 1)) {
                     $botonesBase .= '
                     <button class="btn btn-warning btn-sm" onclick="editarTarea('.$tarea->id.')" title="Editar Tarea">
                         <i class="fas fa-edit"></i>
@@ -2036,7 +2055,8 @@ public function getTareasDataTable(Request $request)
                         <i class="fas fa-users"></i>
                     </button>';
 
-                if (auth()->user()->rol_id === 1) {
+                // ✅ USAR $user EN LUGAR DE auth()->user()
+                if ($user && $user->rol_id === 1) {
                     $botonesBase .= '
                     <div class="btn-group btn-group-sm" role="group">
                         <button type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown">
@@ -2055,7 +2075,6 @@ public function getTareasDataTable(Request $request)
                 return $botonesBase;
             })
             ->rawColumns(['tipo_tarea', 'prioridad', 'empleados_asignados', 'creador_info', 'fecha_tarea', 'acciones'])
-            // ✅ NOTA: 'estado' NO está en rawColumns porque ahora es un string crudo
             ->make(true);
 
     } catch (\Exception $e) {
