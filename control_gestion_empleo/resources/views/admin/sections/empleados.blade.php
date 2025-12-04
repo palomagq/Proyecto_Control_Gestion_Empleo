@@ -3103,9 +3103,7 @@ function submitEmployeeForm() {
     console.log('=== INICIANDO VALIDACIÓN CORREGIDA ===');
     
     // ✅ PREVENIR COMPORTAMIENTO POR DEFECTO
-    if (event) {
-        event.preventDefault();
-    }
+    event.preventDefault();
     
     // 1. Validar DNI
     if (!validarDNI()) {
@@ -3223,13 +3221,13 @@ function submitEmployeeForm() {
         username: usernameGenerado,
         password: passwordGenerado,
         password_confirmation: passwordGenerado,
-        _token: csrfToken // ✅ Agregar token aquí
+        _token: csrfToken
     };
 
     console.log('📦 Datos preparados:', empleadoData);
 
     // 10. Enviar datos
-    enviarDatosAlServidor(empleadoData, Math.floor(validacionEdad.edad), csrfToken);
+    enviarDatosAlServidorCorregido(empleadoData, Math.floor(validacionEdad.edad), csrfToken);
     return false;
 }
 
@@ -3258,8 +3256,8 @@ function getCsrfToken() {
 
 
 // ✅ FUNCIÓN MEJORADA: Envío de datos con debug completo
-function enviarDatosAlServidor(empleadoData, edadEmpleado, csrfToken) {
-    console.log('🚀 Enviando datos al servidor...');
+function enviarDatosAlServidorCorregido(empleadoData, edadEmpleado, csrfToken) {
+    console.log('🚀 Enviando datos al servidor CORREGIDO...');
     
     const submitBtn = document.querySelector('#employeeModal .btn-success');
     const originalText = submitBtn.innerHTML;
@@ -3279,7 +3277,7 @@ function enviarDatosAlServidor(empleadoData, edadEmpleado, csrfToken) {
             'Accept': 'application/json',
             'X-CSRF-TOKEN': csrfToken
         },
-        body: formData // ✅ Usar FormData en lugar de JSON
+        body: formData
     })
     .then(response => {
         console.log('📋 Estado de respuesta:', response.status);
@@ -3287,57 +3285,38 @@ function enviarDatosAlServidor(empleadoData, edadEmpleado, csrfToken) {
     })
     .then(data => {
         if (data.success) {
-            // ✅ SOLUCIÓN DIRECTA: Cerrar y limpiar inmediatamente
-            const modal = document.getElementById('employeeModal');
-            const backdrop = document.querySelector('.modal-backdrop');
+            // ✅ CORRECCIÓN CRÍTICA: Cerrar el modal correctamente
+            cerrarModalCompletamente('#employeeModal');
             
-            // Remover clases
-            modal.classList.remove('show');
-            document.body.classList.remove('modal-open');
-            
-            // Remover backdrop si existe
-            if (backdrop) {
-                backdrop.remove();
-            }
-            
-            // Resetear formulario
-            document.getElementById('employeeForm').reset();
-            
-            // Añadir atributo de display none temporal
-            modal.style.display = 'none';
-            
-            // Pequeño delay para asegurar que el modal se cerró
-            //setTimeout(() => {
-                Swal.fire({
-                    icon: 'success',
-                    title: '¡Éxito!',
-                    html: `
-                        <div class="text-left">
-                            <p>${data.message}</p>
-                            <div class="alert alert-success mt-3">
-                                <h6><i class="fas fa-key"></i> Credenciales Generadas</h6>
-                                <hr>
-                                <strong>Username:</strong> ${data.data.username}<br>
-                                <strong>Contraseña (4 dígitos):</strong> <code class="bg-light p-1 rounded">${data.data.password}</code><br>
-                                <strong>Edad:</strong> ${data.data.edad} años<br>
-                                <strong>ID Empleado:</strong> ${data.data.empleado_id}
-                            </div>
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                html: `
+                    <div class="text-left">
+                        <p>${data.message}</p>
+                        <div class="alert alert-success mt-3">
+                            <h6><i class="fas fa-key"></i> Credenciales Generadas</h6>
+                            <hr>
+                            <strong>Username:</strong> ${data.data.username}<br>
+                            <strong>Contraseña (4 dígitos):</strong> <code class="bg-light p-1 rounded">${data.data.password}</code><br>
+                            <strong>Edad:</strong> ${data.data.edad} años<br>
+                            <strong>ID Empleado:</strong> ${data.data.empleado_id}
                         </div>
-                    `,
-                    showConfirmButton: true,
-                    confirmButtonText: 'Aceptar',
-                    allowOutsideClick: false,
-                    width: '600px'
-                }).then(() => {
-                    // Recargar la tabla
-                    if (typeof table !== 'undefined' && $.fn.DataTable.isDataTable('#empleadosTable')) {
-                        table.ajax.reload(function() {
-                            console.log('🔄 DataTable recargado completamente');
-                            updateStats();
-                        }, false);
-                    }
-                });
-            //}, 300); // ✅ Aumentado a 300ms para asegurar cierre
+                    </div>
+                `,
+                showConfirmButton: true,
+                confirmButtonText: 'Aceptar',
+                allowOutsideClick: false,
+                width: '600px'
+            }).then(() => {
+                // Recargar la tabla
+                if (typeof table !== 'undefined' && $.fn.DataTable.isDataTable('#empleadosTable')) {
+                    table.ajax.reload(function() {
+                        console.log('🔄 DataTable recargado completamente');
+                        updateStats();
+                    }, false);
+                }
+            });
         } else {
             // Manejar errores de validación
             let errorMessages = '';
@@ -3375,6 +3354,48 @@ function enviarDatosAlServidor(empleadoData, edadEmpleado, csrfToken) {
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
     });
+}
+
+// ✅ FUNCIÓN AUXILIAR PARA CERRAR MODALES COMPLETAMENTE
+function cerrarModalCompletamente(modalSelector) {
+    const modalElement = $(modalSelector);
+    
+    if (!modalElement.length) {
+        console.log(`❌ Modal ${modalSelector} no encontrado`);
+        return;
+    }
+    
+    console.log(`🔒 Cerrando modal ${modalSelector} completamente...`);
+    
+    // 1. Ocultar el modal con Bootstrap
+    modalElement.modal('hide');
+    
+    // 2. Limpiar el backdrop de Bootstrap
+    $('.modal-backdrop').remove();
+    
+    // 3. Restaurar el body
+    $('body').removeClass('modal-open');
+    $('body').css({
+        'padding-right': '',
+        'overflow': ''
+    });
+    
+    // 4. Resetear el formulario dentro del modal
+    const form = modalElement.find('form');
+    if (form.length) {
+        form[0].reset();
+    }
+    
+    // 5. Limpiar clases de validación
+    modalElement.find('.is-invalid').removeClass('is-invalid');
+    modalElement.find('.is-valid').removeClass('is-valid');
+    
+    // 6. Forzar que el scroll se mantenga en la posición actual
+    setTimeout(() => {
+        window.scrollTo(window.scrollX, window.scrollY);
+    }, 10);
+    
+    console.log(`✅ Modal ${modalSelector} cerrado completamente`);
 }
 
 // ✅ FUNCIÓN PARA CORREGIR DNI
