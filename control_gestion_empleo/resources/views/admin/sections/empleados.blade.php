@@ -3103,7 +3103,9 @@ function submitEmployeeForm() {
     console.log('=== INICIANDO VALIDACIÓN CORREGIDA ===');
     
     // ✅ PREVENIR COMPORTAMIENTO POR DEFECTO
-    event.preventDefault();
+    if (event) {
+        event.preventDefault();
+    }
     
     // 1. Validar DNI
     if (!validarDNI()) {
@@ -3112,7 +3114,7 @@ function submitEmployeeForm() {
             title: 'DNI incompleto',
             text: 'El DNI debe tener 8 números + 1 letra (ej: 12345678A)'
         });
-        return;
+        return false;
     }
 
     // 2. Validar edad
@@ -3123,7 +3125,7 @@ function submitEmployeeForm() {
             title: 'Error de edad',
             text: validacionEdad.mensaje
         });
-        return;
+        return false;
     }
 
     // 3. Validar teléfono
@@ -3133,7 +3135,7 @@ function submitEmployeeForm() {
             title: 'Teléfono inválido',
             text: 'Por favor, ingrese un número de teléfono válido'
         });
-        return;
+        return false;
     }
 
     // 4. Validar coordenadas
@@ -3146,7 +3148,7 @@ function submitEmployeeForm() {
             title: 'Ubicación requerida',
             text: 'Por favor, complete la dirección y asegúrese de que el mapa tenga coordenadas válidas'
         });
-        return;
+        return false;
     }
 
     // 5. Validar dirección
@@ -3157,7 +3159,7 @@ function submitEmployeeForm() {
             title: 'Dirección incompleta',
             text: 'Por favor, ingrese una dirección completa: calle, número, ciudad y código postal'
         });
-        return;
+        return false;
     }
 
     // 6. Validar campos requeridos
@@ -3180,7 +3182,7 @@ function submitEmployeeForm() {
             title: 'Campos incompletos',
             text: 'Por favor, complete todos los campos obligatorios marcados con *'
         });
-        return;
+        return false;
     }
 
     // 7. Preparar datos
@@ -3194,10 +3196,10 @@ function submitEmployeeForm() {
             title: 'Username inválido',
             text: 'El username debe tener 8 dígitos. Verifique el DNI.'
         });
-        return;
+        return false;
     }
 
-    // 8. ✅ CORRECCIÓN: Obtener el token CSRF de manera segura
+    // 8. Obtener token CSRF
     const csrfToken = getCsrfToken();
     if (!csrfToken) {
         Swal.fire({
@@ -3205,7 +3207,7 @@ function submitEmployeeForm() {
             title: 'Error de seguridad',
             text: 'No se pudo verificar la seguridad de la solicitud. Recargue la página e intente nuevamente.'
         });
-        return;
+        return false;
     }
 
     // 9. Preparar datos para enviar
@@ -3220,14 +3222,15 @@ function submitEmployeeForm() {
         longitud: parseFloat(longitud).toFixed(6),
         username: usernameGenerado,
         password: passwordGenerado,
-        password_confirmation: passwordGenerado
+        password_confirmation: passwordGenerado,
+        _token: csrfToken // ✅ Agregar token aquí
     };
 
     console.log('📦 Datos preparados:', empleadoData);
-    console.log('🔐 Token CSRF:', csrfToken);
 
     // 10. Enviar datos
     enviarDatosAlServidor(empleadoData, Math.floor(validacionEdad.edad), csrfToken);
+    return false;
 }
 
 // ✅ FUNCIÓN AUXILIAR: Obtener token CSRF de manera segura
@@ -3256,99 +3259,101 @@ function getCsrfToken() {
 
 // ✅ FUNCIÓN MEJORADA: Envío de datos con debug completo
 function enviarDatosAlServidor(empleadoData, edadEmpleado, csrfToken) {
-    console.log('🚀 Enviando datos al servidor con token:', csrfToken ? '✅ Presente' : '❌ Faltante');
+    console.log('🚀 Enviando datos al servidor...');
     
     const submitBtn = document.querySelector('#employeeModal .btn-success');
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Creando...';
     submitBtn.disabled = true;
     
-    // ✅ CORRECCIÓN: Agregar token CSRF al cuerpo de la solicitud
-    empleadoData._token = csrfToken;
+    // ✅ Enviar como FormData (mejor compatibilidad)
+    const formData = new FormData();
+    Object.keys(empleadoData).forEach(key => {
+        formData.append(key, empleadoData[key]);
+    });
     
     fetch('{{ route("admin.empleados.store") }}', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
             'Accept': 'application/json',
-            'X-CSRF-TOKEN': csrfToken // ✅ También en cabeceras por si acaso
+            'X-CSRF-TOKEN': csrfToken
         },
-        body: JSON.stringify(empleadoData)
+        body: formData // ✅ Usar FormData en lugar de JSON
     })
     .then(response => {
         console.log('📋 Estado de respuesta:', response.status);
-        
-        // Primero verificar si la respuesta es JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('La respuesta del servidor no es JSON válido');
-        }
-        
         return response.json();
     })
     .then(data => {
-        console.log('✅ Respuesta exitosa:', data);
-        
         if (data.success) {
-            $('#employeeModal').modal('hide');
+            // ✅ SOLUCIÓN DIRECTA: Cerrar y limpiar inmediatamente
+            const modal = document.getElementById('employeeModal');
+            const backdrop = document.querySelector('.modal-backdrop');
             
-            Swal.fire({
-                icon: 'success',
-                title: '¡Éxito!',
-                html: `
-                    <div class="text-left">
-                        <p>${data.message}</p>
-                        <div class="alert alert-success mt-3">
-                            <h6><i class="fas fa-key"></i> Credenciales Generadas</h6>
-                            <hr>
-                            <strong>Username:</strong> ${data.data.username}<br>
-                            <strong>Contraseña (4 dígitos):</strong> <code class="bg-light p-1 rounded">${data.data.password}</code><br>
-                            <strong>Edad:</strong> ${data.data.edad} años<br>
-                            <strong>ID Empleado:</strong> ${data.data.empleado_id}
+            // Remover clases
+            modal.classList.remove('show');
+            document.body.classList.remove('modal-open');
+            
+            // Remover backdrop si existe
+            if (backdrop) {
+                backdrop.remove();
+            }
+            
+            // Resetear formulario
+            document.getElementById('employeeForm').reset();
+            
+            // Añadir atributo de display none temporal
+            modal.style.display = 'none';
+            
+            // Pequeño delay para asegurar que el modal se cerró
+            //setTimeout(() => {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Éxito!',
+                    html: `
+                        <div class="text-left">
+                            <p>${data.message}</p>
+                            <div class="alert alert-success mt-3">
+                                <h6><i class="fas fa-key"></i> Credenciales Generadas</h6>
+                                <hr>
+                                <strong>Username:</strong> ${data.data.username}<br>
+                                <strong>Contraseña (4 dígitos):</strong> <code class="bg-light p-1 rounded">${data.data.password}</code><br>
+                                <strong>Edad:</strong> ${data.data.edad} años<br>
+                                <strong>ID Empleado:</strong> ${data.data.empleado_id}
+                            </div>
                         </div>
-                    </div>
-                `,
-                showConfirmButton: true,
-                confirmButtonText: 'Aceptar',
-                allowOutsideClick: false,
-                width: '600px'
-            }).then((result) => {
-                if (typeof table !== 'undefined' && $.fn.DataTable.isDataTable('#empleadosTable')) {
-                    table.ajax.reload(function() {
-                        console.log('🔄 DataTable recargado completamente');
-                        updateStats();
-                    }, false);
-                }
-            });
+                    `,
+                    showConfirmButton: true,
+                    confirmButtonText: 'Aceptar',
+                    allowOutsideClick: false,
+                    width: '600px'
+                }).then(() => {
+                    // Recargar la tabla
+                    if (typeof table !== 'undefined' && $.fn.DataTable.isDataTable('#empleadosTable')) {
+                        table.ajax.reload(function() {
+                            console.log('🔄 DataTable recargado completamente');
+                            updateStats();
+                        }, false);
+                    }
+                });
+            //}, 300); // ✅ Aumentado a 300ms para asegurar cierre
         } else {
-            // Manejar errores de validación específicos
+            // Manejar errores de validación
+            let errorMessages = '';
             if (data.errors) {
-                let errorMessages = '';
                 for (const field in data.errors) {
                     errorMessages += `• ${data.errors[field][0]}\n`;
                 }
-                throw new Error(`Errores de validación:\n${errorMessages}`);
             } else {
-                throw new Error(data.message || 'Error desconocido del servidor');
+                errorMessages = data.message || 'Error desconocido del servidor';
             }
+            
+            throw new Error(errorMessages);
         }
     })
     .catch(error => {
         console.error('❌ Error completo:', error);
-        
-        // Mensaje de error más específico
-        let errorMessage = 'Error desconocido';
-        
-        if (error.name === 'TypeError' && error.message.includes('JSON')) {
-            errorMessage = 'El servidor no respondió con datos válidos. Verifique su conexión.';
-        } else if (error.message.includes('CSRF token mismatch')) {
-            errorMessage = 'Error de seguridad (CSRF). Recargue la página e intente nuevamente.';
-        } else if (error.message.includes('419')) {
-            errorMessage = 'La sesión ha expirado. Por favor, recargue la página.';
-        } else {
-            errorMessage = error.message;
-        }
         
         Swal.fire({
             icon: 'error',
@@ -3357,13 +3362,8 @@ function enviarDatosAlServidor(empleadoData, edadEmpleado, csrfToken) {
                 <div class="text-left">
                     <div class="alert alert-danger">
                         <h6>Detalles del error:</h6>
-                        <pre style="white-space: pre-wrap; font-size: 12px; background: #f8f9fa; padding: 10px; border-radius: 5px;">${errorMessage}</pre>
+                        <pre style="white-space: pre-wrap; font-size: 12px; background: #f8f9fa; padding: 10px; border-radius: 5px;">${error.message}</pre>
                     </div>
-                    ${errorMessage.includes('CSRF') || errorMessage.includes('419') ? 
-                    '<div class="alert alert-warning mt-2">' +
-                    '<i class="fas fa-redo-alt mr-2"></i>' +
-                    '<strong>Solución:</strong> Recargue la página (F5) y vuelva a intentarlo.' +
-                    '</div>' : ''}
                 </div>
             `,
             showConfirmButton: true,
@@ -3375,63 +3375,6 @@ function enviarDatosAlServidor(empleadoData, edadEmpleado, csrfToken) {
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
     });
-}
-
-// ✅ FUNCIÓN PARA BUSCAR EMPLEADO EXISTENTE
-function buscarEmpleadoPorDNI(dni) {
-    Swal.fire({
-        title: 'Buscando empleado...',
-        text: `Buscando DNI: ${dni}`,
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-    
-    fetch(`/admin/empleados/buscar-por-dni/${dni}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.exists) {
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Empleado Encontrado',
-                    html: `
-                        <div class="text-left">
-                            <p>El empleado con DNI <strong>${dni}</strong> ya existe:</p>
-                            <div class="alert alert-info">
-                                <strong>Nombre:</strong> ${data.empleado.nombre} ${data.empleado.apellidos}<br>
-                                <strong>Username:</strong> ${data.empleado.username}<br>
-                                <strong>Fecha registro:</strong> ${data.empleado.created_at}
-                            </div>
-                            <p>¿Desea ver los detalles del empleado?</p>
-                        </div>
-                    `,
-                    showCancelButton: true,
-                    confirmButtonText: 'Ver Detalles',
-                    cancelButtonText: 'Cerrar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Redirigir a la vista de detalles del empleado
-                        window.location.href = `/admin/empleados/${data.empleado.id}`;
-                    }
-                });
-            } else {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Empleado No Encontrado',
-                    text: `No se encontró un empleado con DNI: ${dni}`,
-                    confirmButtonText: 'Aceptar'
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Error buscando empleado:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'No se pudo buscar el empleado. Contacte al administrador.'
-            });
-        });
 }
 
 // ✅ FUNCIÓN PARA CORREGIR DNI

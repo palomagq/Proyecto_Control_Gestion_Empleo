@@ -2238,7 +2238,7 @@ public function getEstadisticasTareas($id)
 public function getDetallesTareaEmpleado($empleadoId, $tareaId)
 {
     try {
-        Log::info("🎯 Obteniendo detalles de tarea para edición - VERSIÓN CORREGIDA");
+        Log::info("🎯 Obteniendo detalles de tarea - VERSIÓN CORREGIDA");
         Log::info("   Empleado ID: {$empleadoId}, Tarea ID: {$tareaId}");
 
         $user = Auth::user();
@@ -2249,84 +2249,151 @@ public function getDetallesTareaEmpleado($empleadoId, $tareaId)
             ->first();
 
         if (!$empleado) {
+            Log::warning("❌ Empleado no autorizado: {$empleadoId}");
             return response()->json([
                 'success' => false,
                 'message' => 'Empleado no encontrado'
             ], 404);
         }
 
-        // Obtener tarea con todos los campos necesarios para edición
+        Log::info("✅ Empleado validado: {$empleado->nombre}");
+
+        // 1. Obtener tarea básica
         $tarea = DB::table('tabla_tareas')
-            ->leftJoin('tabla_tipos_tarea', 'tabla_tareas.tipo_tarea_id', '=', 'tabla_tipos_tarea.id')
-            ->where('tabla_tareas.id', $tareaId)
-            ->select(
-                'tabla_tareas.*',
-                'tabla_tipos_tarea.nombre as tipo_tarea_nombre',
-                'tabla_tipos_tarea.descripcion as tipo_tarea_descripcion',
-                'tabla_tipos_tarea.color as tipo_tarea_color'
-            )
+            ->where('id', $tareaId)
             ->first();
 
         if (!$tarea) {
+            Log::warning("❌ Tarea no encontrada: {$tareaId}");
             return response()->json([
                 'success' => false,
                 'message' => 'Tarea no encontrada'
             ], 404);
         }
 
-        // CORREGIR FECHA: Asegurar formato correcto sin desfase de zona horaria
+        Log::info("✅ Tarea encontrada: {$tarea->titulo}");
+
+        // 2. Obtener tipo de tarea
+        $tipoTarea = null;
+        if ($tarea->tipo_tarea_id) {
+            $tipoTarea = DB::table('tabla_tipos_tarea')
+                ->where('id', $tarea->tipo_tarea_id)
+                ->first();
+        }
+
+        // 3. CORREGIR FECHA
         $fechaTarea = null;
         if ($tarea->fecha_tarea) {
-            // Si la fecha ya está en formato Y-m-d, usarla directamente
-            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $tarea->fecha_tarea)) {
+            try {
+                $fechaTarea = Carbon::parse($tarea->fecha_tarea)->format('Y-m-d');
+            } catch (\Exception $e) {
+                Log::warning("Error parseando fecha: " . $e->getMessage());
                 $fechaTarea = $tarea->fecha_tarea;
-            } else {
-                // Si tiene hora, extraer solo la fecha en UTC
-                $fechaTarea = Carbon::parse($tarea->fecha_tarea)->timezone('UTC')->format('Y-m-d');
             }
         }
 
-        Log::info("✅ Tarea encontrada - Datos corregidos:", [
-            'id' => $tarea->id,
-            'titulo' => $tarea->titulo,
-            'tipo_tarea_id' => $tarea->tipo_tarea_id,
-            'fecha_original' => $tarea->fecha_tarea,
-            'fecha_corregida' => $fechaTarea
-        ]);
+        // 4. OBTENER EMPLEADOS ASIGNADOS - VERSIÓN SIMPLIFICADA Y SEGURA
+        $empleadosAsignados = [];
 
-        // Preparar datos para respuesta
+        // A. Si la tarea fue creada por un empleado, incluir al empleado creador
+        if ($tarea->creador_tipo === 'empleado' && $tarea->empleado_creador_id) {
+            $empleadoCreador = DB::table('tabla_empleados')
+                ->where('id', $tarea->empleado_creador_id)
+                ->select('id', 'nombre', 'apellido')
+                ->first();
+            
+            if ($empleadoCreador) {
+                $empleadosAsignados[] = [
+                    'id' => $empleadoCreador->id,
+                    'nombre_completo' => $empleadoCreador->nombre . ' ' . $empleadoCreador->apellidos,
+                    'es_creador' => true
+                ];
+                Log::info("✅ Empleado creador encontrado: {$empleadoCreador->nombre}");
+            }
+        }
+
+        // B. Obtener empleados asignados desde tabla_asignaciones_tareas
+        try {
+            $asignaciones = DB::table('tabla_asignaciones_tareas')
+                ->join('tabla_empleados', 'tabla_asignaciones_tareas.empleado_id', '=', 'tabla_empleados.id')
+                ->where('tabla_asignaciones_tareas.tarea_id', $tareaId)
+                ->select(
+                    'tabla_empleados.id',
+                    'tabla_empleados.nombre',
+                    'tabla_empleados.apellidos',
+                    'tabla_asignaciones_tareas.estado_asignacion',
+                    'tabla_asignaciones_tareas.fecha_asignacion'
+                )
+                ->get();
+
+            Log::info("📋 Asignaciones encontradas: " . $asignaciones->count());
+
+            foreach ($asignaciones as $asignacion) {
+                // Verificar si ya está en la lista (como creador)
+                $existe = false;
+                foreach ($empleadosAsignados as $emp) {
+                    if ($emp['id'] == $asignacion->id) {
+                        $existe = true;
+                        break;
+                    }
+                }
+                
+                if (!$existe) {
+                    $empleadosAsignados[] = [
+                        'id' => $asignacion->id,
+                        'nombre_completo' => $asignacion->nombre . ' ' . $asignacion->apellidos,
+                        'estado_asignacion' => $asignacion->estado_asignacion,
+                        'fecha_asignacion' => $asignacion->fecha_asignacion,
+                        'es_asignado' => true
+                    ];
+                    Log::info("✅ Empleado asignado: {$asignacion->nombre}");
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning("⚠️ Error obteniendo asignaciones: " . $e->getMessage());
+        }
+
+        // 5. Preparar datos de la tarea
         $tareaData = [
             'id' => $tarea->id,
             'titulo' => $tarea->titulo ?? 'Sin título',
             'descripcion' => $tarea->descripcion ?? '',
             'prioridad' => $tarea->prioridad ?? 'media',
             'estado' => $tarea->estado ?? 'pendiente',
-            'fecha_tarea' => $fechaTarea, // ← FECHA CORREGIDA
+            'fecha_tarea' => $fechaTarea,
             'horas_tarea' => $tarea->horas_tarea ?? 0,
             'area' => $tarea->area ?? '',
             'creador_tipo' => $tarea->creador_tipo ?? 'empleado',
             'empleado_creador_id' => $tarea->empleado_creador_id ?? null,
-            'tipo_tarea_id' => $tarea->tipo_tarea_id, // ← INCLUIR SIEMPRE
-            'tipo_tarea_nombre' => $tarea->tipo_tarea_nombre ?? 'No especificado',
-            'tipo_tarea_descripcion' => $tarea->tipo_tarea_descripcion ?? 'No especificado',
-            'tipo_tarea_color' => $tarea->tipo_tarea_color ?? '#6c757d',
+            'tipo_tarea_id' => $tarea->tipo_tarea_id,
+            'tipo_tarea_nombre' => $tipoTarea->nombre ?? 'No especificado',
+            'tipo_tarea_descripcion' => $tipoTarea->descripcion ?? 'No especificado',
+            'tipo_tarea_color' => $tipoTarea->color ?? '#6c757d',
             'created_at' => $tarea->created_at ? Carbon::parse($tarea->created_at)->format('Y-m-d H:i:s') : now()->format('Y-m-d H:i:s'),
             'updated_at' => $tarea->updated_at ? Carbon::parse($tarea->updated_at)->format('Y-m-d H:i:s') : now()->format('Y-m-d H:i:s')
         ];
+
+        Log::info("✅ Datos preparados exitosamente", [
+            'tarea_id' => $tareaData['id'],
+            'titulo' => $tareaData['titulo'],
+            'empleados_asignados' => count($empleadosAsignados)
+        ]);
 
         return response()->json([
             'success' => true,
             'data' => [
                 'tarea' => $tareaData,
-                'empleados_asignados' => [] // Simplificado por ahora
+                'empleados_asignados' => $empleadosAsignados
             ]
         ]);
 
     } catch (\Exception $e) {
-        Log::error("💥 ERROR en getDetallesTareaEmpleado: " . $e->getMessage());
+        Log::error("💥 ERROR CRÍTICO en getDetallesTareaEmpleado: " . $e->getMessage());
+        Log::error("Stack trace: " . $e->getTraceAsString());
+        
         return response()->json([
             'success' => false,
-            'message' => 'Error interno: ' . $e->getMessage()
+            'message' => 'Error interno del servidor: ' . $e->getMessage()
         ], 500);
     }
 }

@@ -1324,22 +1324,42 @@ $(document).ready(function() {
     function actualizarEstadoConexion() {
         const empleadoId = {{ $empleado->id }};
         
+        // Verificar si hay conexión antes de intentar
+        if (!navigator.onLine) {
+            //console.warn('⚠️ Sin conexión a internet, omitiendo actualización de estado');
+            return;
+        }
+        
         $.ajax({
             url: `/empleado/${empleadoId}/conexion/actualizar`,
             type: 'POST',
             data: {
                 _token: '{{ csrf_token() }}'
             },
+            timeout: 5000, // 5 segundos máximo
             success: function(response) {
-               /* if (response.success) {
-                    console.log('✅ Estado de conexión actualizado - Empleado CONECTADO');
-                }*/
+                if (response.success) {
+                   // console.log('✅ Estado de conexión actualizado');
+                }
             },
             error: function(xhr, status, error) {
-                console.error('❌ Error actualizando conexión:', error);
+                // Solo mostrar error si no es un timeout o problema de red esperado
+                if (status !== 'timeout' && error !== 'abort') {
+                    console.warn('⚠️ Error en actualización de conexión:', {
+                        status: status,
+                        error: error,
+                        message: xhr.statusText
+                    });
+                    
+                    // Intentar reconectar en 30 segundos si es error de red
+                    if (xhr.status === 0 || error.includes('NETWORK')) {
+                        //console.log('🔄 Error de red, reintentando en 30 segundos...');
+                        setTimeout(actualizarEstadoConexion, 30000);
+                    }
+                }
             }
         });
-    }
+}
 
     // Actualizar resumen del período
     function updatePeriodSummary() {
