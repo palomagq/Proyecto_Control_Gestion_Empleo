@@ -340,7 +340,7 @@
                             <div class="form-group">
                                 <label for="fecha_nacimiento" class="font-weight-bold">Fecha de Nacimiento *</label>
                                 <input type="date" class="form-control" id="fecha_nacimiento" name="fecha_nacimiento" required 
-                                       max="<?php echo date('Y-m-d', strtotime('-16 years')); ?>">
+                                       max="<?php echo date('Y-m-d', strtotime('-16 years')); ?>"  onchange="validarEdadMinima()">
                                 <small class="form-text text-muted">Debe ser mayor de 16 años</small>
                             </div>
                         </div>
@@ -1347,7 +1347,7 @@ function initializeAirDatepickers() {
     });
 
     // Configuración especial para fecha de nacimiento
-    const fechaNacimientoInput = $('#fecha_nacimiento');
+   /*const fechaNacimientoInput = $('#fecha_nacimiento');
     if (fechaNacimientoInput.length > 0) {
         try {
             // Calcular fecha máxima (16 años atrás desde hoy)
@@ -1368,7 +1368,7 @@ function initializeAirDatepickers() {
         } catch (error) {
             console.error('❌ Error inicializando datepicker de fecha de nacimiento:', error);
         }
-    }
+    }*/
 }
 
 
@@ -2812,6 +2812,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             }
         });*/
+        // Validar cuando se cambie la fecha
+        fechaNacimientoInput.addEventListener('change', validarFechaNacimientoEnTiempoReal);
+        
+        // También validar cuando se pierda el foco
+        fechaNacimientoInput.addEventListener('blur', validarFechaNacimientoEnTiempoReal);
     }
 
     // Inicializar otros datepickers
@@ -2941,16 +2946,39 @@ function validarEdadMinima() {
     
     if (edad < 16) {
         fechaNacimientoInput.classList.add('is-invalid');
+        // Mostrar feedback inmediato
+        fechaNacimientoInput.nextElementSibling.innerHTML = `<span class="text-danger">❌ El empleado debe tener al menos 16 años. Edad calculada: ${edad} años</span>`;
         return { 
             valido: false, 
-            mensaje: `El empleado debe tener al menos 16 años. Edad calculada: ${edad} años. 
-                     Faltan ${16 - edad} años para cumplir 16.` 
+            mensaje: `El empleado debe tener al menos 16 años. Edad calculada: ${edad} años.` 
         };
     }
     
     fechaNacimientoInput.classList.remove('is-invalid');
     fechaNacimientoInput.classList.add('is-valid');
+    fechaNacimientoInput.nextElementSibling.innerHTML = `<span class="text-success">✅ Edad válida: ${edad} años</span>`;
     return { valido: true, edad: edad };
+}
+
+// ✅ FUNCIÓN AUXILIAR: Validar en tiempo real mientras se escribe
+function validarFechaNacimientoEnTiempoReal() {
+    const input = document.getElementById('fecha_nacimiento');
+    if (!input.value) return;
+    
+    const fecha = new Date(input.value);
+    const hoy = new Date();
+    const fechaMaxima = new Date();
+    fechaMaxima.setFullYear(hoy.getFullYear() - 16);
+    
+    if (fecha > fechaMaxima) {
+        input.classList.add('is-invalid');
+        input.nextElementSibling.innerHTML = `<span class="text-danger">❌ Debe ser mayor de 16 años</span>`;
+    } else {
+        input.classList.remove('is-invalid');
+        input.classList.add('is-valid');
+        // Calcular y mostrar edad
+        validarEdadMinima();
+    }
 }
 
 // ✅ FUNCIÓN MEJORADA: Validación de DNI más robusta
