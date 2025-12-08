@@ -1805,15 +1805,25 @@ function abrirMapaExterno() {
 }
 
 // ✅ FUNCIÓN: Exportar registro horario individual - DEBE ESTAR DEFINIDA ANTES DEL DATATABLE
+// ✅ FUNCIÓN CORREGIDA: Exportar registro horario individual
 function exportarRegistroHorario(empleadoId) {
     console.log('📋 Exportando registro horario para empleado:', empleadoId);
+    
+    // Verificar si el plugin de jQuery datepicker está disponible
+    if (typeof $.fn.datepicker === 'undefined') {
+        console.error('❌ jQuery Datepicker no está disponible');
+        
+        // Usar input nativo como fallback
+        //usarInputNativoParaExportar(empleadoId);
+        return;
+    }
     
     Swal.fire({
         title: 'Exportar Registro Horario',
         html: `
             <div class="text-left">
                 <p>Seleccione el mes y año para generar el registro horario oficial:</p>
-                <div class="form-group">
+                <div class="form-group mb-3">
                     <label for="individual_export_mes" class="font-weight-bold">
                         <i class="fas fa-calendar-alt mr-1"></i> Mes y Año *
                     </label>
@@ -1832,26 +1842,85 @@ function exportarRegistroHorario(empleadoId) {
         confirmButtonColor: '#6c757d',
         width: '500px',
         didOpen: () => {
-            // Inicializar Air Datepicker
+            // Inicializar Air Datepicker con manejo de errores mejorado
             try {
-                new Datepicker('#individual_export_mes', {
+                const input = document.getElementById('individual_export_mes');
+                
+                if (!input) {
+                    console.error('❌ Input #individual_export_mes no encontrado');
+                    return;
+                }
+                
+                // Asegurar que sea tipo texto
+                input.type = 'text';
+                
+                // Configuración básica
+                const datepickerOptions = {
                     language: 'es',
                     dateFormat: 'yyyy-mm',
-                    minView: 'months',
                     view: 'months',
-                    selectDates: true
-                });
+                    minView: 'months',
+                    minDate: new Date(2020, 0, 1),
+                    maxDate: new Date(2030, 11, 31),
+                    onShow: function(inst, animationCompleted) {
+                        if (!animationCompleted) {
+                            setTimeout(() => {
+                                if (inst && inst.$datepicker) {
+                                    adjustDatepickerLayout(inst);
+                                }
+                            }, 10);
+                        }
+                    }
+                };
+                
+                // Verificar que jQuery esté disponible
+                if (typeof $ !== 'undefined' && $.fn.datepicker) {
+                    // Destruir instancia anterior si existe
+                    if ($(input).data('datepicker')) {
+                        $(input).datepicker().destroy();
+                    }
+                    
+                    // Inicializar con jQuery
+                    $(input).datepicker(datepickerOptions);
+                    
+                    console.log('✅ Datepicker inicializado para registro horario');
+                } else {
+                    console.warn('⚠️ jQuery no disponible, usando fallback');
+                    //setupNativeMonthInput(input);
+                }
+                
             } catch (error) {
-                console.error('Error inicializando datepicker individual:', error);
+                console.error('❌ Error inicializando datepicker individual:', error);
+                
+                // Fallback: usar input month nativo
+                const input = document.getElementById('individual_export_mes');
+                if (input) {
+                    //setupNativeMonthInput(input);
+                }
             }
         },
         preConfirm: () => {
-            const mesSeleccionado = document.getElementById('individual_export_mes').value;
+            const mesSeleccionado = document.getElementById('individual_export_mes')?.value;
             if (!mesSeleccionado) {
                 Swal.showValidationMessage('Por favor, seleccione un mes y año');
                 return false;
             }
-            return mesSeleccionado;
+            
+            // Validar formato (YYYY-MM o MM-YYYY)
+            if (!mesSeleccionado.match(/^(\d{4}-\d{2}|\d{2}-\d{4})$/)) {
+                Swal.showValidationMessage('Formato inválido. Use AAAA-MM (ej: 2024-01) o MM-AAAA (ej: 01-2024)');
+                return false;
+            }
+            
+            // Normalizar a YYYY-MM
+            let normalizedMonth = mesSeleccionado;
+            if (mesSeleccionado.match(/^\d{2}-\d{4}$/)) {
+                // Convertir MM-YYYY a YYYY-MM
+                const partes = mesSeleccionado.split('-');
+                normalizedMonth = `${partes[1]}-${partes[0].padStart(2, '0')}`;
+            }
+            
+            return normalizedMonth;
         }
     }).then((result) => {
         if (result.isConfirmed) {
@@ -1860,6 +1929,7 @@ function exportarRegistroHorario(empleadoId) {
             const año = parseInt(partes[0]);
             const mes = parseInt(partes[1]);
 
+            // Ejecutar exportación
             ejecutarExportacionRegistroHorario(empleadoId, mes, año);
         }
     });
