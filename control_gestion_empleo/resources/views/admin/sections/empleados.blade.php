@@ -1378,56 +1378,83 @@ function adjustDatepickerLayout(inst) {
     
     const $datepicker = inst.$datepicker;
     
+    // ✅ AUMENTAR ALTURA DEL CONTENEDOR PRINCIPAL
+    $datepicker.css({
+        'min-height': '280px', // Altura mínima aumentada
+        'height': 'auto',      // Altura automática
+        'overflow': 'visible'  // Permitir que se vea todo el contenido
+    });
+    
     // Aplicar a diferentes vistas
     const $monthsContainer = $datepicker.find('.datepicker--cells-months');
     const $yearsContainer = $datepicker.find('.datepicker--cells-years');
     
     if ($monthsContainer.length > 0) {
-        console.log('🔄 Ajustando layout de meses...');
+        console.log('🔄 Ajustando layout de meses con altura aumentada...');
         
-        // Forzar el layout grid para meses
+        // ✅ AUMENTAR ALTURA Y ESPACIO PARA MESES
         $monthsContainer.css({
             'display': 'grid',
             'grid-template-columns': 'repeat(4, 1fr)',
             'grid-template-rows': 'repeat(3, 1fr)',
-            'gap': '5px',
-            'padding': '10px'
+            'gap': '8px',          // Espacio aumentado
+            'padding': '15px',     // Padding aumentado
+            'min-height': '240px', // Altura mínima aumentada
+            'height': 'auto'       // Altura automática
         });
         
-        // Ajustar celdas de mes
+        // ✅ AUMENTAR TAMAÑO DE LAS CELDAS DE MES
         $monthsContainer.find('.datepicker--cell-month').css({
             'width': '100%',
-            'height': '60px',
+            'height': '65px',      // Altura aumentada (antes 60px)
+            'min-height': '65px',  // Altura mínima
             'margin': '0',
             'display': 'flex',
             'align-items': 'center',
             'justify-content': 'center',
-            'border-radius': '8px'
+            'border-radius': '10px', // Bordes más redondeados
+            'font-size': '1rem',     // Texto más grande
+            'font-weight': '500'     // Peso de fuente mejorado
         });
     }
     
     if ($yearsContainer.length > 0) {
-        console.log('🔄 Ajustando layout de años...');
+        console.log('🔄 Ajustando layout de años con altura aumentada...');
         
-        // Layout para años (si es necesario)
+        // ✅ AUMENTAR ALTURA PARA AÑOS
         $yearsContainer.css({
             'display': 'grid',
             'grid-template-columns': 'repeat(4, 1fr)',
             'grid-template-rows': 'repeat(4, 1fr)',
-            'gap': '5px',
-            'padding': '10px'
+            'gap': '8px',          // Espacio aumentado
+            'padding': '15px',     // Padding aumentado
+            'min-height': '280px', // Altura mínima aumentada
+            'height': 'auto'       // Altura automática
         });
         
         $yearsContainer.find('.datepicker--cell-year').css({
             'width': '100%',
-            'height': '50px',
+            'height': '55px',      // Altura aumentada (antes 50px)
+            'min-height': '55px',  // Altura mínima
             'margin': '0',
             'display': 'flex',
             'align-items': 'center',
             'justify-content': 'center',
-            'border-radius': '8px'
+            'border-radius': '8px',
+            'font-size': '0.95rem' // Texto ligeramente más grande
         });
     }
+    
+    // ✅ AÑADIDO: Ajustar también la cabecera del datepicker
+    const $nav = $datepicker.find('.datepicker--nav');
+    if ($nav.length > 0) {
+        $nav.css({
+            'padding': '15px',     // Padding aumentado
+            'border-bottom': '2px solid #e3e6f0' // Borde más definido
+        });
+    }
+    
+    console.log('✅ Datepicker ajustado con altura aumentada');
 }
 
 
