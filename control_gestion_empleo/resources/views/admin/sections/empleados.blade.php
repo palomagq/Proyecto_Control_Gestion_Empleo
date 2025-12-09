@@ -1154,12 +1154,59 @@ $(document).ready(function() {
     }, 500);
 
     // Limpiar modales cuando se cierren
-    $('#exportExcelModal').on('hidden.bs.modal', function () {
-        $('#export_mes').val('');
+    // ✅ MANEJADORES ESPECÍFICOS PARA MODALES DE EXPORTACIÓN
+    $('#exportExcelModal').on('hidden.bs.modal', function(e) {
+        console.log('🔒 Cerrando modal Excel - previniendo recarga');
+        
+        // Prevenir comportamiento por defecto
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        // Limpiar backdrop si existe
+        $('.modal-backdrop').remove();
+        
+        // Restaurar scroll del body
+        $('body').removeClass('modal-open');
+        $('body').css({
+            'padding-right': '',
+            'overflow': ''
+        });
+        
+        // Forzar que el scroll se mantenga en la posición actual
+        setTimeout(() => {
+            window.scrollTo(window.scrollX, window.scrollY);
+        }, 10);
+        
+        return false;
     });
-    
-    $('#exportPdfModal').on('hidden.bs.modal', function () {
-        $('#export_pdf_mes').val('');
+
+    $('#exportPdfModal').on('hidden.bs.modal', function(e) {
+        console.log('🔒 Cerrando modal PDF - previniendo recarga');
+        
+        // Prevenir comportamiento por defecto
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        // Limpiar backdrop si existe
+        $('.modal-backdrop').remove();
+        
+        // Restaurar scroll del body
+        $('body').removeClass('modal-open');
+        $('body').css({
+            'padding-right': '',
+            'overflow': ''
+        });
+        
+        // Forzar que el scroll se mantenga en la posición actual
+        setTimeout(() => {
+            window.scrollTo(window.scrollX, window.scrollY);
+        }, 10);
+        
+        return false;
     });
     
     // Reinicializar datepickers cuando se abran los modales
@@ -1181,7 +1228,20 @@ $(document).ready(function() {
         }, 100);
     });
 
-    
+    // ✅ PREVENIR ENTER EN MODALES DE EXPORTACIÓN
+    $('#export_mes, #export_pdf_mes').on('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+    });
+
+    // ✅ PREVENIR CUALQUIER OTRO COMPORTAMIENTO POR DEFECTO EN MODALES
+    $('#exportExcelModal, #exportPdfModal').on('show.bs.modal', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    });
             
     $('#detailsModal').on('hidden.bs.modal', function(e) {
         console.log('🔙 Modal de detalles cerrado - reinicializando DataTable...');
@@ -5890,7 +5950,6 @@ function ejecutarExportacion(mes, año, nombreMes) {
         showConfirmButton: false
     });
 
-    // ✅ URL corregida
     const url = `/admin/empleados/exportar-excel-mes?mes=${mes}&año=${año}`;
     
     console.log('🔍 URL de exportación:', url);
@@ -5928,22 +5987,40 @@ function ejecutarExportacion(mes, año, nombreMes) {
         a.click();
         window.URL.revokeObjectURL(url);
         
-        // Mensaje de éxito
-        Swal.fire({
-            icon: 'success',
-            title: '¡Excel Exportado!',
-            text: `Archivo ${nombreArchivo} descargado correctamente`,
-            confirmButtonText: 'Aceptar'
-        });
+        // ✅ CERRAR EL MODAL ANTES de mostrar el SweetAlert
+        $('#exportExcelModal').modal('hide');
+        
+        // ✅ Pequeño delay para que el modal se cierre completamente
+        setTimeout(() => {
+            // Mensaje de éxito
+            Swal.fire({
+                icon: 'success',
+                title: '¡Excel Exportado!',
+                text: `Archivo ${nombreArchivo} descargado correctamente`,
+                confirmButtonText: 'Entendido'
+            }).then((result) => {
+                // ✅ IMPORTANTE: NO hacer nada adicional aquí
+                // El modal ya está cerrado
+                if (result.isConfirmed) {
+                    console.log('✅ Usuario hizo clic en Entendido - Proceso completado');
+                }
+            });
+        }, 300);
     })
     .catch(error => {
         Swal.close();
-        Swal.fire({
-            icon: 'error',
-            title: 'Error al Exportar',
-            text: error.message,
-            confirmButtonText: 'Entendido'
-        });
+        
+        // ✅ CERRAR EL MODAL en caso de error también
+        $('#exportExcelModal').modal('hide');
+        
+        setTimeout(() => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error al Exportar',
+                text: error.message,
+                confirmButtonText: 'Entendido'
+            });
+        }, 300);
     });
 }
 
@@ -9344,7 +9421,6 @@ function ejecutarExportacionPdf(mes, año, nombreMes) {
     })
     .then(response => {
         if (!response.ok) {
-            // Si la respuesta no es OK, intentar obtener el mensaje de error
             if (response.headers.get('content-type')?.includes('application/json')) {
                 return response.json().then(errorData => {
                     throw new Error(errorData.message || `Error ${response.status}`);
@@ -9386,52 +9462,64 @@ function ejecutarExportacionPdf(mes, año, nombreMes) {
         a.click();
         window.URL.revokeObjectURL(url);
         
-        // Mensaje de éxito
-        Swal.fire({
-            icon: 'success',
-            title: '¡PDF Descargado!',
-            html: `
-                <div class="text-left">
-                    <p>El documento PDF se ha descargado correctamente:</p>
-                    <div class="alert alert-success">
-                        <strong>${nombreArchivo}</strong>
+        // ✅ CERRAR EL MODAL ANTES de mostrar el SweetAlert
+        $('#exportPdfModal').modal('hide');
+        
+        // ✅ Pequeño delay para que el modal se cierre completamente
+        setTimeout(() => {
+            // Mensaje de éxito
+            Swal.fire({
+                icon: 'success',
+                title: '¡PDF Descargado!',
+                html: `
+                    <div class="text-left">
+                        <p>El documento PDF se ha descargado correctamente:</p>
+                        <div class="alert alert-success">
+                            <strong>${nombreArchivo}</strong>
+                        </div>
+                        <div class="alert alert-info small">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Archivo de uso digital:</strong> Conservar para registro oficial.
+                        </div>
                     </div>
-                    <div class="alert alert-info small">
-                        <i class="fas fa-info-circle"></i>
-                        <strong>Archivo de uso digital:</strong> Conservar para registro oficial.
-                    </div>
-                </div>
-            `,
-            confirmButtonText: 'Entendido',
-            width: '500px'
-        });
+                `,
+                confirmButtonText: 'Entendido'
+            }).then((result) => {
+                // ✅ IMPORTANTE: NO hacer nada adicional aquí
+                if (result.isConfirmed) {
+                    console.log('✅ Usuario hizo clic en Entendido - Proceso completado');
+                }
+            });
+        }, 300);
     })
     .catch(error => {
         Swal.close();
         
-        console.error('❌ Error descargando PDF:', error);
+        // ✅ CERRAR EL MODAL en caso de error también
+        $('#exportPdfModal').modal('hide');
         
-        Swal.fire({
-            icon: 'error',
-            title: 'Error al Generar PDF',
-            html: `
-                <div class="text-left">
-                    <p><strong>No se pudo generar el documento PDF</strong></p>
-                    <p class="text-danger">${error.message}</p>
-                    <div class="alert alert-warning mt-2">
-                        <i class="fas fa-exclamation-triangle mr-2"></i>
-                        <strong>Posibles soluciones:</strong>
-                        <ul class="small mt-1">
-                            <li>Verifique que hay empleados registrados en ${nombreMes} de ${año}</li>
-                            <li>Intente nuevamente en unos momentos</li>
-                            <li>Contacte al administrador si el problema persiste</li>
-                        </ul>
+        setTimeout(() => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error al Generar PDF',
+                html: `
+                    <div class="text-left">
+                        <p><strong>No se pudo generar el documento PDF</strong></p>
+                        <p class="text-danger">${error.message}</p>
+                        <div class="alert alert-warning mt-2">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            <strong>Posibles soluciones:</strong>
+                            <ul class="small mt-1">
+                                <li>Verifique que hay empleados registrados en ${nombreMes} de ${año}</li>
+                                <li>Intente nuevamente en unos momentos</li>
+                                <li>Contacte al administrador si el problema persiste</li>
+                            </ul>
+                        </div>
                     </div>
-                </div>
-            `,
-            confirmButtonText: 'Entendido',
-            width: '550px'
-        });
+                `,
+                confirmButtonText: 'Entendido'
+            });
+        }, 300);
     });
 }
 
