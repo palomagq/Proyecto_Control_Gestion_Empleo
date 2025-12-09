@@ -5671,24 +5671,62 @@ function imprimirDetalles() {
 }
 
 // Limpiar cuando se cierre el modal
-$('#viewEmployeeModal').on('hidden.bs.modal', function () {
-    currentEmployeeId = null;
+$('#viewEmployeeModal').on('hidden.bs.modal', function (e) {
+    console.log('🗑️ Modal de empleado cerrado...');
     
-    // Destruir DataTable si existe
-    if (viewRegistrosTable) {
-        viewRegistrosTable.destroy();
-        viewRegistrosTable = null;
+    // ✅ 1. Verificar si fue una transición de modal o cierre real
+    // Si estamos en transición, NO hacer limpieza completa
+    if (window.isModalTransition) {
+        console.log('🔄 Transición entre modales - limpieza parcial');
+        
+        // Solo limpiar la variable
+        window.isModalTransition = null;
+        return;
     }
+    
+    // ✅ 2. Si es cierre real del modal, hacer limpieza completa
+    console.log('✅ Cierre real del modal - limpieza completa');
+    
+    // Limpiar variables
+    currentEmployeeId = null;
+    tempEmployeeData = null;
+    window.empleadoModalScrollTop = null;
     
     // Limpiar mapa
-    if (viewMap) {
-        const mapElement = document.getElementById('view_map');
-        if (mapElement) {
-            mapElement.innerHTML = '';
-        }
-        viewMap = null;
-        viewMarker = null;
+    const mapElement = document.getElementById('view_map');
+    if (mapElement) {
+        mapElement.innerHTML = '';
     }
+    
+    // Destruir DataTable de registros si existe
+    if (viewRegistrosTable !== null && $.fn.DataTable.isDataTable('#view_empleado_registros_table')) {
+        viewRegistrosTable.destroy();
+        viewRegistrosTable = null;
+        
+        // Limpiar el cuerpo de la tabla
+        $('#view_empleado_registros_table tbody').empty();
+    }
+    
+    // Resetear otros controles
+    $('#view_filter_mes').val('');
+    $('#view_registros_resumen').hide();
+    
+    // ✅ IMPORTANTE: NO mostrar alert de "Actualizado"
+    // Solo recargar datos silenciosamente
+    
+    // Recargar datos después de un delay
+    setTimeout(() => {
+        if (table && $.fn.DataTable.isDataTable('#empleadosTable')) {
+            console.log('🔄 Recargando DataTable principal...');
+            table.ajax.reload(null, false);
+            updateStats();
+            
+            // ✅ NO mostrar alert - solo actualizar en silencio
+            // El usuario no necesita saber que se recargaron los datos
+        }
+    }, 300);
+    
+    console.log('✅ Modal de empleado cerrado y limpieza completada');
 });
 
 // Redimensionar mapa cuando el modal se muestre
@@ -5702,26 +5740,6 @@ $('#viewEmployeeModal').on('shown.bs.modal', function() {
         }, 300);
     }
 });
-
-
-// Inicializar Flatpickr para el modal de exportación
-/*function initializeExportDatepicker() {
-    flatpickr("#export_mes", {
-        plugins: [
-            new monthSelectPlugin({
-                shorthand: true,
-                dateFormat: "m-Y",  // Formato YYYY-MM
-                dateFormat: "Y-m",  // Formato YYYY-MM
-                altFormat: "F Y",   // Formato visual: Mes Año
-                theme: "material_blue"
-            })
-        ],
-        locale: "es",
-        onChange: function(selectedDates, dateStr, instance) {
-            console.log('📅 Mes seleccionado para exportar:', dateStr);
-        }
-    });
-}*/
 
 // Función para abrir el modal de exportación
 function abrirModalExportar() {
@@ -7427,37 +7445,214 @@ function cargarRegistrosEmpleado() {
 function viewDetailsFromAdmin(registroId, empleadoId) {
     console.log('🔍 Cargando detalles del registro desde admin:', registroId, empleadoId);
     
-    // Guardar el estado actual del mapa ANTES de abrir el modal de detalles
+    // ✅ 1. Guardar estado del modal de empleado ANTES de abrir detalles
+    const empleadoModal = $('#viewEmployeeModal');
+    
+    // Guardar posición de scroll del modal de empleado
+    const empleadoModalBody = empleadoModal.find('.modal-body');
+    window.empleadoModalScrollTop = empleadoModalBody.scrollTop();
+    
+    // ✅ 2. Guardar estado del mapa
     guardarEstadoMapa();
     
-    // ✅ CORRECCIÓN: NO cerrar el modal de empleado, solo mostrar el de detalles encima
-    // 1. Resetear el modal de detalles
+    // ✅ 3. Guardar clases del body actuales
+    window.bodyClassesBeforeDetails = $('body').attr('class');
+    
+    // ✅ 4. IMPORTANTE: Marcar que estamos en transición de modal (NO ACTUALIZACIÓN)
+    window.isModalTransition = true;
+    
+    // ✅ 5. Ocultar temporalmente el modal de empleado con fade
+    empleadoModal.css({
+        'opacity': '0.5',
+        'pointer-events': 'none',
+        'transition': 'opacity 0.3s ease'
+    });
+    
+    // ✅ 6. Agregar una clase para identificar que estamos en modo detalles
+    empleadoModal.addClass('details-parent');
+    
+    // ✅ 7. Resetear y mostrar modal de detalles
     $('#modal-loading').show();
     $('#modal-content').hide();
     $('#modal-error').hide();
     
-    // 2. Mostrar modal de detalles encima del de empleado
-    $('#detailsModal').modal('show');
+    // ✅ 8. Cerrar el modal actual suavemente
+    empleadoModal.modal('hide');
     
-    // 3. Obtener datos del registro
-    $.ajax({
-        url: `/admin/empleados/${empleadoId}/registros/${registroId}/detalles`,
-        method: 'GET',
-        timeout: 10000,
-        success: function(response) {
-            console.log('✅ Respuesta detalles:', response);
-            
-            if (response.success && response.registro) {
-                mostrarDetallesCompletos(response.registro, response.estadisticasDia);
-            } else {
-                mostrarErrorModal(response.message || 'No se pudieron cargar los detalles del registro.');
+    // ✅ 9. Pequeño delay para permitir que se cierre el modal anterior
+    setTimeout(() => {
+        // ✅ 10. Mostrar modal de detalles
+        $('#detailsModal').modal({
+            backdrop: 'static',
+            keyboard: false,
+            show: true
+        });
+        
+        // ✅ 11. Obtener datos del registro
+        $.ajax({
+            url: `/admin/empleados/${empleadoId}/registros/${registroId}/detalles`,
+            method: 'GET',
+            timeout: 10000,
+            success: function(response) {
+                console.log('✅ Respuesta detalles:', response);
+                
+                if (response.success && response.registro) {
+                    mostrarDetallesCompletos(response.registro, response.estadisticasDia);
+                } else {
+                    mostrarErrorModal(response.message || 'No se pudieron cargar los detalles del registro.');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('❌ Error al cargar detalles:', error);
+                mostrarErrorModal('Error al cargar los detalles del registro.');
             }
-        },
-        error: function(xhr, status, error) {
-            console.error('❌ Error al cargar detalles:', error);
-            mostrarErrorModal('Error al cargar los detalles del registro.');
-        }
-    });
+        });
+    }, 300);
+}
+
+// ✅ MANEJADOR MEJORADO para cerrar modal de detalles y restaurar empleado
+$('#detailsModal').on('hidden.bs.modal', function(e) {
+    console.log('🔙 Modal de detalles cerrado - restaurando modal de empleado...');
+    
+    // ✅ 1. Cerrar completamente el modal de detalles
+    $(this).modal('hide');
+    
+    // ✅ 2. Limpiar completamente el backdrop
+    $('.modal-backdrop').remove();
+    
+    // ✅ 3. Restaurar clases del body originales
+    if (window.bodyClassesBeforeDetails) {
+        $('body').attr('class', window.bodyClassesBeforeDetails);
+    }
+    
+    // ✅ 4. Quitar la clase de modo detalles
+    $('#viewEmployeeModal').removeClass('details-parent');
+    
+    // ✅ 5. Reabrir el modal de empleado después de un delay
+    setTimeout(() => {
+        // ✅ 6. Reabrir el modal de empleado
+        $('#viewEmployeeModal').modal('show');
+        
+        // ✅ 7. Restaurar el scroll del modal de empleado
+        setTimeout(() => {
+            if (window.empleadoModalScrollTop !== null) {
+                const empleadoModalBody = $('#viewEmployeeModal').find('.modal-body');
+                empleadoModalBody.scrollTop(window.empleadoModalScrollTop);
+                console.log('📜 Scroll restaurado a:', window.empleadoModalScrollTop);
+            }
+            
+            // ✅ 8. Restaurar opacidad y eventos
+            $('#viewEmployeeModal').css({
+                'opacity': '1',
+                'pointer-events': 'auto'
+            });
+            
+            // ✅ 9. Reinicializar mapa si es necesario
+            if (tempEmployeeData) {
+                reinicializarMapaEmpleado();
+            }
+            
+            console.log('✅ Modal de empleado restaurado correctamente');
+            
+            // ✅ 10. IMPORTANTE: NO mostrar alert de "Actualizado" - NO HAY ACTUALIZACIÓN
+            // No se muestra ningún mensaje porque solo fue una transición de modal
+            
+        }, 200);
+    }, 300);
+    
+    // ✅ 11. Limpiar variables temporales
+    window.bodyClassesBeforeDetails = null;
+    window.empleadoModalScrollTop = null;
+    window.isModalTransition = null;
+    
+    return false;
+});
+
+
+// ✅ FUNCIÓN AUXILIAR: Reinicializar mapa del empleado
+function reinicializarMapaEmpleado() {
+    if (!tempEmployeeData) {
+        console.log('⚠️ No hay datos de empleado para reinicializar el mapa');
+        return;
+    }
+    
+    console.log('🗺️ Reinicializando mapa del empleado...');
+    
+    const mapElement = document.getElementById('view_map');
+    if (!mapElement) {
+        console.error('❌ Elemento view_map no encontrado');
+        return;
+    }
+    
+    // Pequeño delay para asegurar que el modal esté completamente visible
+    setTimeout(() => {
+        // Limpiar completamente
+        mapElement.innerHTML = '';
+        
+        // Crear nuevo contenedor interno
+        const mapInnerDiv = document.createElement('div');
+        mapInnerDiv.style.width = '100%';
+        mapInnerDiv.style.height = '100%';
+        mapInnerDiv.style.minHeight = '250px';
+        mapElement.appendChild(mapInnerDiv);
+        
+        const lat = parseFloat(tempEmployeeData.latitud) || 40.4168;
+        const lng = parseFloat(tempEmployeeData.longitud) || -3.7038;
+        
+        // Crear nuevo mapa
+        viewMap = new google.maps.Map(mapInnerDiv, {
+            zoom: 15,
+            center: { lat: lat, lng: lng },
+            mapTypeControl: true,
+            streetViewControl: true,
+            fullscreenControl: true,
+            zoomControl: true,
+            styles: [
+                {
+                    featureType: "poi",
+                    elementType: "labels",
+                    stylers: [{ visibility: "off" }]
+                }
+            ]
+        });
+        
+        // Crear nuevo marcador
+        viewMarker = new google.maps.Marker({
+            map: viewMap,
+            draggable: false,
+            title: `${tempEmployeeData.nombre} ${tempEmployeeData.apellidos}`,
+            position: { lat: lat, lng: lng }
+        });
+        
+        // InfoWindow
+        const infoWindow = new google.maps.InfoWindow({
+            content: `
+                <div class="p-2">
+                    <h6 class="mb-1">${tempEmployeeData.nombre} ${tempEmployeeData.apellidos}</h6>
+                    <p class="mb-1 small">${tempEmployeeData.domicilio || 'Dirección no disponible'}</p>
+                    <p class="mb-0 small text-muted">Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
+                </div>
+            `
+        });
+        
+        viewMarker.addListener('click', () => {
+            infoWindow.open(viewMap, viewMarker);
+        });
+        
+        // Forzar redibujado después de que el modal esté completamente visible
+        setTimeout(() => {
+            if (google && google.maps) {
+                google.maps.event.trigger(viewMap, 'resize');
+                viewMap.setCenter({ lat: lat, lng: lng });
+                
+                // Abrir infoWindow
+                infoWindow.open(viewMap, viewMarker);
+                
+                console.log('✅ Mapa del empleado reinicializado correctamente');
+            }
+        }, 300);
+        
+    }, 200);
 }
 
 // ✅ FUNCIÓN PARA ACTUALIZAR ÍCONOS DE EXPANSIÓN
