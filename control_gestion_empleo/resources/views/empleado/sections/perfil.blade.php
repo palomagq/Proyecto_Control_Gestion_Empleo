@@ -947,7 +947,7 @@ $(document).ready(function() {
 
     // Inicializar DataTable con manejo de estado vacío
   function initializeDataTable() {
-    console.log('🔄 Inicializando DataTable responsive...');
+    console.log('🔄 Inicializando DataTable de registros...');
 
     // Destruir si ya existe
     if ($.fn.DataTable.isDataTable('#historial-table')) {
@@ -986,7 +986,6 @@ $(document).ready(function() {
                 { 
                     data: 'created_at',
                     name: 'created_at',
-                    className: 'all control', // Añadir clase control aquí
                     responsivePriority: 1,
                     render: function(data) {
                         const fechaFormateada = data ? new Date(data).toLocaleDateString('es-ES', {
@@ -996,13 +995,12 @@ $(document).ready(function() {
                             day: 'numeric'
                         }) : '-';
                         
-                        return `<div class="fecha-con-control">${fechaFormateada}</div>`;
+                        return `<div>${fechaFormateada}</div>`;
                     }
                 },
                 { 
                     data: 'inicio',
                     name: 'inicio',
-                    className: 'all',
                     responsivePriority: 2,
                     render: function(data) {
                         return data ? new Date(data).toLocaleTimeString('es-ES') : '-';
@@ -1011,7 +1009,6 @@ $(document).ready(function() {
                 { 
                     data: 'fin',
                     name: 'fin',
-                    className: 'min-tablet',
                     responsivePriority: 6,
                     render: function(data) {
                         return data ? new Date(data).toLocaleTimeString('es-ES') : 'En progreso';
@@ -1020,8 +1017,7 @@ $(document).ready(function() {
                 { 
                     data: 'pausa_inicio',
                     name: 'pausa_inicio',
-                    className: 'min-desktop',
-                    responsivePriority: 8,
+                    responsivePriority: 9,
                     render: function(data) {
                         return data ? new Date(data).toLocaleTimeString('es-ES') : '-';
                     }
@@ -1029,8 +1025,7 @@ $(document).ready(function() {
                 { 
                     data: 'pausa_fin',
                     name: 'pausa_fin',
-                    className: 'min-desktop',
-                    responsivePriority: 9,
+                    responsivePriority: 10,
                     render: function(data) {
                         return data ? new Date(data).toLocaleTimeString('es-ES') : '-';
                     }
@@ -1038,7 +1033,6 @@ $(document).ready(function() {
                 { 
                     data: 'tiempo_pausa_total',
                     name: 'tiempo_pausa_total',
-                    className: 'min-tablet-lg',
                     responsivePriority: 7,
                     render: function(data, type, row) {
                         let tiempoPausa = Math.max(0, parseInt(data || 0));
@@ -1063,8 +1057,7 @@ $(document).ready(function() {
                 { 
                     data: 'tiempo_total',
                     name: 'tiempo_total',
-                    className: 'min-tablet',
-                    responsivePriority: 4,
+                    responsivePriority: 5,
                     render: function(data, type, row) {
                         if (!data || data === 0) {
                             return row.fin ? '00:00:00' : '-';
@@ -1077,8 +1070,7 @@ $(document).ready(function() {
                 { 
                     data: 'direccion',
                     name: 'direccion',
-                    className: 'min-desktop',
-                    responsivePriority: 10,
+                    responsivePriority: 11,
                     render: function(data, type, row) {
                         const ciudad = row.ciudad || '';
                         const pais = row.pais || '';
@@ -1102,8 +1094,7 @@ $(document).ready(function() {
                 { 
                     data: 'estado',
                     name: 'estado',
-                    className: 'min-desktop',
-                    responsivePriority: 5,
+                    responsivePriority: 4,
                     render: function(data) {
                         const statusMap = {
                             'activo': 'badge-active',
@@ -1117,8 +1108,7 @@ $(document).ready(function() {
                 {
                     data: 'id',
                     name: 'actions',
-                    className: 'min-desktop',
-                    responsivePriority: 11,
+                    responsivePriority: 3,
                     orderable: false,
                     searchable: false,
                     render: function(data) {
@@ -1135,30 +1125,8 @@ $(document).ready(function() {
                 emptyTable: 'No hay registros para el mes seleccionado',
                 zeroRecords: 'No se encontraron registros que coincidan'
             },
-            order: [[0, 'desc']], // Ordenar por la primera columna (fecha)
-            responsive: {
-                details: {
-                    type: 'column',
-                    target: 0, // Usar la columna de control (ícono +/-) como objetivo
-                    renderer: function (api, rowIdx, columns) {
-                        const data = $.map(columns, function (col, i) {
-                            // Excluir la columna de control y acciones de los detalles
-                            if (col.columnIndex === 0 || col.columnIndex === 10) return '';
-                            
-                            return col.hidden ? 
-                                `<div class="dtr-detail-item">
-                                    <span class="dtr-title">${col.title}</span>
-                                    <span class="dtr-data">${col.data}</span>
-                                </div>` : 
-                                '';
-                        }).join('');
-
-                        return data ? 
-                            $(`<div class="dtr-details-grid">${data}</div>`) : 
-                            false;
-                    }
-                }
-            },
+            order: [[0, 'desc']],
+            responsive: true, // SIMPLIFICADO - Igual que en tareas
             autoWidth: false,
             drawCallback: function(settings) {
                 updatePeriodSummary();
@@ -1179,15 +1147,12 @@ $(document).ready(function() {
                 }
             },
             initComplete: function(settings, json) {
-                console.log('✅ DataTable responsive inicializado correctamente');
-                console.log('🔍 Configuración responsive activa en columna de fecha');
+                console.log('✅ DataTable de registros inicializado correctamente');
+                console.log('🔍 Usando responsive automático (igual que tareas)');
             }
         });
     } catch (error) {
-        console.error('❌ Error inicializando DataTable responsive:', error);
-        
-        // Fallback básico sin responsive
-        //initializeBasicDataTable();
+        console.error('❌ Error inicializando DataTable:', error);
     }
 }
 
